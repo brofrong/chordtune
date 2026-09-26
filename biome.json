@@ -73,7 +73,8 @@
       "includes": ["**/*.test.ts"],
       "linter": {
         "rules": {
-          "style": { "noNonNullAssertion": "off" }
+          "style": { "noNonNullAssertion": "off" },
+          "suspicious": { "noTemplateCurlyInString": "off" }
         }
       }
     }

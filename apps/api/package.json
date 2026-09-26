@@ -15,7 +15,8 @@
     "db:studio": "drizzle-kit studio",
     "auth:generate": "bun --env-file=../../.env x auth@latest generate --config src/auth.ts --output src/db/auth-schema.ts",
     "test": "bun test",
-    "search:reindex": "bun --env-file=../../.env src/scripts/reindex.ts"
+    "search:reindex": "bun --env-file=../../.env src/scripts/reindex.ts",
+    "db:seed": "bun --env-file=../../.env src/scripts/seed.ts"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.7.6",
