@@ -11,5 +11,17 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql
 
+  meilisearch:
+    image: getmeili/meilisearch:v1.54
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: chordtune-dev-master-key
+      MEILI_NO_ANALYTICS: "true"
+    ports:
+      - "7700:7700"
+    volumes:
+      - meili-data:/meili_data
+
 volumes:
   postgres-data:
+  meili-data:

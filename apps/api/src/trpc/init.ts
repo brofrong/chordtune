@@ -3,10 +3,11 @@ import superjson from 'superjson';
 
 import { auth, type Session } from '../auth';
 import { db } from '../db';
+import { search } from '../search/client';
 
 export async function createContext({ req }: { req: Request }) {
   const session: Session | null = await auth.api.getSession({ headers: req.headers });
-  return { db, session };
+  return { db, search, session };
 }
 
 export type Context = Awaited<ReturnType<typeof createContext>>;
