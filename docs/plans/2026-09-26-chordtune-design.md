@@ -189,6 +189,25 @@ type Bar = { segments: { chord: Chord | null; text: string }[] };
   `@better-auth/drizzle-adapter/relations-v2`; схема сгенерирована их CLI.
   Для Capacitor включён bearer-плагин, токен хранится в `localStorage`.
 
+## Статус (2026-09-27)
+
+Фазы 6–8 сделаны по `2026-09-26-song-editor.md`: `packages/chord-sheet` (формат, «аккорды над
+строкой», ритм, импорт Obsidian, лента), аппликатуры и плеер боя/перебора, таблицы песен,
+Meilisearch, tRPC, seed, форма «Новая песня» с двумя редакторами, список и страница песни.
+Что выяснилось по ходу:
+
+- Поиск — Meilisearch вместо `pg_trgm`. Транслит решается федеративным `multiSearch` по
+  запросу и его транслиту: «нойз» → Noize MC, «лумен» → LUMEN.
+- Next 16 генерирует типы маршрутов только для `page.tsx`. SSR-страница песни —
+  `page.web.tsx`, её подхватывает только web-сборка (`pageExtensions`), параметры
+  типизированы вручную; Capacitor открывает песню как `/song?id=`.
+- Сервисы API принимают `PgAsyncDatabase` с нашими relations, поэтому тесты идут на PGlite.
+- Base UI `Button` с `render={<Link />}` требует `nativeButton={false}`.
+- В Bun 1.4.2 `toMatchObject` с `expect.arrayContaining` портит проверяемый объект — в тестах
+  не используем.
+- Акцент в редакторе паттерна — точка под клеткой, а не двойной тап: на телефоне двойной тап
+  конфликтует с циклом штрихов.
+
 ## Риски
 
 - **Cookies Better Auth в WebView** Capacitor (origin `capacitor://localhost`) —

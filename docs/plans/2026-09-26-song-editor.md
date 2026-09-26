@@ -26,12 +26,7 @@ PostgreSQL 18, Meilisearch (JS-клиент `meilisearch`), Hono + tRPC 11, Bett
 
 ### Состояние
 
-- Ветка `feat/song-editor` (от `main`). Закоммичен только дизайн-документ.
-- **Task 1 сделан, но не закоммичен**: `packages/chord-sheet/{package.json,tsconfig.json}`,
-  `src/chord.ts`, `src/chord.test.ts` (6 тестов проходят), фикстуры
-  `packages/chord-sheet/fixtures/obsidian/*.md`. Начни с `git status` и закоммить их.
-- `bun install` после добавления пакета ещё не выполнен (см. ниже), поэтому
-  `node_modules/@chordtune/chord-sheet` может отсутствовать. Запусти `bun install` из корня.
+- Задачи 1–18 сделаны (2026-09-27), итоги — в разделе «Статус» общего дизайна.
 
 ### Окружение и грабли
 
