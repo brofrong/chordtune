@@ -6,10 +6,8 @@ export type Item =
   | { type: 'rhythm'; key: string }
   | { type: 'repeat'; times: number };
 
-export type Line =
-  /** A line without chord, bar, rhythm or repeat items is plain text. */
-  | { type: 'line'; items: Item[] }
-  | { type: 'tab'; lines: string[] };
+/** A line without chord, bar, rhythm or repeat items is plain text. */
+export type Line = { type: 'line'; items: Item[] } | { type: 'tab'; lines: string[] };
 
 export type Section = { label: string | null; rhythm: string | null; lines: Line[] };
 

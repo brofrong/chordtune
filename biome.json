@@ -62,6 +62,14 @@
       }
     },
     {
+      "includes": ["packages/chord-sheet/**"],
+      "linter": {
+        "rules": {
+          "suspicious": { "noTemplateCurlyInString": "off" }
+        }
+      }
+    },
+    {
       "includes": ["**/*.test.ts"],
       "linter": {
         "rules": {
