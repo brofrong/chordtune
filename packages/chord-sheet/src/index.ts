@@ -1,5 +1,6 @@
 export * from './chord';
 export * from './chords-over-lyrics';
+export * from './import-obsidian';
 export * from './parse';
 export * from './rhythm';
 export * from './rhythm-presets';
