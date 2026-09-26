@@ -1,17 +1,14 @@
 import { synthesizeNote } from '../guitar-synth';
+import { getAudioContext } from './audio-context';
 
-let context: AudioContext | null = null;
 let current: AudioBufferSourceNode | null = null;
 const cache = new Map<string, AudioBuffer>();
 
 /** Plays a plucked reference note; a new call cuts the previous one off. */
 export async function playReferenceTone(frequency: number): Promise<void> {
-  if (typeof window === 'undefined') {
+  const context = await getAudioContext();
+  if (!context) {
     return;
-  }
-  context ??= new AudioContext();
-  if (context.state === 'suspended') {
-    await context.resume();
   }
 
   const key = `${context.sampleRate}:${frequency.toFixed(3)}`;
