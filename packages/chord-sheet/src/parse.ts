@@ -9,6 +9,16 @@ const RHYTHM_KEY_RE = /[A-Z]/;
 export const TAB_START = '{start_of_tab}';
 export const TAB_END = '{end_of_tab}';
 
+export function parseHeader(text: string): { label: string; rhythm: string | null } | null {
+  const match = HEADER_RE.exec(text);
+  return match ? { label: match[1] ?? '', rhythm: match[2] ?? null } : null;
+}
+
+export function parseMeta(text: string): [key: string, value: string] | null {
+  const match = META_RE.exec(text);
+  return match ? [match[1] ?? '', match[2] ?? ''] : null;
+}
+
 /** Parses the internal `${Chord}` format. Never throws: problems become diagnostics. */
 export function parse(source: string): { doc: SongDoc; diagnostics: Diagnostic[] } {
   const diagnostics: Diagnostic[] = [];
@@ -19,18 +29,18 @@ export function parse(source: string): { doc: SongDoc; diagnostics: Diagnostic[]
 
   let i = 0;
   for (; i < lines.length; i++) {
-    const match = META_RE.exec(lines[i] ?? '');
-    if (!match) {
+    const entry = parseMeta(lines[i] ?? '');
+    if (!entry) {
       break;
     }
-    meta[match[1] ?? ''] = match[2] ?? '';
+    meta[entry[0]] = entry[1];
   }
 
   for (; i < lines.length; i++) {
     const text = lines[i] ?? '';
-    const header = HEADER_RE.exec(text);
+    const header = parseHeader(text);
     if (header) {
-      current = { label: header[1] ?? '', rhythm: header[2] ?? null, lines: [] };
+      current = { ...header, lines: [] };
       sections.push(current);
       continue;
     }
