@@ -162,7 +162,8 @@
       "repeat": "Повтор",
       "rhythm": "Ритм",
       "remove": "Убрать"
-    }
+    },
+    "playSection": "Прослушать раздел"
   },
   "rhythm": {
     "title": "Ритм",

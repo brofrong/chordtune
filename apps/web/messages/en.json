@@ -162,7 +162,8 @@
       "repeat": "Repeat",
       "rhythm": "Rhythm",
       "remove": "Remove"
-    }
+    },
+    "playSection": "Listen to the section"
   },
   "rhythm": {
     "title": "Rhythm",

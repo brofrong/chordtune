@@ -37,7 +37,7 @@ export function SongView({ arrangement }: { arrangement: ArrangementView }) {
 
   const playSection = (section: number) => {
     const { notes } = sectionPlayback(doc, rhythms, section, bpm);
-    void player.toggle(`section:${section}`, notes);
+    player.toggle(`section:${section}`, notes);
   };
 
   return (
@@ -66,7 +66,7 @@ export function SongView({ arrangement }: { arrangement: ArrangementView }) {
                   label={t('play')}
                   onClick={() => {
                     const { notes, loopSec } = patternPlayback(rhythm, firstChord(doc), bpm);
-                    void player.toggle(id, notes, { loopSec });
+                    player.toggle(id, notes, { loopSec });
                   }}
                 />
               </div>

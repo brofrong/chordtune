@@ -31,7 +31,7 @@ export function SongsBrowser() {
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8">
       <div className="flex items-center justify-between gap-4">
         <h1 className="font-semibold text-2xl tracking-tight">{t('title')}</h1>
-        <Button render={<Link href="/songs/new" />}>
+        <Button nativeButton={false} render={<Link href="/songs/new" />}>
           <Plus />
           {t('add')}
         </Button>
