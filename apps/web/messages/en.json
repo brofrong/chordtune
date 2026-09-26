@@ -82,5 +82,18 @@
     "apiChecking": "Checking the server…",
     "apiOnline": "Server is reachable",
     "apiOffline": "Server is unreachable"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "signOut": "Sign out",
+    "account": "Account",
+    "signInTitle": "Sign in",
+    "signUpTitle": "New account",
+    "description": "To save and edit your arrangements.",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "failed": "That didn't work. Check your email and password."
   }
 }

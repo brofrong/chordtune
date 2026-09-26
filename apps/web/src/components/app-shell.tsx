@@ -3,6 +3,7 @@
 import { AudioLines, ListMusic } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
+import { AccountButton } from '@/features/auth/account-button';
 import { Link, usePathname } from '@/i18n/navigation';
 import { type Locale, routing } from '@/i18n/routing';
 import { rememberLocale } from '@/lib/locale-preference';
@@ -40,7 +41,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             ))}
           </nav>
-          <LocaleSwitcher className="ml-auto" />
+          <div className="ml-auto flex items-center gap-2">
+            <LocaleSwitcher />
+            <AccountButton />
+          </div>
         </div>
       </header>
 
