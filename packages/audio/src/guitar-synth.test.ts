@@ -2,7 +2,13 @@ import { describe, expect, test } from 'bun:test';
 
 import { chromaFromMagnitudes, detectChord, pitchClassNames } from './chords';
 import { applyHannWindow, fftMagnitudes } from './fft';
-import { CHORD_CATALOG, synthesizeChord, synthesizeNote, voicingToMidi } from './guitar-synth';
+import {
+  CHORD_CATALOG,
+  synthesizeChord,
+  synthesizeNote,
+  synthesizePluck,
+  voicingToMidi,
+} from './guitar-synth';
 import { centsBetween, detectPitchYin, midiToHz } from './pitch';
 
 function pitchClassFromMidi(midi: number): string {
@@ -74,5 +80,18 @@ describe('synthesizeNote', () => {
       expect(pitch.frequency).not.toBeNull();
       expect(Math.abs(centsBetween(pitch.frequency ?? 0, target))).toBeLessThan(1);
     }
+  });
+});
+
+describe('synthesizePluck', () => {
+  test('a quiet plucked note at the requested pitch', () => {
+    const sampleRate = 48000;
+    const target = midiToHz(45);
+    const samples = synthesizePluck(target, { sampleRate, durationSec: 1 });
+    expect(samples.length).toBe(sampleRate);
+    expect(Math.max(...samples.map(Math.abs))).toBeCloseTo(0.3, 5);
+    const from = Math.floor(0.1 * sampleRate);
+    const pitch = detectPitchYin(samples.subarray(from, from + 4096), sampleRate);
+    expect(Math.abs(centsBetween(pitch.frequency ?? 0, target))).toBeLessThan(10);
   });
 });

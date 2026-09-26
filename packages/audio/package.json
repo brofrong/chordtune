@@ -11,6 +11,9 @@
     "test": "bun test",
     "check-types": "tsc -p tsconfig.json"
   },
+  "dependencies": {
+    "@chordtune/chord-sheet": "workspace:*"
+  },
   "devDependencies": {
     "@chordtune/tsconfig": "workspace:*",
     "@types/bun": "^1.3.0",

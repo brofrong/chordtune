@@ -4,4 +4,6 @@ export * from './fft';
 export * from './guitar-synth';
 export * from './pcm';
 export * from './pitch';
+export * from './strum-schedule';
 export * from './tunings';
+export * from './voicing';

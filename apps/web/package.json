@@ -19,6 +19,7 @@
     "@capacitor/core": "8.5.2",
     "@capacitor/ios": "8.5.2",
     "@chordtune/audio": "workspace:*",
+    "@chordtune/chord-sheet": "workspace:*",
     "@tanstack/react-query": "^5.104.0",
     "@trpc/client": "11.19.0",
     "@trpc/tanstack-react-query": "11.19.0",

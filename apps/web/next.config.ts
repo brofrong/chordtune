@@ -11,7 +11,7 @@ const buildTarget = process.env.BUILD_TARGET === 'capacitor' ? 'capacitor' : 'we
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
-  transpilePackages: ['@chordtune/audio'],
+  transpilePackages: ['@chordtune/audio', '@chordtune/chord-sheet'],
   env: {
     NEXT_PUBLIC_BUILD_TARGET: buildTarget,
   },

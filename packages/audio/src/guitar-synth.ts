@@ -3,7 +3,8 @@ import { midiToHz } from './pitch';
 export const SAMPLE_RATE = 44100;
 export const DEFAULT_DURATION_SEC = 1.6;
 
-const OPEN_STRING_MIDI = [40, 45, 50, 55, 59, 64] as const;
+/** Standard tuning, low E → high E. */
+export const OPEN_STRING_MIDI = [40, 45, 50, 55, 59, 64] as const;
 
 export type GuitarFrets = readonly (number | null)[];
 
@@ -176,6 +177,26 @@ export function synthesizeNote(
   return out;
 }
 
+export type PluckOptions = {
+  sampleRate?: number;
+  durationSec?: number;
+  seed?: number;
+};
+
+/** One plucked guitar string for the strum player, peak-normalised so a full strum stays below 1. */
+export function synthesizePluck(
+  frequency: number,
+  options: PluckOptions = {},
+): Float32Array<ArrayBuffer> {
+  const sampleRate = options.sampleRate ?? SAMPLE_RATE;
+  const length = Math.floor(sampleRate * (options.durationSec ?? DEFAULT_DURATION_SEC));
+  const rng = mulberry32(options.seed ?? Math.round(frequency * 100));
+  const samples = pluckedString(frequency, length, sampleRate, rng);
+  applyEnvelope(samples, sampleRate);
+  normalizePeak(samples, 0.3);
+  return samples;
+}
+
 /**
  * Plucked string with harmonics 1–4 only.
  * The 5th/7th overtones of a real guitar land on the major 3rd and minor 7th
@@ -186,7 +207,7 @@ function pluckedString(
   length: number,
   sampleRate: number,
   rng: () => number,
-): Float32Array {
+): Float32Array<ArrayBuffer> {
   const out = new Float32Array(length);
   const decaySec = 0.42 + 70 / frequency;
   const pickMs = 6 + rng() * 4;
