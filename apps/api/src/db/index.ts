@@ -1,3 +1,4 @@
+import type { PgAsyncDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
@@ -8,4 +9,5 @@ const client = postgres(env.DATABASE_URL, { max: 10 });
 
 export const db = drizzle({ client, relations });
 
-export type Database = typeof db;
+/** Any Postgres driver with our relations: postgres-js in the app, PGlite in tests. */
+export type Database = PgAsyncDatabase<PgQueryResultHKT, typeof relations>;

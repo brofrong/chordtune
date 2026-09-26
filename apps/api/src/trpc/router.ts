@@ -1,6 +1,10 @@
 import { sql } from 'drizzle-orm';
 
 import { protectedProcedure, publicProcedure, router } from './init';
+import { arrangementsRouter } from './routers/arrangements';
+import { artistsRouter } from './routers/artists';
+import { searchRouter } from './routers/search';
+import { songsRouter } from './routers/songs';
 
 export const appRouter = router({
   health: publicProcedure.query(async ({ ctx }) => {
@@ -8,6 +12,10 @@ export const appRouter = router({
     return { ok: true as const, time: new Date() };
   }),
   me: protectedProcedure.query(({ ctx }) => ctx.session.user),
+  artists: artistsRouter,
+  songs: songsRouter,
+  search: searchRouter,
+  arrangements: arrangementsRouter,
 });
 
 export type AppRouter = typeof appRouter;
