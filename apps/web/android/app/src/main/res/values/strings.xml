@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ChordTune</string>
+    <string name="title_activity_main">ChordTune</string>
+    <string name="package_name">app.chordtune</string>
+    <string name="custom_url_scheme">app.chordtune</string>
+</resources>

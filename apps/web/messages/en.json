@@ -1,0 +1,86 @@
+{
+  "app": {
+    "name": "ChordTune",
+    "description": "Tuner and chord sheets for guitar players",
+    "nav": {
+      "tuner": "Tuner",
+      "songs": "Songs"
+    },
+    "language": "Language"
+  },
+  "tuner": {
+    "title": "Tuner",
+    "start": "Turn on microphone",
+    "stop": "Turn off",
+    "idle": "Turn on the microphone and pluck a string",
+    "listening": "Listening…",
+    "inTune": "In tune",
+    "tuneUp": "Tune up",
+    "tuneDown": "Tune down",
+    "auto": "Auto",
+    "centsUnit": "¢",
+    "hzUnit": "Hz",
+    "hz": "{value} Hz",
+    "target": "target {note}",
+    "playTone": "Reference tone {note}",
+    "settings": "Settings",
+    "instrument": "Instrument",
+    "tuning": "Tuning",
+    "a4": "A4 calibration",
+    "debug": "Debug",
+    "errors": {
+      "unsupported": "This browser cannot capture microphone audio.",
+      "permission-denied": "Microphone access is blocked. Allow it in your browser or phone settings.",
+      "no-device": "No microphone found.",
+      "unknown": "Could not turn on the microphone."
+    },
+    "instruments": {
+      "guitar": "Guitar",
+      "bass": "Bass",
+      "ukulele": "Ukulele",
+      "chromatic": "Chromatic"
+    },
+    "tunings": {
+      "guitar": {
+        "standard": "Standard",
+        "drop-d": "Drop D",
+        "half-step-down": "Half step down",
+        "d-standard": "D standard",
+        "drop-c": "Drop C",
+        "open-g": "Open G",
+        "open-d": "Open D",
+        "dadgad": "DADGAD"
+      },
+      "bass": {
+        "standard": "Standard",
+        "drop-d": "Drop D",
+        "five-string": "5-string"
+      },
+      "ukulele": {
+        "standard": "Standard (GCEA)",
+        "low-g": "Low G",
+        "baritone": "Baritone (DGBE)"
+      },
+      "chromatic": {
+        "chromatic": "Any note"
+      }
+    },
+    "debugPanel": {
+      "waveform": "Waveform",
+      "spectrum": "Spectrum",
+      "yin": "YIN",
+      "confidence": "confidence {value}%",
+      "gain": "gain {value}×",
+      "window": "window {size} @ {rate} Hz",
+      "fftPeak": "FFT peak {value} Hz"
+    }
+  },
+  "songs": {
+    "title": "Songs",
+    "searchPlaceholder": "Title, artist or chords",
+    "comingSoon": "Soon: chord sheet search, an editor, and a mode where the app listens to you play and scrolls the lyrics for you.",
+    "apiChecking": "Checking the server…",
+    "apiOnline": "Server is reachable",
+    "apiOffline": "Server is unreachable"
+  }
+}

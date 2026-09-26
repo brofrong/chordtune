@@ -1,0 +1,35 @@
+{
+  "name": "@chordtune/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/exports.ts"
+  },
+  "scripts": {
+    "dev": "bun --env-file=../../.env --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "check-types": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "auth:generate": "bun --env-file=../../.env x auth@latest generate --config src/auth.ts --output src/db/auth-schema.ts"
+  },
+  "dependencies": {
+    "@better-auth/drizzle-adapter": "^1.7.6",
+    "@hono/trpc-server": "^0.4.2",
+    "@trpc/server": "^11.19.0",
+    "better-auth": "^1.7.6",
+    "drizzle-orm": "1.0.0-rc.4",
+    "hono": "^4.13.9",
+    "postgres": "^3.4.9",
+    "superjson": "^2.2.6",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@chordtune/tsconfig": "workspace:*",
+    "@types/bun": "^1.4.2",
+    "drizzle-kit": "1.0.0-rc.4",
+    "typescript": "~6.0.3"
+  }
+}

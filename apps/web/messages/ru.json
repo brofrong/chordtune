@@ -1,0 +1,86 @@
+{
+  "app": {
+    "name": "ChordTune",
+    "description": "Тюнер и песни с аккордами для гитаристов",
+    "nav": {
+      "tuner": "Тюнер",
+      "songs": "Песни"
+    },
+    "language": "Язык"
+  },
+  "tuner": {
+    "title": "Тюнер",
+    "start": "Включить микрофон",
+    "stop": "Выключить",
+    "idle": "Включи микрофон и сыграй струну",
+    "listening": "Слушаю…",
+    "inTune": "Настроено",
+    "tuneUp": "Подтяни",
+    "tuneDown": "Ослабь",
+    "auto": "Авто",
+    "centsUnit": "ц",
+    "hzUnit": "Гц",
+    "hz": "{value} Гц",
+    "target": "цель {note}",
+    "playTone": "Эталонный звук {note}",
+    "settings": "Настройки",
+    "instrument": "Инструмент",
+    "tuning": "Строй",
+    "a4": "Калибровка A4",
+    "debug": "Отладка",
+    "errors": {
+      "unsupported": "Этот браузер не умеет захватывать звук с микрофона.",
+      "permission-denied": "Нет доступа к микрофону. Разреши его в настройках браузера или телефона.",
+      "no-device": "Микрофон не найден.",
+      "unknown": "Не удалось включить микрофон."
+    },
+    "instruments": {
+      "guitar": "Гитара",
+      "bass": "Бас",
+      "ukulele": "Укулеле",
+      "chromatic": "Хроматический"
+    },
+    "tunings": {
+      "guitar": {
+        "standard": "Стандартный",
+        "drop-d": "Drop D",
+        "half-step-down": "Полтона ниже",
+        "d-standard": "Тон ниже (D)",
+        "drop-c": "Drop C",
+        "open-g": "Open G",
+        "open-d": "Open D",
+        "dadgad": "DADGAD"
+      },
+      "bass": {
+        "standard": "Стандартный",
+        "drop-d": "Drop D",
+        "five-string": "5 струн"
+      },
+      "ukulele": {
+        "standard": "Стандартный (GCEA)",
+        "low-g": "Low G",
+        "baritone": "Баритон (DGBE)"
+      },
+      "chromatic": {
+        "chromatic": "Любая нота"
+      }
+    },
+    "debugPanel": {
+      "waveform": "Волна",
+      "spectrum": "Спектр",
+      "yin": "YIN",
+      "confidence": "уверенность {value}%",
+      "gain": "усиление {value}×",
+      "window": "окно {size} @ {rate} Гц",
+      "fftPeak": "пик FFT {value} Гц"
+    }
+  },
+  "songs": {
+    "title": "Песни",
+    "searchPlaceholder": "Название, исполнитель или аккорды",
+    "comingSoon": "Скоро здесь будет поиск песен с аккордами, редактор и режим, в котором приложение слушает игру и само прокручивает текст.",
+    "apiChecking": "Проверяю сервер…",
+    "apiOnline": "Сервер доступен",
+    "apiOffline": "Сервер недоступен"
+  }
+}
