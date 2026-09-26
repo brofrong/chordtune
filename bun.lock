@@ -80,6 +80,15 @@
         "typescript": "~6.0.3",
       },
     },
+    "packages/chord-sheet": {
+      "name": "@chordtune/chord-sheet",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@chordtune/tsconfig": "workspace:*",
+        "@types/bun": "^1.3.0",
+        "typescript": "~6.0.3",
+      },
+    },
     "packages/tsconfig": {
       "name": "@chordtune/tsconfig",
       "version": "0.0.0",
@@ -197,6 +206,8 @@
     "@chordtune/api": ["@chordtune/api@workspace:apps/api"],
 
     "@chordtune/audio": ["@chordtune/audio@workspace:packages/audio"],
+
+    "@chordtune/chord-sheet": ["@chordtune/chord-sheet@workspace:packages/chord-sheet"],
 
     "@chordtune/tsconfig": ["@chordtune/tsconfig@workspace:packages/tsconfig"],
 
