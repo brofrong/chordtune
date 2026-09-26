@@ -11,6 +11,9 @@ const buildTarget = process.env.BUILD_TARGET === 'capacitor' ? 'capacitor' : 'we
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  // `page.web.tsx` files are server-rendered pages that only exist in the web build; the static
+  // Capacitor export has no per-song routes and uses `/song?id=` instead.
+  pageExtensions: buildTarget === 'web' ? ['web.tsx', 'tsx', 'ts'] : ['tsx', 'ts'],
   transpilePackages: ['@chordtune/audio', '@chordtune/chord-sheet'],
   env: {
     NEXT_PUBLIC_BUILD_TARGET: buildTarget,
