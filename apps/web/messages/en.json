@@ -4,9 +4,16 @@
     "description": "Tuner and chord sheets for guitar players",
     "nav": {
       "tuner": "Tuner",
-      "songs": "Songs"
+      "songs": "Songs",
+      "library": "Library"
     },
-    "language": "Language"
+    "language": "Language",
+    "theme": {
+      "title": "Theme",
+      "system": "System",
+      "dark": "Dark",
+      "light": "Light"
+    }
   },
   "tuner": {
     "title": "Tuner",

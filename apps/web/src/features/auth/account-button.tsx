@@ -2,7 +2,7 @@
 
 import { LogOut, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-
+import { ThemeButton, ThemeSwitcher } from '@/components/theme-switcher';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAuthSheet } from './auth-sheet';
@@ -20,9 +20,12 @@ export function AccountButton() {
   }
   if (!user) {
     return (
-      <Button variant="ghost" size="sm" onClick={() => openAuth()}>
-        {t('signIn')}
-      </Button>
+      <span className="flex items-center gap-1">
+        <ThemeButton />
+        <Button variant="ghost" size="sm" onClick={() => openAuth()}>
+          {t('signIn')}
+        </Button>
+      </span>
     );
   }
   return (
@@ -35,6 +38,7 @@ export function AccountButton() {
           <span className="truncate font-medium">{user.name}</span>
           <span className="truncate text-muted-foreground text-xs">{user.email}</span>
         </div>
+        <ThemeSwitcher />
         <Button variant="ghost" size="sm" className="justify-start" onClick={signOut}>
           <LogOut />
           {t('signOut')}
