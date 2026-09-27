@@ -27,3 +27,4 @@ npm-debug.log*
 .DS_Store
 *.pem
 old
+.superpowers/
