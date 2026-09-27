@@ -11,7 +11,8 @@
     "check-types": "next typegen && tsc --noEmit",
     "cap:sync": "bun run build:cap && cap sync",
     "cap:ios": "cap open ios",
-    "cap:android": "cap open android"
+    "cap:android": "cap open android",
+    "test": "bun test src"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -31,6 +32,7 @@
     "motion": "^13.4.4",
     "next": "16.3.6",
     "next-intl": "^4.14.7",
+    "next-themes": "^0.4.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "server-only": "^0.0.1",
@@ -44,6 +46,7 @@
     "@chordtune/tsconfig": "workspace:*",
     "@tailwindcss/postcss": "^4.3.3",
     "@trpc/server": "11.19.0",
+    "@types/bun": "^1.4.2",
     "@types/node": "^26.6.3",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

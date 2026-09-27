@@ -26,14 +26,21 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: '#15171c',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f6f1e7' },
+    { media: '(prefers-color-scheme: dark)', color: '#0b0d17' },
+  ],
 };
 
 export default async function LocaleLayout({ children, params }: LayoutProps<'/[locale]'>) {
   const locale = await resolveLocale(params);
 
   return (
-    <html lang={locale} className={`dark ${GeistSans.variable} ${GeistMono.variable}`}>
+    <html
+      lang={locale}
+      className={`${GeistSans.variable} ${GeistMono.variable}`}
+      suppressHydrationWarning
+    >
       <body>
         <NextIntlClientProvider>
           <Providers>

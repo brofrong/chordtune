@@ -20,8 +20,8 @@ export function MarkChip({
       return (
         <span
           className={cn(
-            'rounded px-0.5 font-semibold text-primary leading-5 transition-colors',
-            active && 'bg-primary text-primary-foreground',
+            'rounded px-0.5 font-semibold text-chord leading-5 transition-colors',
+            active && 'bg-chord text-background',
             className,
           )}
         >
