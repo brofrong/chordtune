@@ -11,11 +11,22 @@ import { RhythmBadge } from '@/features/rhythm/rhythm-badge';
 import { useStrumPlayer } from '@/features/rhythm/use-strum-player';
 import type { ArrangementView } from '@/lib/trpc';
 import { LineView, TabView } from './line-view';
+import { SongActions } from './song-actions';
+import { SongHeader } from './song-header';
+import { type SongActionHooks, useSongActions } from './use-song-actions';
 
 type Active = { section: number; line: number; item: number } | null;
 
-export function SongView({ arrangement }: { arrangement: ArrangementView }) {
+export function SongView({
+  arrangement,
+  hooks,
+}: {
+  arrangement: ArrangementView;
+  /** Offline storage and play queue, wired in by the pages that support them. */
+  hooks?: SongActionHooks;
+}) {
   const t = useTranslations('song');
+  const actions = useSongActions(arrangement, hooks);
   const doc = useMemo(() => parse(arrangement.content).doc, [arrangement.content]);
   const bpm = arrangement.tempo ?? DEFAULT_BPM;
   const player = useStrumPlayer();
@@ -42,10 +53,14 @@ export function SongView({ arrangement }: { arrangement: ArrangementView }) {
 
   return (
     <article className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6">
-      <header className="flex flex-col gap-1">
+      <SongHeader arrangement={arrangement} />
+      <header className="-mt-2 flex flex-col gap-1">
         <p className="text-muted-foreground">{arrangement.artist.name}</p>
-        <h1 className="font-semibold text-2xl tracking-tight">{arrangement.song.title}</h1>
-        <p className="flex flex-wrap gap-x-4 text-muted-foreground text-sm">
+        <h1 className="font-bold font-display text-3xl tracking-tight">{arrangement.song.title}</h1>
+        <div className="mt-2">
+          <SongActions actions={actions} />
+        </div>
+        <p className="mt-2 flex flex-wrap gap-x-4 text-muted-foreground text-sm">
           {arrangement.capo ? <span>{t('capo', { fret: arrangement.capo })}</span> : null}
           {arrangement.tempo ? <span>{t('bpm', { bpm: arrangement.tempo })}</span> : null}
           {arrangement.key ? <span>{t('key', { key: arrangement.key })}</span> : null}

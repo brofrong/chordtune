@@ -125,7 +125,20 @@
     "playSection": "Listen to the section",
     "notes": "Notes",
     "notFound": "Song not found",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "actionFailed": "That didn't work, try again",
+    "views": "Views",
+    "like": "Like",
+    "save": "Save to library",
+    "savedToast": "Saved",
+    "savedOfflineToast": "Saved · available offline",
+    "played": "Played",
+    "back": "Back",
+    "more": "More",
+    "edit": "Edit",
+    "copyLink": "Copy link",
+    "linkCopied": "Link copied",
+    "needNetwork": "Needs a connection"
   },
   "editor": {
     "newTitle": "New song",
