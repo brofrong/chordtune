@@ -92,7 +92,7 @@ export function RhythmEditorSheet({
     const key = JSON.stringify([draft, chord, bpm]);
     if (previewing && draft && key !== playedKey.current) {
       playedKey.current = key;
-      const { notes, loopSec } = patternPlayback(draft, chord, bpm);
+      const { notes, loopSec } = patternPlayback(draft, chord, { bpm });
       void play(PREVIEW_ID, notes, { loopSec });
     }
   }, [draft, chord, bpm, previewing, play]);
@@ -112,7 +112,7 @@ export function RhythmEditorSheet({
         current && { ...current, steps: current.steps.map((s, i) => (i === index ? step : s)) },
     );
 
-  const loopSec = draft ? patternPlayback(draft, chord, bpm).loopSec : 1;
+  const loopSec = draft ? patternPlayback(draft, chord, { bpm }).loopSec : 1;
   const activeStep =
     previewing && draft
       ? Math.floor(((player.position % loopSec) / loopSec) * draft.steps.length)
@@ -241,7 +241,7 @@ export function RhythmEditorSheet({
                 variant="outline"
                 aria-label={t('play')}
                 onClick={() => {
-                  const { notes, loopSec: loop } = patternPlayback(draft, chord, bpm);
+                  const { notes, loopSec: loop } = patternPlayback(draft, chord, { bpm });
                   playedKey.current = JSON.stringify([draft, chord, bpm]);
                   player.toggle(PREVIEW_ID, notes, { loopSec: loop });
                 }}

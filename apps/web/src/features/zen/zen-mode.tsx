@@ -247,6 +247,10 @@ export function ZenMode({
                 </p>
               )}
               {section.lines.map((line, lineIndex) => {
+                if (line.type === 'alphatex') {
+                  // TODO(task 8): render the alphaTex block.
+                  return null;
+                }
                 const key = `${sectionIndex}:${lineIndex}`;
                 const index = zenIndex.get(key);
                 const isCurrent =

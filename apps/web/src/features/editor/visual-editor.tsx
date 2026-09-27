@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import type { PlayingAt } from '@/features/rhythm/playback';
 import { TabView } from '@/features/song/line-view';
 import { MarkChip } from '@/features/song/mark-chip';
 import { cn } from '@/lib/utils';
@@ -35,7 +36,7 @@ import {
   updateSection,
 } from './doc-edit';
 
-export type ActiveChord = { section: number; line: number; item: number } | null;
+export type ActiveChord = PlayingAt | null;
 
 type Target = {
   section: number;
@@ -162,6 +163,10 @@ export function VisualEditor({
             const key = `${sectionIndex}:${lineIndex}`;
             if (line.type === 'tab') {
               return <TabView key={key} lines={line.lines} />;
+            }
+            if (line.type === 'alphatex') {
+              // TODO(task 9): render the alphaTex block.
+              return null;
             }
             const editing = editingLine?.section === sectionIndex && editingLine.line === lineIndex;
             return (

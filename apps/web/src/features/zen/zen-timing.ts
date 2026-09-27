@@ -1,5 +1,5 @@
 import { eventSeconds } from '@chordtune/audio';
-import { type Rhythm, type SongDoc, timeline } from '@chordtune/chord-sheet';
+import { type Rhythm, type SongDoc, tabBeats, timeline } from '@chordtune/chord-sheet';
 
 /** A line that has chords, with when it plays (seconds from the start). */
 export type ZenLine = {
@@ -7,7 +7,7 @@ export type ZenLine = {
   line: number;
   start: number;
   end: number;
-  /** When each chord of the line starts, and its item index in the line. */
+  /** When each chord (or tab beat) of the line starts, and its item index (or beat index). */
   chordStarts: number[];
   chordItems: number[];
 };
@@ -15,7 +15,7 @@ export type ZenLine = {
 /**
  * Lines in play order with their timing: a line lasts as long as its chords (one bar each
  * unless `|` splits them), in the tempo and time signature of their rhythm. Lines without
- * chords take no time.
+ * chords take no time; an alphaTex block is one line whose «chords» are its beats.
  */
 export function zenLines(doc: SongDoc, rhythms: Rhythm[], bpm: number): ZenLine[] {
   const events = timeline(doc, rhythms);
@@ -43,8 +43,16 @@ export function zenLines(doc: SongDoc, rhythms: Rhythm[], bpm: number): ZenLine[
       lines.push(line);
     }
     line.end = Math.max(line.end, span.end);
-    line.chordStarts.push(span.start);
-    line.chordItems.push(event.item);
+    if (event.kind === 'tab') {
+      const quarterSec = 60 / (event.tempo ?? bpm);
+      tabBeats(event.block).forEach((beat, index) => {
+        line.chordStarts.push(span.start + beat.start * quarterSec);
+        line.chordItems.push(index);
+      });
+    } else {
+      line.chordStarts.push(span.start);
+      line.chordItems.push(event.item);
+    }
   });
   return lines;
 }

@@ -48,6 +48,22 @@ describe('zenLines', () => {
   test('no chords, no lines', () => {
     expect(zenLines(doc('просто текст'), [], 90)).toEqual([]);
   });
+
+  test('alphaTex blocks are lines with a start per beat', () => {
+    const lines = zenLines(
+      doc('${Am}a\n{start_of_alphatex}\n\\tempo 120\n:8 0.6 0.6 r.4 0.6.2\n{end_of_alphatex}'),
+      [],
+      60,
+    );
+    expect(lines[1]).toEqual({
+      section: 0,
+      line: 1,
+      start: 4,
+      end: 6,
+      chordStarts: [4, 4.25, 4.5, 5],
+      chordItems: [0, 1, 2, 3],
+    });
+  });
 });
 
 describe('zenPosition', () => {

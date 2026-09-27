@@ -10,7 +10,9 @@ import { Button } from '@/components/ui/button';
 import { useOfflineHooks } from '@/features/library/use-offline-hooks';
 import {
   DEFAULT_BPM,
+  type PlayingAt,
   patternPlayback,
+  playingAt,
   sectionPlayback,
   songPlayback,
 } from '@/features/rhythm/playback';
@@ -23,8 +25,6 @@ import { SongActions } from './song-actions';
 import { SongDock } from './song-dock';
 import { SongHeader } from './song-header';
 import { type SongActionHooks, useSongActions } from './use-song-actions';
-
-type Active = { section: number; line: number; item: number } | null;
 
 export function SongView({
   arrangement,
@@ -52,20 +52,13 @@ export function SongView({
 
   const playing = useMemo(() => {
     if (player.playing === 'song') {
-      return songPlayback(doc, rhythms, bpm);
+      return songPlayback(doc, rhythms, { bpm });
     }
     const match = player.playing?.match(/^section:(\d+)$/);
-    return match ? sectionPlayback(doc, rhythms, Number(match[1]), bpm) : null;
+    return match ? sectionPlayback(doc, rhythms, Number(match[1]), { bpm }) : null;
   }, [player.playing, doc, rhythms, bpm]);
 
-  let active: Active = null;
-  if (playing) {
-    const index = playing.seconds.findIndex(
-      (span) => player.position >= span.start && player.position < span.end,
-    );
-    const event = playing.events[index];
-    active = event ? { section: event.section, line: event.line, item: event.item } : null;
-  }
+  const active: PlayingAt | null = playing ? playingAt(playing, player.position) : null;
 
   const firstRhythm = rhythms[0];
   const rhythmHint = firstRhythm ? `${firstRhythm.name} ${firstRhythm.key}` : t('noRhythm');
@@ -76,7 +69,7 @@ export function SongView({
   const canPlay = useMemo(() => chordList(doc).length > 0, [doc]);
 
   const playSection = (section: number) => {
-    const { notes } = sectionPlayback(doc, rhythms, section, bpm);
+    const { notes } = sectionPlayback(doc, rhythms, section, { bpm });
     player.toggle(`section:${section}`, notes);
   };
 
@@ -117,7 +110,7 @@ export function SongView({
                   playing={player.playing === id}
                   label={t('play')}
                   onClick={() => {
-                    const { notes, loopSec } = patternPlayback(rhythm, firstChord(doc), bpm);
+                    const { notes, loopSec } = patternPlayback(rhythm, firstChord(doc), { bpm });
                     player.toggle(id, notes, { loopSec });
                   }}
                 />
@@ -147,11 +140,16 @@ export function SongView({
                 />
               </div>
             )}
-            {section.lines.map((line, lineIndex) =>
-              line.type === 'tab' ? (
+            {section.lines.map((line, lineIndex) => {
+              if (line.type === 'tab') {
                 // biome-ignore lint/suspicious/noArrayIndexKey: lines are positional
-                <TabView key={lineIndex} lines={line.lines} />
-              ) : (
+                return <TabView key={lineIndex} lines={line.lines} />;
+              }
+              if (line.type === 'alphatex') {
+                // TODO(task 7): render the alphaTex block.
+                return null;
+              }
+              return (
                 <LineView
                   // biome-ignore lint/suspicious/noArrayIndexKey: lines are positional
                   key={lineIndex}
@@ -162,8 +160,8 @@ export function SongView({
                       : null
                   }
                 />
-              ),
-            )}
+              );
+            })}
           </section>
         ))}
       </div>
@@ -178,7 +176,7 @@ export function SongView({
         raised={preview}
         listening={player.playing === 'song'}
         listenHint={listenHint}
-        onListen={() => player.toggle('song', songPlayback(doc, rhythms, bpm).notes)}
+        onListen={() => player.toggle('song', songPlayback(doc, rhythms, { bpm }).notes)}
         canPlay={canPlay}
         onPlay={() => {
           player.stop();

@@ -13,7 +13,7 @@ import {
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
-import { sectionPlayback } from '@/features/rhythm/playback';
+import { playingAt, sectionPlayback } from '@/features/rhythm/playback';
 import type { StrumPlayerControls } from '@/features/rhythm/use-strum-player';
 import { EditorDock } from './editor-dock';
 import { TextEditor } from './text-editor';
@@ -92,12 +92,7 @@ export function ChordEditor({
   const playingSection = Number(player.playing?.match(/^section:(\d+)$/)?.[1] ?? Number.NaN);
   let active: ActiveChord = null;
   if (!Number.isNaN(playingSection)) {
-    const { events, seconds } = sectionPlayback(doc, rhythms, playingSection, bpm);
-    const index = seconds.findIndex(
-      (span) => player.position >= span.start && player.position < span.end,
-    );
-    const event = events[index];
-    active = event ? { section: event.section, line: event.line, item: event.item } : null;
+    active = playingAt(sectionPlayback(doc, rhythms, playingSection, { bpm }), player.position);
   }
 
   const missing = unknownRhythmKeys(doc, rhythms);
@@ -116,7 +111,7 @@ export function ChordEditor({
           active={active}
           playingSection={Number.isNaN(playingSection) ? null : playingSection}
           onPlaySection={(section) => {
-            const { notes } = sectionPlayback(doc, rhythms, section, bpm);
+            const { notes } = sectionPlayback(doc, rhythms, section, { bpm });
             player.toggle(`section:${section}`, notes);
           }}
         />
