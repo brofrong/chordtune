@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { useOfflineHooks } from '@/features/library/use-offline-hooks';
 import {
   DEFAULT_BPM,
   patternPlayback,
@@ -34,7 +35,8 @@ export function SongView({
   hooks?: SongActionHooks;
 }) {
   const t = useTranslations('song');
-  const actions = useSongActions(arrangement, hooks);
+  const offline = useOfflineHooks();
+  const actions = useSongActions(arrangement, hooks ?? offline);
   const doc = useMemo(() => parse(arrangement.content).doc, [arrangement.content]);
   const bpm = arrangement.tempo ?? DEFAULT_BPM;
   const player = useStrumPlayer();

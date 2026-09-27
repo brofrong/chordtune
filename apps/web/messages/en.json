@@ -143,7 +143,9 @@
     "playAlong": "Play",
     "playAlongHint": "Lyrics scroll by themselves",
     "noRhythm": "No rhythm",
-    "stop": "Stop"
+    "stop": "Stop",
+    "offlineBanner": "Offline — showing the saved copy",
+    "noNetwork": "No connection, and this song isn't saved"
   },
   "editor": {
     "newTitle": "New song",
@@ -248,5 +250,21 @@
     "again": "Again",
     "finish": "Done",
     "tapToPause": "Tap the lyrics to pause"
+  },
+  "library": {
+    "title": "Library",
+    "saved": "Saved",
+    "liked": "Liked",
+    "mine": "My arrangements",
+    "offline": "offline",
+    "signInTitle": "Sign in to build your library",
+    "signInHint": "Saved songs stay available without a connection",
+    "signIn": "Sign in",
+    "emptySaved": "Bookmark songs and they stay at hand even offline",
+    "emptyLiked": "Heart songs and they show up here",
+    "emptyMine": "You haven't added a song yet",
+    "add": "Add a song",
+    "browse": "Find a song",
+    "loadFailed": "Could not load"
   }
 }

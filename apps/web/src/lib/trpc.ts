@@ -7,7 +7,7 @@ import superjson from 'superjson';
 
 import { API_URL, authToken } from './api';
 
-export const { TRPCProvider, useTRPC } = createTRPCContext<AppRouter>();
+export const { TRPCProvider, useTRPC, useTRPCClient } = createTRPCContext<AppRouter>();
 
 export type RouterOutputs = inferRouterOutputs<AppRouter>;
 export type ArrangementView = RouterOutputs['arrangements']['byId'];

@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { ToastProvider } from '@/components/toast';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { AuthSheetProvider } from '@/features/auth/auth-sheet';
+import { OfflineSync } from '@/features/library/offline-sync';
 import { makeQueryClient, makeTRPCClient, TRPCProvider } from '@/lib/trpc';
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -19,7 +20,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
           <TooltipProvider>
             <AuthSheetProvider>
-              <ToastProvider>{children}</ToastProvider>
+              <ToastProvider>
+                <OfflineSync />
+                {children}
+              </ToastProvider>
             </AuthSheetProvider>
           </TooltipProvider>
         </TRPCProvider>

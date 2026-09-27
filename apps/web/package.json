@@ -20,6 +20,7 @@
     "@capacitor/core": "8.5.2",
     "@capacitor/haptics": "^8",
     "@capacitor/ios": "8.5.2",
+    "@capacitor/network": "^8",
     "@chordtune/audio": "workspace:*",
     "@chordtune/chord-sheet": "workspace:*",
     "@tanstack/react-query": "^5.104.0",
