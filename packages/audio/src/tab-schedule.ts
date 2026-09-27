@@ -6,12 +6,13 @@ import type { ScheduledNote } from './strum-schedule';
 const TAB_GAIN = 0.9;
 const DEAD_GAIN = 0.8;
 const PALM_MUTE_GAIN = 0.7;
-/** A note reached by a hammer-on, pull-off or slide is not picked. */
+/** A note reached by a hammer-on is not picked. */
 const LEGATO_GAIN = 0.55;
 
 /**
  * Tab notes in time from the start of the block (repeats unrolled). Tied notes ring on,
- * dead notes and palm mute are muted, the target of `h`/`sl` sounds softer.
+ * dead notes and palm mute are muted, the target of `h` sounds softer; slide, bend and
+ * vibrato sound as plain notes.
  */
 export function scheduleTab(
   block: TabBlock,
@@ -39,7 +40,7 @@ export function scheduleTab(
       if (legato.delete(note.string)) {
         gain *= LEGATO_GAIN;
       }
-      if (note.effects.hammer || note.effects.slide) {
+      if (note.effects.hammer) {
         legato.add(note.string);
       }
       const open = OPEN_STRING_MIDI[6 - note.string] ?? OPEN_STRING_MIDI[0];

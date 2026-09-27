@@ -30,4 +30,9 @@ describe('scheduleTab', () => {
   test('repeats play again', () => {
     expect(scheduleTab(block('\\ro 0.6.2 \\rc 2'), { bpm: 60 }).map((n) => n.time)).toEqual([0, 2]);
   });
+
+  test('a slide sounds as a plain note, not a soft legato one', () => {
+    const notes = scheduleTab(block('7.2{sl} 9.2'), { bpm: 60 });
+    expect(notes[1]?.gain).toEqual(notes[0]?.gain);
+  });
 });
