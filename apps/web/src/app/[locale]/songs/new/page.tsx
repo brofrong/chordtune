@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
+import { Suspense } from 'react';
 
 import { SongForm } from '@/features/editor/song-form';
 import { resolveLocale } from '@/i18n/params';
@@ -14,5 +15,9 @@ export async function generateMetadata({
 
 export default async function NewSongPage({ params }: PageProps<'/[locale]/songs/new'>) {
   await resolveLocale(params);
-  return <SongForm />;
+  return (
+    <Suspense>
+      <SongForm />
+    </Suspense>
+  );
 }

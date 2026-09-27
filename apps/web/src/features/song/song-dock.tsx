@@ -9,12 +9,15 @@ import { cn } from '@/lib/utils';
 
 /** Two compact pills above the tab bar: listen to the song, or play along in zen mode. */
 export function SongDock({
+  raised = false,
   listening,
   listenHint,
   onListen,
   canPlay,
   onPlay,
 }: {
+  /** Above another dock (the editor's mode switcher). */
+  raised?: boolean;
   listening: boolean;
   /** «Бой A · 90 BPM», or the current section while playing. */
   listenHint: string;
@@ -28,7 +31,12 @@ export function SongDock({
       initial={{ y: 40, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ ...spring.soft, delay: 0.15 }}
-      className="fixed inset-x-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 mx-auto flex max-w-md gap-2 md:bottom-6"
+      className={cn(
+        'fixed inset-x-3 z-30 mx-auto flex max-w-md gap-2',
+        raised
+          ? 'bottom-[calc(9.75rem+env(safe-area-inset-bottom))] md:bottom-24'
+          : 'bottom-[calc(5.5rem+env(safe-area-inset-bottom))] md:bottom-6',
+      )}
     >
       <motion.button
         type="button"

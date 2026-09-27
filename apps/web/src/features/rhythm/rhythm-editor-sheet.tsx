@@ -10,7 +10,7 @@ import {
   strumSymbols,
   type TimeSignature,
 } from '@chordtune/chord-sheet';
-import { Play, Square } from 'lucide-react';
+import { Play, Square, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
@@ -67,6 +67,7 @@ export function RhythmEditorSheet({
   bpm,
   player,
   onSave,
+  onDelete,
   onClose,
 }: {
   rhythm: Rhythm | null;
@@ -74,6 +75,7 @@ export function RhythmEditorSheet({
   bpm: number;
   player: StrumPlayerControls;
   onSave: (rhythm: Rhythm) => void;
+  onDelete?: (key: string) => void;
   onClose: () => void;
 }) {
   const t = useTranslations('rhythm');
@@ -247,8 +249,22 @@ export function RhythmEditorSheet({
                 {previewing ? <Square /> : <Play />}
                 {t('play')}
               </Button>
+              {onDelete && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t('remove')}
+                  className="ml-auto text-muted-foreground"
+                  onClick={() => {
+                    onDelete(draft.key);
+                    close();
+                  }}
+                >
+                  <Trash2 />
+                </Button>
+              )}
               <Button
-                className="ml-auto"
+                className={onDelete ? '' : 'ml-auto'}
                 disabled={draft.steps.length > MAX_STEPS}
                 onClick={() => {
                   onSave({ ...draft, name: draft.name.trim() || t(draft.kind) });

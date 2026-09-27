@@ -29,14 +29,20 @@ type Active = { section: number; line: number; item: number } | null;
 export function SongView({
   arrangement,
   hooks,
+  preview = false,
 }: {
   arrangement: ArrangementView;
+  /** Shown inside the editor: no header, actions or counting; the dock sits above the editor's. */
+  preview?: boolean;
   /** Offline storage and play queue, wired in by the pages that support them. */
   hooks?: SongActionHooks;
 }) {
   const t = useTranslations('song');
   const offline = useOfflineHooks();
-  const actions = useSongActions(arrangement, hooks ?? offline);
+  const actions = useSongActions(
+    arrangement,
+    preview ? { preview: true, online: false } : (hooks ?? offline),
+  );
   const doc = useMemo(() => parse(arrangement.content).doc, [arrangement.content]);
   const bpm = arrangement.tempo ?? DEFAULT_BPM;
   const player = useStrumPlayer();
@@ -75,14 +81,22 @@ export function SongView({
   };
 
   return (
-    <article className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-4 pb-28">
-      <SongHeader arrangement={arrangement} />
+    <article
+      className={
+        preview
+          ? 'flex w-full flex-col gap-6 pb-24'
+          : 'mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-4 pb-28'
+      }
+    >
+      {!preview && <SongHeader arrangement={arrangement} />}
       <header className="-mt-2 flex flex-col gap-1">
         <p className="text-muted-foreground">{arrangement.artist.name}</p>
         <h1 className="font-bold font-display text-3xl tracking-tight">{arrangement.song.title}</h1>
-        <div className="mt-2">
-          <SongActions actions={actions} />
-        </div>
+        {!preview && (
+          <div className="mt-2">
+            <SongActions actions={actions} />
+          </div>
+        )}
         <p className="mt-2 flex flex-wrap gap-x-4 text-muted-foreground text-sm">
           {arrangement.capo ? <span>{t('capo', { fret: arrangement.capo })}</span> : null}
           {arrangement.tempo ? <span>{t('bpm', { bpm: arrangement.tempo })}</span> : null}
@@ -161,6 +175,7 @@ export function SongView({
         </section>
       )}
       <SongDock
+        raised={preview}
         listening={player.playing === 'song'}
         listenHint={listenHint}
         onListen={() => player.toggle('song', songPlayback(doc, rhythms, bpm).notes)}

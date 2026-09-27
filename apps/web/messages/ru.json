@@ -200,7 +200,15 @@
       "rhythm": "Ритм",
       "remove": "Убрать"
     },
-    "playSection": "Прослушать раздел"
+    "playSection": "Прослушать раздел",
+    "editTitle": "Правка песни",
+    "close": "Закрыть",
+    "metaPlaceholder": "Что за песня?",
+    "metaHint": "Исполнитель, название, каподастр, темп",
+    "metaTitle": "О песне",
+    "modeCheck": "Проверить",
+    "savedShort": "Готово",
+    "done": "Готово"
   },
   "rhythm": {
     "title": "Ритм",

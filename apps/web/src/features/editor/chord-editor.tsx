@@ -6,19 +6,21 @@ import {
   type ImportedSong,
   type Rhythm,
   type SongDoc,
+  serialize,
   toChordsOverLyrics,
   validate,
 } from '@chordtune/chord-sheet';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { sectionPlayback } from '@/features/rhythm/playback';
 import type { StrumPlayerControls } from '@/features/rhythm/use-strum-player';
+import { EditorDock } from './editor-dock';
 import { TextEditor } from './text-editor';
 import { type ActiveChord, VisualEditor } from './visual-editor';
 
-type Mode = 'text' | 'visual';
+export type EditorMode = 'visual' | 'text' | 'check';
+type Mode = EditorMode;
 
 const UNKNOWN_RHYTHM_RE = /^Unknown rhythm: (\w)$/;
 
@@ -38,6 +40,7 @@ export function ChordEditor({
   rhythms,
   bpm,
   player,
+  preview,
 }: {
   doc: SongDoc;
   /** Bumped when the document is replaced from outside (draft, import), to refresh the text. */
@@ -47,9 +50,12 @@ export function ChordEditor({
   rhythms: Rhythm[];
   bpm: number;
   player: StrumPlayerControls;
+  /** The song page as readers will see it, for «Проверить». */
+  preview: React.ReactNode;
 }) {
   const t = useTranslations('editor');
-  const [mode, setMode] = useState<Mode>('text');
+  // An empty song starts as text: typing is the quickest way in.
+  const [mode, setMode] = useState<Mode>(() => (serialize(doc).trim() ? 'visual' : 'text'));
   const [text, setText] = useState(() => toChordsOverLyrics(doc));
   const [errors, setErrors] = useState<Diagnostic[]>([]);
   const [blocked, setBlocked] = useState(false);
@@ -72,13 +78,14 @@ export function ChordEditor({
     if (next === mode) {
       return;
     }
-    if (next === 'visual' && errors.length > 0) {
+    if (next !== 'text' && errors.length > 0) {
       setBlocked(true);
       return;
     }
     if (next === 'text') {
       setText(toChordsOverLyrics(doc));
     }
+    player.stop();
     setMode(next);
   };
 
@@ -97,20 +104,9 @@ export function ChordEditor({
 
   return (
     <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-muted-foreground text-xs uppercase tracking-wide">{t('chords')}</h2>
-        <ToggleGroup
-          value={[mode]}
-          onValueChange={(value) => value[0] && switchMode(value[0] as Mode)}
-          variant="outline"
-          size="sm"
-        >
-          <ToggleGroupItem value="text">{t('modeText')}</ToggleGroupItem>
-          <ToggleGroupItem value="visual">{t('modeVisual')}</ToggleGroupItem>
-        </ToggleGroup>
-      </div>
-
-      {mode === 'text' ? (
+      {mode === 'check' ? (
+        preview
+      ) : mode === 'text' ? (
         <TextEditor text={text} onTextChange={changeText} onImport={onImport} />
       ) : (
         <VisualEditor
@@ -139,6 +135,7 @@ export function ChordEditor({
           ))}
         </ul>
       )}
+      <EditorDock mode={mode} onChange={switchMode} />
     </section>
   );
 }

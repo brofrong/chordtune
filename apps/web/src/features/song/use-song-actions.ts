@@ -20,6 +20,8 @@ export type SongActionHooks = {
   /** Called instead of the server when a play can't be sent (offline). */
   queuePlayed?: (id: string, times: number) => Promise<void>;
   online?: boolean;
+  /** The editor's «Проверить»: nothing is counted or fetched. */
+  preview?: boolean;
 };
 
 const EMPTY_ME: Me = { liked: false, saved: false, played: 0 };
@@ -48,7 +50,7 @@ export function useSongActions(arrangement: ArrangementView, hooks: SongActionHo
   // Server-rendered pages come without the viewer; fetch their likes and plays on the client.
   const mine = useQuery({
     ...trpc.arrangements.byId.queryOptions({ id: arrangement.id }),
-    enabled: signedIn && online,
+    enabled: signedIn && online && !hooks.preview,
   });
   useEffect(() => {
     if (mine.data?.me) {
@@ -68,14 +70,14 @@ export function useSongActions(arrangement: ArrangementView, hooks: SongActionHo
   const viewed = useRef<string | null>(null);
   const { mutateAsync: sendView } = view;
   useEffect(() => {
-    if (viewed.current === arrangement.id || !online) {
+    if (viewed.current === arrangement.id || !online || hooks.preview) {
       return;
     }
     viewed.current = arrangement.id;
     sendView({ id: arrangement.id, viewerKey: viewerKey() })
       .then(({ views }) => setStats((current) => ({ ...current, views })))
       .catch(() => {});
-  }, [arrangement.id, online, sendView]);
+  }, [arrangement.id, online, sendView, hooks.preview]);
 
   const requireUser = () => {
     if (!signedIn) {

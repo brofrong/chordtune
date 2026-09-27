@@ -200,7 +200,15 @@
       "rhythm": "Rhythm",
       "remove": "Remove"
     },
-    "playSection": "Listen to the section"
+    "playSection": "Listen to the section",
+    "editTitle": "Edit song",
+    "close": "Close",
+    "metaPlaceholder": "What song is it?",
+    "metaHint": "Artist, title, capo, tempo",
+    "metaTitle": "About the song",
+    "modeCheck": "Check",
+    "savedShort": "Done",
+    "done": "Done"
   },
   "rhythm": {
     "title": "Rhythm",
