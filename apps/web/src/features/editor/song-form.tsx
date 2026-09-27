@@ -7,7 +7,7 @@ import {
   type SongDoc,
   serialize,
 } from '@chordtune/chord-sheet';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -52,6 +52,7 @@ export function SongForm() {
   const openAuth = useAuthSheet();
   const toast = useToast();
   const player = useStrumPlayer();
+  const queryClient = useQueryClient();
   const editId = useSearchParams().get('edit');
 
   const [fields, setFields] = useState<SongFields>(EMPTY_FIELDS);
@@ -72,6 +73,9 @@ export function SongForm() {
   const existing = useQuery({
     ...trpc.arrangements.byId.queryOptions({ id: editId ?? '' }),
     enabled: Boolean(editId),
+    // Never start editing from a cached copy: saving it would undo the last edit.
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
   const loaded = useRef(false);
   // biome-ignore lint/correctness/useExhaustiveDependencies: fill the form once per source
@@ -80,7 +84,7 @@ export function SongForm() {
       return;
     }
     if (editId) {
-      if (!existing.data) {
+      if (!existing.data || existing.isFetching) {
         return;
       }
       const song = existing.data;
@@ -104,7 +108,7 @@ export function SongForm() {
     }
     loaded.current = true;
     setReady(true);
-  }, [editId, existing.data]);
+  }, [editId, existing.data, existing.isFetching]);
 
   useEffect(() => {
     if (!ready || editId) {
@@ -122,6 +126,9 @@ export function SongForm() {
     if (!editId) {
       clearDraft();
     }
+    void queryClient.invalidateQueries(trpc.arrangements.byId.queryFilter({ id: saved.id }));
+    void queryClient.invalidateQueries(trpc.library.pathFilter());
+    void queryClient.invalidateQueries(trpc.songs.list.queryFilter());
     setSaveState('saved');
     setTimeout(() => router.push(songHref(saved)), SAVED_PAUSE_MS);
   };

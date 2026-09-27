@@ -73,11 +73,18 @@ export async function enqueuePlayed(arrangementId: string, times = 1) {
   await (await db()).add('queue', { arrangementId, times });
 }
 
+/** The API accepts at most this many plays per request. */
+const MAX_PLAYS_PER_REQUEST = 50;
+
 /**
- * Sends queued plays, one request per song. Plays are removed only after their request
- * succeeds, so a failure keeps them for the next attempt.
+ * Sends queued plays, one song at a time in chunks the API accepts. A song whose request fails
+ * keeps its unsent plays for the next attempt, unless `drop` says the server rejected it for good
+ * (e.g. the song was deleted); either way the other songs still go out.
  */
-export async function flushQueue(send: (arrangementId: string, times: number) => Promise<void>) {
+export async function flushQueue(
+  send: (arrangementId: string, times: number) => Promise<void>,
+  options: { drop?: (error: unknown) => boolean } = {},
+) {
   const database = await db();
   const queued = await database.getAll('queue');
   const bySong = new Map<string, { times: number; keys: number[] }>();
@@ -89,9 +96,29 @@ export async function flushQueue(send: (arrangementId: string, times: number) =>
     }
     bySong.set(play.arrangementId, entry);
   }
+
   for (const [arrangementId, { times, keys }] of bySong) {
-    await send(arrangementId, times);
+    let left = times;
+    try {
+      while (left > 0) {
+        const chunk = Math.min(left, MAX_PLAYS_PER_REQUEST);
+        await send(arrangementId, chunk);
+        left -= chunk;
+      }
+    } catch (error) {
+      if (options.drop?.(error)) {
+        left = 0;
+      }
+    }
+    if (left === times) {
+      continue;
+    }
+    // Replace this song's entries with what is still unsent.
     const tx = database.transaction('queue', 'readwrite');
-    await Promise.all([...keys.map((key) => tx.store.delete(key)), tx.done]);
+    await Promise.all([
+      ...keys.map((key) => tx.store.delete(key)),
+      ...(left > 0 ? [tx.store.add({ arrangementId, times: left })] : []),
+      tx.done,
+    ]);
   }
 }

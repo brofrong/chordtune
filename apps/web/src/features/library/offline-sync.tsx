@@ -4,11 +4,16 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
 import { useSession } from '@/features/auth/use-session';
+import { isNetworkError } from '@/features/song/play-route';
 import { useOnline } from '@/lib/network';
 import { useTRPCClient } from '@/lib/trpc';
 import { flushQueue, reconcileOffline } from './offline-store';
 
 export const OFFLINE_SONGS_KEY = ['offline-songs'];
+
+function isUnauthorized(error: unknown): boolean {
+  return (error as { data?: { code?: string } } | null)?.data?.code === 'UNAUTHORIZED';
+}
 
 /**
  * Whenever the app starts or the connection comes back: send plays queued offline, then make
@@ -25,16 +30,23 @@ export function OfflineSync() {
       return;
     }
     let cancelled = false;
-    (async () => {
-      await flushQueue(async (id, times) => {
+    // A song the server rejects (deleted, gone private) is dropped from the queue; network
+    // failures keep it. The saved list syncs regardless of how the queue went.
+    void flushQueue(
+      async (id, times) => {
         await client.arrangements.played.mutate({ id, times });
-      });
-      const saved = await client.library.saved.query();
-      if (!cancelled) {
-        await reconcileOffline(saved);
-        await queryClient.invalidateQueries({ queryKey: OFFLINE_SONGS_KEY });
-      }
-    })().catch(() => {});
+      },
+      { drop: (error) => !isNetworkError(error) && !isUnauthorized(error) },
+    );
+    client.library.saved
+      .query()
+      .then(async (saved) => {
+        if (!cancelled) {
+          await reconcileOffline(saved);
+          await queryClient.invalidateQueries({ queryKey: OFFLINE_SONGS_KEY });
+        }
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };

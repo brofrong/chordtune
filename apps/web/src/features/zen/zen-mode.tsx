@@ -19,6 +19,7 @@ import { LineView, TabView } from '@/features/song/line-view';
 import { spring } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 import { useWakeLock } from './use-wake-lock';
+import { advanceClock } from './zen-clock';
 import { zenLines, zenOffset, zenPosition } from './zen-timing';
 
 const COUNT_FROM = 3;
@@ -95,7 +96,7 @@ export function ZenMode({
     let frame = 0;
     let last = performance.now();
     const tick = (now: number) => {
-      timeRef.current += (now - last) / 1000;
+      timeRef.current = advanceClock(timeRef.current, now - last);
       last = now;
       setTime(timeRef.current);
       frame = requestAnimationFrame(tick);
@@ -111,6 +112,17 @@ export function ZenMode({
       onFinished();
     }
   }, [phase, position.done, onFinished]);
+
+  // Leaving the app pauses the song instead of letting it run on unseen.
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.hidden) {
+        setPhase((current) => (current === 'play' ? 'pause' : current));
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
 
   const changeBpm = (delta: number) => {
     const nextBpm = Math.min(MAX_BPM, Math.max(MIN_BPM, bpm + delta));

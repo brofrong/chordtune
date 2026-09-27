@@ -70,11 +70,59 @@ describe('played queue', () => {
     await enqueuePlayed('a');
     await flushQueue(async () => {
       throw new Error('offline');
-    }).catch(() => {});
+    });
     const sent: [string, number][] = [];
     await flushQueue(async (id, times) => {
       sent.push([id, times]);
     });
     expect(sent).toEqual([['a', 1]]);
+  });
+
+  test('a song the server rejects is dropped and does not block the others', async () => {
+    await enqueuePlayed('gone');
+    await enqueuePlayed('b');
+    const sent: [string, number][] = [];
+    await flushQueue(
+      async (id, times) => {
+        if (id === 'gone') {
+          throw new Error('NOT_FOUND');
+        }
+        sent.push([id, times]);
+      },
+      { drop: (error) => (error as Error).message === 'NOT_FOUND' },
+    );
+    expect(sent).toEqual([['b', 1]]);
+    const again: string[] = [];
+    await flushQueue(async (id) => {
+      again.push(id);
+    });
+    expect(again).toEqual([]);
+  });
+
+  test('a network failure for one song still sends the others and keeps the failed one', async () => {
+    await enqueuePlayed('a');
+    await enqueuePlayed('b');
+    const sent: string[] = [];
+    await flushQueue(async (id) => {
+      if (id === 'a') {
+        throw new Error('offline');
+      }
+      sent.push(id);
+    });
+    expect(sent).toEqual(['b']);
+    const again: string[] = [];
+    await flushQueue(async (id) => {
+      again.push(id);
+    });
+    expect(again).toEqual(['a']);
+  });
+
+  test('more than 50 plays go out in chunks the API accepts', async () => {
+    await enqueuePlayed('a', 60);
+    const sent: number[] = [];
+    await flushQueue(async (_id, times) => {
+      sent.push(times);
+    });
+    expect(sent).toEqual([50, 10]);
   });
 });

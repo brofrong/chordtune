@@ -1,15 +1,17 @@
 'use client';
 
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
 import { useToast } from '@/components/toast';
 import { useAuthSheet } from '@/features/auth/auth-sheet';
 import { useSession } from '@/features/auth/use-session';
+import { authToken } from '@/lib/api';
 import { tapHaptic } from '@/lib/haptics';
 import { type ArrangementView, useTRPC } from '@/lib/trpc';
 import { viewerKey } from '@/lib/viewer-key';
+import { isNetworkError, playRoute } from './play-route';
 
 type Stats = ArrangementView['stats'];
 type Me = NonNullable<ArrangementView['me']>;
@@ -36,6 +38,7 @@ export function useSongActions(arrangement: ArrangementView, hooks: SongActionHo
   const session = useSession();
   const openAuth = useAuthSheet();
   const toast = useToast();
+  const queryClient = useQueryClient();
   const [stats, setStats] = useState<Stats>(arrangement.stats);
   const [me, setMe] = useState<Me>(arrangement.me ?? EMPTY_ME);
   const [pending, setPending] = useState<'like' | 'save' | null>(null);
@@ -65,6 +68,20 @@ export function useSongActions(arrangement: ArrangementView, hooks: SongActionHo
   const save = useMutation(trpc.arrangements.save.mutationOptions());
   const unsave = useMutation(trpc.arrangements.unsave.mutationOptions());
   const played = useMutation(trpc.arrangements.played.mutationOptions());
+
+  /** Keep the cached song page and library in step, so coming back doesn't undo an action. */
+  const remember = (patch: { stats?: Partial<Stats>; me?: Partial<Me> }) => {
+    queryClient.setQueryData(trpc.arrangements.byId.queryKey({ id: arrangement.id }), (cached) =>
+      cached
+        ? {
+            ...cached,
+            stats: { ...cached.stats, ...patch.stats },
+            me: cached.me ? { ...cached.me, ...patch.me } : cached.me,
+          }
+        : cached,
+    );
+    void queryClient.invalidateQueries(trpc.library.pathFilter());
+  };
 
   // Count the view once per mount (StrictMode mounts twice in development).
   const viewed = useRef<string | null>(null);
@@ -99,6 +116,7 @@ export function useSongActions(arrangement: ArrangementView, hooks: SongActionHo
     try {
       const result = await (next ? like : unlike).mutateAsync({ id: arrangement.id });
       setStats((current) => ({ ...current, likes: result.likes }));
+      remember({ stats: { likes: result.likes }, me: { liked: next } });
     } catch {
       setMe((current) => ({ ...current, liked: !next }));
       setStats((current) => ({ ...current, likes: current.likes + (next ? -1 : 1) }));
@@ -120,6 +138,7 @@ export function useSongActions(arrangement: ArrangementView, hooks: SongActionHo
     try {
       const result = await (next ? save : unsave).mutateAsync({ id: arrangement.id });
       setStats((current) => ({ ...current, saves: result.saves }));
+      remember({ stats: { saves: result.saves }, me: { saved: next } });
       if (next) {
         hooks.onSaved?.({ ...arrangement, me: { ...me, saved: true } });
       } else {
@@ -137,24 +156,37 @@ export function useSongActions(arrangement: ArrangementView, hooks: SongActionHo
   };
 
   const addPlayed = async (times = 1) => {
-    if (!requireUser()) {
+    const route = playRoute({
+      preview: Boolean(hooks.preview),
+      online,
+      signedIn,
+      hasToken: Boolean(authToken.get()),
+      canQueue: Boolean(hooks.queuePlayed),
+    });
+    if (route === 'skip') {
+      return;
+    }
+    if (route === 'auth') {
+      openAuth();
       return;
     }
     setMe((current) => ({ ...current, played: current.played + times }));
-    if (!online && hooks.queuePlayed) {
-      await hooks.queuePlayed(arrangement.id, times);
+    if (route === 'queue') {
+      await hooks.queuePlayed?.(arrangement.id, times);
       return;
     }
     try {
       const result = await played.mutateAsync({ id: arrangement.id, times });
-      setMe((current) => ({ ...current, played: result.played }));
-    } catch {
-      if (hooks.queuePlayed) {
+      // Responses to quick taps can arrive out of order; the count only grows.
+      setMe((current) => ({ ...current, played: Math.max(current.played, result.played) }));
+      remember({ me: { played: result.played } });
+    } catch (error) {
+      if (isNetworkError(error) && hooks.queuePlayed) {
         await hooks.queuePlayed(arrangement.id, times);
-      } else {
-        setMe((current) => ({ ...current, played: current.played - times }));
-        toast(t('actionFailed'), 'error');
+        return;
       }
+      setMe((current) => ({ ...current, played: current.played - times }));
+      toast(t('actionFailed'), 'error');
     }
   };
 
