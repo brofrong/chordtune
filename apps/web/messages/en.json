@@ -84,13 +84,23 @@
   },
   "songs": {
     "title": "Songs",
-    "searchPlaceholder": "Title, artist or a line from the song",
-    "add": "Add a song",
-    "recent": "Recently added",
+    "searchPlaceholder": "Song, artist or a line",
+    "popular": "Popular",
     "results": "Found",
-    "empty": "Nothing found",
+    "empty": "Nothing found — be the first to add it",
     "searchUnavailable": "Search is temporarily unavailable",
-    "loading": "Loading…"
+    "add": "Add a song",
+    "addHint": "Your own chords in a couple of minutes",
+    "write": "Write",
+    "writeHint": "Lyrics with chords above the lines",
+    "paste": "Paste a note",
+    "pasteHint": "Obsidian or chords over lyrics — the form fills itself",
+    "pasteTitle": "Paste a note",
+    "pastePlaceholder": "Paste a note with chords here",
+    "pasteFromClipboard": "From clipboard",
+    "pasteContinue": "Continue",
+    "pasteFailed": "This does not look like a note with chords",
+    "openEmpty": "Open an empty editor"
   },
   "auth": {
     "signIn": "Sign in",

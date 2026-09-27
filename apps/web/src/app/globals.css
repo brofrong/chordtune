@@ -104,6 +104,19 @@
   --chart-4: #b45309;
   --chart-5: #047857;
   --radius: 0.875rem;
+  /* Artist cover gradients, the same in both themes. */
+  --cover-1-a: #6366f1;
+  --cover-1-b: #22d3ee;
+  --cover-2-a: #f43f5e;
+  --cover-2-b: #f59e0b;
+  --cover-3-a: #65a30d;
+  --cover-3-b: #06b6d4;
+  --cover-4-a: #8b5cf6;
+  --cover-4-b: #ec4899;
+  --cover-5-a: #0ea5e9;
+  --cover-5-b: #6366f1;
+  --cover-6-a: #f97316;
+  --cover-6-b: #e11d48;
   --sidebar: #fffdf8;
   --sidebar-foreground: #1f1a14;
   --sidebar-primary: #1f1a14;
