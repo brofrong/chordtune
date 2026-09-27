@@ -1,10 +1,12 @@
 import type { Rhythm } from '@chordtune/chord-sheet';
 import { defineRelations, sql } from 'drizzle-orm';
 import {
+  date,
   index,
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   unique,
@@ -68,6 +70,10 @@ export const arrangement = pgTable(
     tempo: integer('tempo'),
     notes: text('notes').notNull().default(''),
     status: text('status', { enum: ARRANGEMENT_STATUSES }).notNull().default('published'),
+    // Denormalised counters, changed in the same transaction as the action rows below.
+    viewCount: integer('view_count').notNull().default(0),
+    likeCount: integer('like_count').notNull().default(0),
+    saveCount: integer('save_count').notNull().default(0),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
@@ -82,21 +88,79 @@ export const arrangement = pgTable(
 );
 
 /** Auth tables for the Better Auth adapter. */
+const arrangementRef = () =>
+  text('arrangement_id')
+    .notNull()
+    .references(() => arrangement.id, { onDelete: 'cascade' });
+const userRef = () =>
+  text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' });
+
+/** At most one view per viewer (user id or anonymous device key) per day. */
+export const arrangementView = pgTable(
+  'arrangement_view',
+  {
+    arrangementId: arrangementRef(),
+    viewerKey: text('viewer_key').notNull(),
+    day: date('day').notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.arrangementId, table.viewerKey, table.day] })],
+);
+
+const userAction = (name: string) =>
+  pgTable(
+    name,
+    {
+      userId: userRef(),
+      arrangementId: arrangementRef(),
+      createdAt: timestamp('created_at').defaultNow().notNull(),
+    },
+    (table) => [primaryKey({ columns: [table.userId, table.arrangementId] })],
+  );
+
+export const arrangementLike = userAction('arrangement_like');
+export const arrangementSave = userAction('arrangement_save');
+
+/** How many times a user played an arrangement. */
+export const arrangementPlay = pgTable(
+  'arrangement_play',
+  {
+    userId: userRef(),
+    arrangementId: arrangementRef(),
+    count: integer('count').notNull().default(0),
+    lastPlayedAt: timestamp('last_played_at').defaultNow().notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.arrangementId] })],
+);
+
 export const tables = { user, session, account, verification };
 
-const appRelations = defineRelations({ user, artist, song, arrangement }, (r) => ({
-  artist: {
-    songs: r.many.song({ from: r.artist.id, to: r.song.artistId }),
+const appRelations = defineRelations(
+  {
+    user,
+    artist,
+    song,
+    arrangement,
+    arrangementView,
+    arrangementLike,
+    arrangementSave,
+    arrangementPlay,
   },
-  song: {
-    artist: r.one.artist({ from: r.song.artistId, to: r.artist.id, optional: false }),
-    arrangements: r.many.arrangement({ from: r.song.id, to: r.arrangement.songId }),
-  },
-  arrangement: {
-    song: r.one.song({ from: r.arrangement.songId, to: r.song.id, optional: false }),
-    author: r.one.user({ from: r.arrangement.authorId, to: r.user.id, optional: false }),
-  },
-}));
+  (r) => ({
+    artist: {
+      songs: r.many.song({ from: r.artist.id, to: r.song.artistId }),
+    },
+    song: {
+      artist: r.one.artist({ from: r.song.artistId, to: r.artist.id, optional: false }),
+      arrangements: r.many.arrangement({ from: r.song.id, to: r.arrangement.songId }),
+    },
+    arrangement: {
+      song: r.one.song({ from: r.arrangement.songId, to: r.song.id, optional: false }),
+      author: r.one.user({ from: r.arrangement.authorId, to: r.user.id, optional: false }),
+    },
+  }),
+);
 
 // `defineRelationsPart` entries must come last.
 export const relations = { ...appRelations, ...authRelations };
