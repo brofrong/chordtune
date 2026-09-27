@@ -49,7 +49,7 @@ export function timeline(doc: SongDoc, rhythms: readonly Rhythm[]): TimelineEven
       rhythm = section.rhythm;
     }
     section.lines.forEach((line, lineIndex) => {
-      if (line.type === 'tab') {
+      if (line.type !== 'line') {
         return;
       }
       const barred = line.items.some((item) => item.type === 'bar');

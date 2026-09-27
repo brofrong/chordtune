@@ -1,5 +1,5 @@
-import { TAB_END, TAB_START } from './parse';
-import type { Item, Section, SongDoc } from './types';
+import { ALPHATEX_END, ALPHATEX_START, TAB_END, TAB_START } from './parse';
+import type { Item, Line, Section, SongDoc } from './types';
 
 export function serializeItem(item: Item): string {
   switch (item.type) {
@@ -17,7 +17,16 @@ export function serializeItem(item: Item): string {
 }
 
 export function serializeHeader(section: Section): string {
-  return `[${section.label ?? ''}]${section.rhythm ? ` @${section.rhythm}` : ''}`;
+  const rhythm = section.rhythm ? ` @${section.rhythm}` : '';
+  const tempo = section.tempo ? ` ${section.tempo}bpm` : '';
+  return `[${section.label ?? ''}]${rhythm}${tempo}`;
+}
+
+/** A tab or alphaTex block with its fences. */
+export function serializeBlock(line: Exclude<Line, { type: 'line' }>): string[] {
+  return line.type === 'tab'
+    ? [TAB_START, ...line.lines, TAB_END]
+    : [ALPHATEX_START, ...line.source, ALPHATEX_END];
 }
 
 export function serialize(doc: SongDoc): string {
@@ -27,10 +36,10 @@ export function serialize(doc: SongDoc): string {
       out.push(serializeHeader(section));
     }
     for (const line of section.lines) {
-      if (line.type === 'tab') {
-        out.push(TAB_START, ...line.lines, TAB_END);
-      } else {
+      if (line.type === 'line') {
         out.push(line.items.map(serializeItem).join(''));
+      } else {
+        out.push(...serializeBlock(line));
       }
     }
   }

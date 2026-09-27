@@ -27,6 +27,7 @@ describe('parse', () => {
         {
           label: 'Куплет 1',
           rhythm: 'B',
+          tempo: null,
           lines: [
             {
               type: 'line',
@@ -140,5 +141,76 @@ describe('validate', () => {
       { line: 1, col: 10, severity: 'error', message: 'Unknown rhythm: B' },
       { line: 2, col: 8, severity: 'error', message: 'Unknown rhythm: C' },
     ]);
+  });
+});
+
+describe('alphaTex blocks and section tempo', () => {
+  const SOURCE = [
+    '[Соло] @A 140bpm',
+    '{start_of_alphatex}',
+    '\\tempo 120',
+    ':8 0.5 5.3',
+    '{end_of_alphatex}',
+    '${Am}la',
+  ].join('\n');
+
+  test('parses the block and the section tempo', () => {
+    const { doc, diagnostics } = parse(SOURCE);
+    expect(diagnostics.filter((d) => d.severity === 'error')).toEqual([]);
+    const section = doc.sections[0];
+    expect(section).toMatchObject({ label: 'Соло', rhythm: 'A', tempo: 140 });
+    const block = section?.lines[0];
+    expect(block?.type).toBe('alphatex');
+    expect(block?.type === 'alphatex' && block.source).toEqual(['\\tempo 120', ':8 0.5 5.3']);
+    expect(block?.type === 'alphatex' && block.block.tempo).toBe(120);
+  });
+
+  test('round-trips through serialize', () => {
+    expect(serialize(parse(SOURCE).doc)).toBe(SOURCE);
+  });
+
+  test('alphaTex problems point at song lines', () => {
+    const { diagnostics } = parse(
+      ['[Соло]', '{start_of_alphatex}', '0.6 9.9', '{end_of_alphatex}'].join('\n'),
+    );
+    expect(diagnostics).toContainEqual({
+      line: 3,
+      col: 5,
+      severity: 'error',
+      message: 'String must be 1–6: 9.9',
+    });
+  });
+
+  test('tempo without a rhythm; out of range is dropped', () => {
+    expect(parse('[Бридж] 72bpm').doc.sections[0]?.tempo).toBe(72);
+    const { doc, diagnostics } = parse('[Бридж] 999bpm');
+    expect(doc.sections[0]?.tempo).toBeNull();
+    expect(diagnostics).toEqual([
+      { line: 1, col: 1, severity: 'warning', message: 'Tempo must be 30–300: 999' },
+    ]);
+  });
+
+  test('an unclosed alphaTex block is an error', () => {
+    expect(parse('{start_of_alphatex}\n0.6').diagnostics).toContainEqual({
+      line: 1,
+      col: 1,
+      severity: 'error',
+      message: 'Unclosed {start_of_alphatex}',
+    });
+  });
+
+  test('validate counts block lines', () => {
+    const { doc } = parse(
+      ['{start_of_alphatex}', '0.6', '{end_of_alphatex}', '@Z text'].join('\n'),
+    );
+    expect(validate(doc, [])).toEqual([
+      { line: 4, col: 1, severity: 'error', message: 'Unknown rhythm: Z' },
+    ]);
+  });
+
+  test('ASCII tabs are untouched', () => {
+    const source = '{start_of_tab}\ne|--0--|\n{end_of_tab}';
+    expect(parse(source).doc.sections[0]?.lines[0]).toEqual({ type: 'tab', lines: ['e|--0--|'] });
+    expect(serialize(parse(source).doc)).toBe(source);
   });
 });

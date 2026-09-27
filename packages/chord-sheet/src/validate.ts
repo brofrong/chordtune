@@ -21,8 +21,8 @@ export function validate(doc: SongDoc, rhythms: readonly { key: string }[]): Dia
       }
     }
     for (const line of section.lines) {
-      if (line.type === 'tab') {
-        lineNo += line.lines.length + 2;
+      if (line.type !== 'line') {
+        lineNo += (line.type === 'tab' ? line.lines.length : line.source.length) + 2;
         continue;
       }
       lineNo++;

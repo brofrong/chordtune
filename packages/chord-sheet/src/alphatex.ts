@@ -8,7 +8,7 @@ import {
   type TabNote,
 } from './tab';
 import { isTempo, MAX_TEMPO, MIN_TEMPO } from './tempo';
-import type { Diagnostic } from './types';
+import type { Diagnostic, Line } from './types';
 
 type Pos = { line: number; col: number };
 type Token = Pos & { kind: 'cmd' | 'word' | 'str' | 'dur' | 'punct'; value: string };
@@ -506,6 +506,6 @@ export function parseAlphaTex(
 }
 
 /** A song line for an alphaTex block, e.g. after editing its source. */
-export function alphatexLine(source: string[]) {
-  return { type: 'alphatex' as const, source, block: parseAlphaTex(source).block };
+export function alphatexLine(source: string[]): Line {
+  return { type: 'alphatex', source, block: parseAlphaTex(source).block };
 }

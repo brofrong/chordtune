@@ -1,3 +1,5 @@
+import type { TabBlock } from './tab';
+
 export type Item =
   /** Raw chord as written, e.g. `F#m7/C#` or `Hm`. */
   | { type: 'chord'; chord: string }
@@ -7,9 +9,19 @@ export type Item =
   | { type: 'repeat'; times: number };
 
 /** A line without chord, bar, rhythm or repeat items is plain text. */
-export type Line = { type: 'line'; items: Item[] } | { type: 'tab'; lines: string[] };
+export type Line =
+  | { type: 'line'; items: Item[] }
+  /** ASCII tab: shown as is, takes no time. */
+  | { type: 'tab'; lines: string[] }
+  | { type: 'alphatex'; source: string[]; block: TabBlock };
 
-export type Section = { label: string | null; rhythm: string | null; lines: Line[] };
+/** `tempo` overrides the song tempo for this section only. */
+export type Section = {
+  label: string | null;
+  rhythm: string | null;
+  tempo: number | null;
+  lines: Line[];
+};
 
 export type SongDoc = { meta: Record<string, string>; sections: Section[] };
 

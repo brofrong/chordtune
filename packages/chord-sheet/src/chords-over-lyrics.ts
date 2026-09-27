@@ -1,6 +1,6 @@
 import { isChord } from './chord';
-import { parseHeader, parseMeta, TAB_END, TAB_START } from './parse';
-import { serializeHeader } from './serialize';
+import { isBlockStart, parseHeader, parseMeta, readBlock, sectionFromHeader } from './parse';
+import { serializeBlock, serializeHeader } from './serialize';
 import type { Diagnostic, Item, Section, SongDoc } from './types';
 
 const TOKEN_RE = /\||[^\s|]+/g;
@@ -55,7 +55,7 @@ function isLyric(line: string | undefined): line is string {
     !parseHeader(line) &&
     !isChordLine(line) &&
     !isTabLike(line) &&
-    line.trim() !== TAB_START
+    !isBlockStart(line)
   );
 }
 
@@ -80,7 +80,7 @@ export function fromChordsOverLyrics(text: string): { doc: SongDoc; diagnostics:
   const diagnostics: Diagnostic[] = [];
   const meta: Record<string, string> = {};
   const lines = text.split('\n');
-  let current: Section = { label: null, rhythm: null, lines: [] };
+  let current: Section = { label: null, rhythm: null, tempo: null, lines: [] };
   const sections: Section[] = [current];
 
   let i = 0;
@@ -96,32 +96,15 @@ export function fromChordsOverLyrics(text: string): { doc: SongDoc; diagnostics:
     const line = lines[i] ?? '';
     const header = parseHeader(line);
     if (header) {
-      current = { ...header, lines: [] };
+      current = sectionFromHeader(header, i + 1, diagnostics);
       sections.push(current);
       continue;
     }
 
-    if (line.trim() === TAB_START) {
-      const start = i;
-      const tab: string[] = [];
-      let closed = false;
-      for (i++; i < lines.length; i++) {
-        const tabLine = lines[i] ?? '';
-        if (tabLine.trim() === TAB_END) {
-          closed = true;
-          break;
-        }
-        tab.push(tabLine);
-      }
-      if (!closed) {
-        diagnostics.push({
-          line: start + 1,
-          col: 1,
-          severity: 'error',
-          message: `Unclosed ${TAB_START}`,
-        });
-      }
-      current.lines.push({ type: 'tab', lines: tab });
+    if (isBlockStart(line)) {
+      const block = readBlock(lines, i, diagnostics);
+      current.lines.push(block.line);
+      i = block.end;
       continue;
     }
 
@@ -194,10 +177,10 @@ export function toChordsOverLyrics(doc: SongDoc): string {
       out.push(serializeHeader(section));
     }
     for (const line of section.lines) {
-      if (line.type === 'tab') {
-        out.push(TAB_START, ...line.lines, TAB_END);
-      } else {
+      if (line.type === 'line') {
         out.push(...renderLine(line.items));
+      } else {
+        out.push(...serializeBlock(line));
       }
     }
   }

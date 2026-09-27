@@ -1,17 +1,86 @@
+import { parseAlphaTex } from './alphatex';
 import { isChord } from './chord';
-import type { Diagnostic, Item, Section, SongDoc } from './types';
+import { isTempo, MAX_TEMPO, MIN_TEMPO } from './tempo';
+import type { Diagnostic, Item, Line, Section, SongDoc } from './types';
 
 const META_RE = /^\{(\w+):\s*(.*?)\s*\}$/;
-const HEADER_RE = /^\[([^\]]+)\](?:\s*@([A-Z]))?\s*$/;
+const HEADER_RE = /^\[([^\]]+)\](?:\s*@([A-Z]))?(?:\s*(\d+)\s*bpm)?\s*$/;
 const REPEAT_RE = /^[x×]([1-9]\d*)$/;
 const RHYTHM_KEY_RE = /[A-Z]/;
 
 export const TAB_START = '{start_of_tab}';
 export const TAB_END = '{end_of_tab}';
+export const ALPHATEX_START = '{start_of_alphatex}';
+export const ALPHATEX_END = '{end_of_alphatex}';
 
-export function parseHeader(text: string): { label: string; rhythm: string | null } | null {
+export type Header = { label: string; rhythm: string | null; tempo: number | null };
+
+/** `[Соло] @B 140bpm`. The tempo is as written; `sectionFromHeader` checks its range. */
+export function parseHeader(text: string): Header | null {
   const match = HEADER_RE.exec(text);
-  return match ? { label: match[1] ?? '', rhythm: match[2] ?? null } : null;
+  return match
+    ? {
+        label: match[1] ?? '',
+        rhythm: match[2] ?? null,
+        tempo: match[3] ? Number(match[3]) : null,
+      }
+    : null;
+}
+
+/** A new section from its header; a tempo out of range is dropped with a warning. */
+export function sectionFromHeader(
+  header: Header,
+  lineNo: number,
+  diagnostics: Diagnostic[],
+): Section {
+  let { tempo } = header;
+  if (tempo !== null && !isTempo(tempo)) {
+    diagnostics.push({
+      line: lineNo,
+      col: 1,
+      severity: 'warning',
+      message: `Tempo must be ${MIN_TEMPO}–${MAX_TEMPO}: ${tempo}`,
+    });
+    tempo = null;
+  }
+  return { ...header, tempo, lines: [] };
+}
+
+export function isBlockStart(text: string): boolean {
+  const trimmed = text.trim();
+  return trimmed === TAB_START || trimmed === ALPHATEX_START;
+}
+
+/**
+ * Reads the block opened at `lines[start]` (`{start_of_tab}` or `{start_of_alphatex}`).
+ * `end` is the index of the closing fence, or of the last line when it is missing.
+ */
+export function readBlock(
+  lines: readonly string[],
+  start: number,
+  diagnostics: Diagnostic[],
+): { line: Line; end: number } {
+  const open = (lines[start] ?? '').trim();
+  const close = open === TAB_START ? TAB_END : ALPHATEX_END;
+  const body: string[] = [];
+  let end = start + 1;
+  for (; end < lines.length; end++) {
+    const text = lines[end] ?? '';
+    if (text.trim() === close) {
+      break;
+    }
+    body.push(text);
+  }
+  if (end >= lines.length) {
+    diagnostics.push({ line: start + 1, col: 1, severity: 'error', message: `Unclosed ${open}` });
+    end = lines.length - 1;
+  }
+  if (open === TAB_START) {
+    return { line: { type: 'tab', lines: body }, end };
+  }
+  const parsed = parseAlphaTex(body, start + 2);
+  diagnostics.push(...parsed.diagnostics);
+  return { line: { type: 'alphatex', source: body, block: parsed.block }, end };
 }
 
 export function parseMeta(text: string): [key: string, value: string] | null {
@@ -24,7 +93,7 @@ export function parse(source: string): { doc: SongDoc; diagnostics: Diagnostic[]
   const diagnostics: Diagnostic[] = [];
   const meta: Record<string, string> = {};
   const lines = source.split('\n');
-  let current: Section = { label: null, rhythm: null, lines: [] };
+  let current: Section = { label: null, rhythm: null, tempo: null, lines: [] };
   const sections: Section[] = [current];
 
   let i = 0;
@@ -40,31 +109,14 @@ export function parse(source: string): { doc: SongDoc; diagnostics: Diagnostic[]
     const text = lines[i] ?? '';
     const header = parseHeader(text);
     if (header) {
-      current = { ...header, lines: [] };
+      current = sectionFromHeader(header, i + 1, diagnostics);
       sections.push(current);
       continue;
     }
-    if (text.trim() === TAB_START) {
-      const start = i;
-      const tab: string[] = [];
-      let closed = false;
-      for (i++; i < lines.length; i++) {
-        const tabLine = lines[i] ?? '';
-        if (tabLine.trim() === TAB_END) {
-          closed = true;
-          break;
-        }
-        tab.push(tabLine);
-      }
-      if (!closed) {
-        diagnostics.push({
-          line: start + 1,
-          col: 1,
-          severity: 'error',
-          message: `Unclosed ${TAB_START}`,
-        });
-      }
-      current.lines.push({ type: 'tab', lines: tab });
+    if (isBlockStart(text)) {
+      const block = readBlock(lines, i, diagnostics);
+      current.lines.push(block.line);
+      i = block.end;
       continue;
     }
     current.lines.push({ type: 'line', items: parseItems(text, i + 1, diagnostics) });

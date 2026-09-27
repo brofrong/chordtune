@@ -11,7 +11,12 @@ export function updateSection(doc: SongDoc, index: number, patch: Partial<Sectio
 }
 
 export function addSection(doc: SongDoc, label: string): SongDoc {
-  const section: Section = { label, rhythm: null, lines: [{ type: 'line', items: [] }] };
+  const section: Section = {
+    label,
+    rhythm: null,
+    tempo: null,
+    lines: [{ type: 'line', items: [] }],
+  };
   return { ...doc, sections: [...doc.sections, section] };
 }
 

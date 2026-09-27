@@ -89,6 +89,7 @@ describe('toChordsOverLyrics', () => {
       {
         label: null,
         rhythm: null,
+        tempo: null,
         lines: [
           {
             type: 'line',
@@ -123,5 +124,21 @@ describe('toChordsOverLyrics', () => {
       '| Am G | F |',
     ].join('\n');
     expect(toChordsOverLyrics(fromChordsOverLyrics(text).doc)).toBe(text);
+  });
+
+  test('alphaTex blocks and section tempo pass through untouched', () => {
+    const text = [
+      '[Соло] 140bpm',
+      '{start_of_alphatex}',
+      ':8 0.5 5.3 | 3.3',
+      '{end_of_alphatex}',
+    ].join('\n');
+    const { doc } = fromChordsOverLyrics(text);
+    expect(doc.sections[0]?.tempo).toBe(140);
+    expect(doc.sections[0]?.lines[0]).toMatchObject({
+      type: 'alphatex',
+      source: [':8 0.5 5.3 | 3.3'],
+    });
+    expect(toChordsOverLyrics(doc)).toBe(text);
   });
 });
