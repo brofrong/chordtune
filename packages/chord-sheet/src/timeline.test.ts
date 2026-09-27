@@ -15,13 +15,19 @@ const rhythm = (key: string): Rhythm => ({
 const RHYTHMS = [rhythm('A'), rhythm('B')];
 
 function events(source: string, rhythms: Rhythm[] = RHYTHMS) {
-  return timeline(parse(source).doc, rhythms).map(({ chord, rhythm, bar, start, length }) => ({
-    chord,
-    rhythm,
-    bar,
-    start,
-    length,
-  }));
+  return timeline(parse(source).doc, rhythms).flatMap((event) =>
+    event.kind === 'chord'
+      ? [
+          {
+            chord: event.chord,
+            rhythm: event.rhythm,
+            bar: event.bar,
+            start: event.start,
+            length: event.length,
+          },
+        ]
+      : [],
+  );
 }
 
 describe('timeline', () => {
@@ -85,6 +91,47 @@ describe('timeline', () => {
     expect(events('${Am}\n{start_of_tab}\ne|--|\n{end_of_tab}\n${G}').map((e) => e.start)).toEqual([
       0, 1,
     ]);
+  });
+});
+
+describe('timeline with tabs and tempo', () => {
+  const block = (body: string[]) => ['{start_of_alphatex}', ...body, '{end_of_alphatex}'];
+
+  test('an alphaTex block takes its bars and the chords after it follow', () => {
+    const doc = parse(
+      ['${Am}a', ...block([':8 0.5 5.3 8.2 0.5 5.3 5.2 0.5 5.3 | 0.6.2 0.6.2']), '${G}b'].join(
+        '\n',
+      ),
+    ).doc;
+    expect(timeline(doc, RHYTHMS).map((e) => [e.kind, e.start, e.length, e.line])).toEqual([
+      ['chord', 0, 1, 0],
+      ['tab', 1, 2, 1],
+      ['chord', 3, 1, 2],
+    ]);
+  });
+
+  test('bars of a 3/4 block have three quarters', () => {
+    const doc = parse(block(['\\ts 3 4', '0.6 0.6 0.6 | 0.6 0.6 0.6']).join('\n')).doc;
+    expect(timeline(doc, RHYTHMS)[0]).toMatchObject({ kind: 'tab', length: 2 });
+  });
+
+  test('tempo: the block, else the section, else the song (null)', () => {
+    const doc = parse(
+      [
+        '[A] 140bpm',
+        '${Am}a',
+        ...block(['0.6.1']),
+        ...block(['\\tempo 70', '0.6.1']),
+        '[B]',
+        '${G}b',
+      ].join('\n'),
+    ).doc;
+    expect(timeline(doc, RHYTHMS).map((e) => e.tempo)).toEqual([140, 140, 70, null]);
+  });
+
+  test('empty blocks take no time', () => {
+    const doc = parse([...block([]), '${Am}a'].join('\n')).doc;
+    expect(timeline(doc, RHYTHMS).map((e) => [e.kind, e.start])).toEqual([['chord', 0]]);
   });
 });
 
