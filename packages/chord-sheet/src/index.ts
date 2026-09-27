@@ -1,3 +1,4 @@
+export * from './alphatex';
 export * from './chord';
 export * from './chords-over-lyrics';
 export * from './extract';
@@ -7,6 +8,8 @@ export * from './parse';
 export * from './rhythm';
 export * from './rhythm-presets';
 export * from './serialize';
+export * from './tab';
+export * from './tempo';
 export * from './timeline';
 export * from './types';
 export * from './validate';
