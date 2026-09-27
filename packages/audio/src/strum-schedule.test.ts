@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import {
+  parseAlphaTex,
   RHYTHM_PRESETS,
   type Rhythm,
   rhythmFromPreset,
@@ -17,8 +18,10 @@ const event = (
   length: number,
   rhythm: string | null = 'A',
 ): TimelineEvent => ({
+  kind: 'chord',
   chord,
   rhythm,
+  tempo: null,
   bar: Math.floor(start),
   start,
   length,
@@ -92,5 +95,40 @@ describe('scheduleNotes', () => {
       bpm: 60,
     });
     expect(onsets(notes.map((note) => note.time))).toEqual([0, 1, 2, 3]);
+  });
+});
+
+describe('tabs and tempo', () => {
+  test('a tab event plays in its tempo and pushes the next chord', () => {
+    const tab = parseAlphaTex(['\\tempo 120', '0.6 0.6 0.6 0.6']).block;
+    const events: TimelineEvent[] = [
+      event('Am', 0, 1),
+      { kind: 'tab', block: tab, tempo: 120, bar: 1, start: 1, length: 1, section: 0, line: 1 },
+      event('G', 2, 1),
+    ];
+    expect(eventSeconds(events, [preset('six')], 60)).toEqual([
+      { start: 0, end: 4 },
+      { start: 4, end: 6 },
+      { start: 6, end: 10 },
+    ]);
+    const notes = scheduleNotes(events, [preset('six')], { bpm: 60 });
+    expect(notes.filter((n) => n.time >= 4 && n.time < 6).map((n) => [n.time, n.midi])).toEqual([
+      [4, 40],
+      [4.5, 40],
+      [5, 40],
+      [5.5, 40],
+    ]);
+  });
+
+  test('a section tempo changes the bar length', () => {
+    expect(eventSeconds([{ ...event('Am', 0, 1), tempo: 120 }], [preset('six')], 60)).toEqual([
+      { start: 0, end: 2 },
+    ]);
+  });
+
+  test('capo raises every chord note', () => {
+    const plain = scheduleNotes([event('Am', 0, 1)], [preset('six')], { bpm: 60 });
+    const capo = scheduleNotes([event('Am', 0, 1)], [preset('six')], { bpm: 60, capo: 3 });
+    expect(capo.map((n) => n.midi)).toEqual(plain.map((n) => n.midi + 3));
   });
 });
