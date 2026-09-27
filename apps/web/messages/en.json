@@ -138,7 +138,12 @@
     "edit": "Edit",
     "copyLink": "Copy link",
     "linkCopied": "Link copied",
-    "needNetwork": "Needs a connection"
+    "needNetwork": "Needs a connection",
+    "listen": "Listen",
+    "playAlong": "Play",
+    "playAlongHint": "Lyrics scroll by themselves",
+    "noRhythm": "No rhythm",
+    "stop": "Stop"
   },
   "editor": {
     "newTitle": "New song",
@@ -231,5 +236,17 @@
       "pick-three": "Picking “three”",
       "pinch": "Pinch"
     }
+  },
+  "zen": {
+    "close": "Close",
+    "pause": "Pause",
+    "resume": "Resume",
+    "slower": "Slower",
+    "faster": "Faster",
+    "doneTitle": "+1",
+    "doneText": "{count, plural, one {Played # time} other {Played # times}}. Keep it up!",
+    "again": "Again",
+    "finish": "Done",
+    "tapToPause": "Tap the lyrics to pause"
   }
 }

@@ -28,6 +28,16 @@ export function patternPlayback(rhythm: Rhythm, chord: string, bpm: number) {
   };
 }
 
+/** The whole song in time, for «Послушать». */
+export function songPlayback(doc: SongDoc, rhythms: Rhythm[], bpm: number) {
+  const events = timeline(doc, rhythms);
+  return {
+    events,
+    seconds: eventSeconds(events, rhythms, bpm),
+    notes: scheduleNotes(events, rhythms, { bpm }),
+  };
+}
+
 /** The chords of one section in time, plus when each one starts, for highlighting. */
 export function sectionPlayback(doc: SongDoc, rhythms: Rhythm[], section: number, bpm: number) {
   const events = timeline(doc, rhythms).filter((event) => event.section === section);

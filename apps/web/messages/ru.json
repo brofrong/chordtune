@@ -138,7 +138,12 @@
     "edit": "Редактировать",
     "copyLink": "Скопировать ссылку",
     "linkCopied": "Ссылка скопирована",
-    "needNetwork": "Нужна сеть"
+    "needNetwork": "Нужна сеть",
+    "listen": "Послушать",
+    "playAlong": "Сыграть",
+    "playAlongHint": "Текст поедет сам",
+    "noRhythm": "Без ритма",
+    "stop": "Стоп"
   },
   "editor": {
     "newTitle": "Новая песня",
@@ -231,5 +236,17 @@
       "pick-three": "Перебор «тройка»",
       "pinch": "Щипок"
     }
+  },
+  "zen": {
+    "close": "Закрыть",
+    "pause": "Пауза",
+    "resume": "Продолжить",
+    "slower": "Медленнее",
+    "faster": "Быстрее",
+    "doneTitle": "+1",
+    "doneText": "{count, plural, one {Сыграна # раз} few {Сыграна # раза} many {Сыграна # раз} other {Сыграна # раза}}. Так держать!",
+    "again": "Ещё раз",
+    "finish": "Готово",
+    "tapToPause": "Тап по тексту — пауза"
   }
 }

@@ -1,17 +1,25 @@
 'use client';
 
-import { parse, type SongDoc } from '@chordtune/chord-sheet';
+import { chordList, parse, type SongDoc } from '@chordtune/chord-sheet';
 import { Play, Square } from 'lucide-react';
+import { AnimatePresence } from 'motion/react';
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { DEFAULT_BPM, patternPlayback, sectionPlayback } from '@/features/rhythm/playback';
+import {
+  DEFAULT_BPM,
+  patternPlayback,
+  sectionPlayback,
+  songPlayback,
+} from '@/features/rhythm/playback';
 import { RhythmBadge } from '@/features/rhythm/rhythm-badge';
 import { useStrumPlayer } from '@/features/rhythm/use-strum-player';
+import { ZenMode } from '@/features/zen/zen-mode';
 import type { ArrangementView } from '@/lib/trpc';
 import { LineView, TabView } from './line-view';
 import { SongActions } from './song-actions';
+import { SongDock } from './song-dock';
 import { SongHeader } from './song-header';
 import { type SongActionHooks, useSongActions } from './use-song-actions';
 
@@ -32,7 +40,12 @@ export function SongView({
   const player = useStrumPlayer();
   const { rhythms } = arrangement;
 
+  const [zenOpen, setZenOpen] = useState(false);
+
   const playing = useMemo(() => {
+    if (player.playing === 'song') {
+      return songPlayback(doc, rhythms, bpm);
+    }
     const match = player.playing?.match(/^section:(\d+)$/);
     return match ? sectionPlayback(doc, rhythms, Number(match[1]), bpm) : null;
   }, [player.playing, doc, rhythms, bpm]);
@@ -46,13 +59,21 @@ export function SongView({
     active = event ? { section: event.section, line: event.line, item: event.item } : null;
   }
 
+  const firstRhythm = rhythms[0];
+  const rhythmHint = firstRhythm ? `${firstRhythm.name} ${firstRhythm.key}` : t('noRhythm');
+  const listenHint =
+    player.playing === 'song' && active
+      ? (doc.sections[active.section]?.label ?? rhythmHint)
+      : `${rhythmHint} · ${bpm} BPM`;
+  const canPlay = useMemo(() => chordList(doc).length > 0, [doc]);
+
   const playSection = (section: number) => {
     const { notes } = sectionPlayback(doc, rhythms, section, bpm);
     player.toggle(`section:${section}`, notes);
   };
 
   return (
-    <article className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6">
+    <article className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-4 pb-28">
       <SongHeader arrangement={arrangement} />
       <header className="-mt-2 flex flex-col gap-1">
         <p className="text-muted-foreground">{arrangement.artist.name}</p>
@@ -137,6 +158,30 @@ export function SongView({
           <p className="whitespace-pre-wrap text-muted-foreground text-sm">{arrangement.notes}</p>
         </section>
       )}
+      <SongDock
+        listening={player.playing === 'song'}
+        listenHint={listenHint}
+        onListen={() => player.toggle('song', songPlayback(doc, rhythms, bpm).notes)}
+        canPlay={canPlay}
+        onPlay={() => {
+          player.stop();
+          setZenOpen(true);
+        }}
+      />
+      <AnimatePresence>
+        {zenOpen && (
+          <ZenMode
+            doc={doc}
+            rhythms={rhythms}
+            initialBpm={bpm}
+            title={arrangement.song.title}
+            artist={arrangement.artist.name}
+            played={actions.me.played}
+            onFinished={() => void actions.addPlayed(1)}
+            onClose={() => setZenOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </article>
   );
 }
