@@ -3,7 +3,10 @@ import { z } from 'zod';
 
 import type { Database } from '../../db';
 import { arrangementInput, saveArrangement } from '../../services/save-arrangement';
+import { addPlays, recordView, setLike, setSave } from '../../services/social';
 import { protectedProcedure, publicProcedure, router } from '../init';
+
+const byId = z.object({ id: z.string() });
 
 const WITH_DETAILS = {
   song: { with: { artist: true } },
@@ -68,4 +71,29 @@ export const arrangementsRouter = router({
         input,
       }),
     ),
+
+  /** Anonymous viewers are counted by a device key, signed-in ones by their user id. */
+  view: publicProcedure
+    .input(z.object({ id: z.string(), viewerKey: z.string().min(8).max(64) }))
+    .mutation(({ ctx, input }) =>
+      recordView(ctx.db, input.id, ctx.session?.user.id ?? `device:${input.viewerKey}`),
+    ),
+
+  like: protectedProcedure
+    .input(byId)
+    .mutation(({ ctx, input }) => setLike(ctx.db, ctx.session.user.id, input.id, true)),
+  unlike: protectedProcedure
+    .input(byId)
+    .mutation(({ ctx, input }) => setLike(ctx.db, ctx.session.user.id, input.id, false)),
+  save: protectedProcedure
+    .input(byId)
+    .mutation(({ ctx, input }) => setSave(ctx.db, ctx.session.user.id, input.id, true)),
+  unsave: protectedProcedure
+    .input(byId)
+    .mutation(({ ctx, input }) => setSave(ctx.db, ctx.session.user.id, input.id, false)),
+
+  /** `times` > 1 comes from plays queued while offline. */
+  played: protectedProcedure
+    .input(z.object({ id: z.string(), times: z.number().int().min(1).max(50).default(1) }))
+    .mutation(({ ctx, input }) => addPlays(ctx.db, ctx.session.user.id, input.id, input.times)),
 });
