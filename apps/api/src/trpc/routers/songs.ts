@@ -1,28 +1,21 @@
 import { z } from 'zod';
-
+import { toListItem } from '../../services/arrangements';
 import { publicProcedure, router } from '../init';
-import { type ArrangementListItem, fromSearch } from './shared';
+import { fromSearch } from './shared';
 
 export const songsRouter = router({
   searchByArtist: publicProcedure
     .input(z.object({ artistId: z.string(), q: z.string().max(200) }))
     .query(({ ctx, input }) => fromSearch(() => ctx.search.searchSongs(input.artistId, input.q))),
 
-  /** Latest published arrangements, straight from Postgres. */
-  list: publicProcedure.query(async ({ ctx }): Promise<ArrangementListItem[]> => {
+  /** Popular published arrangements, straight from Postgres. */
+  list: publicProcedure.query(async ({ ctx }) => {
     const rows = await ctx.db.query.arrangement.findMany({
       where: { status: 'published' },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { viewCount: 'desc', createdAt: 'desc' },
       limit: 20,
       with: { song: { with: { artist: true } } },
     });
-    return rows.map((row) => ({
-      id: row.id,
-      artist: row.song.artist.name,
-      artistSlug: row.song.artist.slug,
-      title: row.song.title,
-      songSlug: row.song.slug,
-      chords: row.chords,
-    }));
+    return rows.map(toListItem);
   }),
 });

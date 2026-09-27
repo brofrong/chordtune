@@ -79,7 +79,6 @@ function SongRow({ item }: { item: ArrangementListItem }) {
         <span className="font-medium">{item.title}</span>
         <span className="flex flex-wrap items-baseline gap-x-3 text-muted-foreground text-sm">
           <span>{item.artist}</span>
-          <span className="font-mono text-xs">{item.chords.slice(0, 8).join(' ')}</span>
         </span>
       </Link>
     </li>

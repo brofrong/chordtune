@@ -1,15 +1,7 @@
 import { TRPCError } from '@trpc/server';
 
 import type { ArrangementDoc } from '../../search';
-
-export type ArrangementListItem = {
-  id: string;
-  artist: string;
-  artistSlug: string;
-  title: string;
-  songSlug: string;
-  chords: string[];
-};
+import type { ArrangementListItem } from '../../services/arrangements';
 
 export function listItemFromDoc(doc: ArrangementDoc): ArrangementListItem {
   return {
@@ -18,7 +10,8 @@ export function listItemFromDoc(doc: ArrangementDoc): ArrangementListItem {
     artistSlug: doc.artistSlug,
     title: doc.title,
     songSlug: doc.songSlug,
-    chords: doc.chords,
+    views: doc.views,
+    likes: doc.likes,
   };
 }
 

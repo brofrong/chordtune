@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { protectedProcedure, publicProcedure, router } from './init';
 import { arrangementsRouter } from './routers/arrangements';
 import { artistsRouter } from './routers/artists';
+import { libraryRouter } from './routers/library';
 import { searchRouter } from './routers/search';
 import { songsRouter } from './routers/songs';
 
@@ -16,6 +17,7 @@ export const appRouter = router({
   songs: songsRouter,
   search: searchRouter,
   arrangements: arrangementsRouter,
+  library: libraryRouter,
 });
 
 export type AppRouter = typeof appRouter;

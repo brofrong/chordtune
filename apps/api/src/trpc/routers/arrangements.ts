@@ -1,40 +1,31 @@
-import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-import type { Database } from '../../db';
+import { syncArrangement } from '../../search/documents';
+import { createThrottle } from '../../search/throttle';
+import { findView, toView, WITH_DETAILS } from '../../services/arrangements';
 import { arrangementInput, saveArrangement } from '../../services/save-arrangement';
 import { addPlays, recordView, setLike, setSave } from '../../services/social';
-import { protectedProcedure, publicProcedure, router } from '../init';
+import { type Context, protectedProcedure, publicProcedure, router } from '../init';
 
 const byId = z.object({ id: z.string() });
 
-const WITH_DETAILS = {
-  song: { with: { artist: true } },
-  author: { columns: { id: true, name: true } },
-} as const;
+const searchSync = createThrottle(30_000);
 
-async function findArrangement(db: Database, id: string) {
-  return db.query.arrangement.findFirst({ where: { id }, with: WITH_DETAILS });
+/** Likes and saves change search ranking fields; re-index at most every 30 s per song. */
+function scheduleSearchSync(ctx: Pick<Context, 'db' | 'search'>, id: string) {
+  searchSync(id, () => void syncArrangement(ctx.db, ctx.search, id));
 }
 
-type ArrangementRow = NonNullable<Awaited<ReturnType<typeof findArrangement>>>;
-
-/** Drafts are visible to their author only. */
-function toView(row: ArrangementRow | undefined, viewerId: string | undefined) {
-  if (!row || (row.status === 'draft' && row.authorId !== viewerId)) {
-    throw new TRPCError({ code: 'NOT_FOUND' });
-  }
-  const { song, author, songId: _songId, authorId: _authorId, ...rest } = row;
-  const { artist, artistId: _artistId, ...songFields } = song;
-  return { ...rest, author, song: songFields, artist };
+async function withSync<T>(ctx: Pick<Context, 'db' | 'search'>, id: string, action: Promise<T>) {
+  const result = await action;
+  scheduleSearchSync(ctx, id);
+  return result;
 }
 
 export const arrangementsRouter = router({
   byId: publicProcedure
     .input(z.object({ id: z.string() }))
-    .query(async ({ ctx, input }) =>
-      toView(await findArrangement(ctx.db, input.id), ctx.session?.user.id),
-    ),
+    .query(({ ctx, input }) => findView(ctx.db, input.id, ctx.session?.user.id)),
 
   /** The latest published arrangement of a song, for `/songs/[artist]/[song]`. */
   bySlug: publicProcedure
@@ -53,7 +44,7 @@ export const arrangementsRouter = router({
             with: WITH_DETAILS,
           })
         : undefined;
-      return toView(row, ctx.session?.user.id);
+      return toView(ctx.db, row, ctx.session?.user.id);
     }),
 
   create: protectedProcedure
@@ -81,16 +72,24 @@ export const arrangementsRouter = router({
 
   like: protectedProcedure
     .input(byId)
-    .mutation(({ ctx, input }) => setLike(ctx.db, ctx.session.user.id, input.id, true)),
+    .mutation(({ ctx, input }) =>
+      withSync(ctx, input.id, setLike(ctx.db, ctx.session.user.id, input.id, true)),
+    ),
   unlike: protectedProcedure
     .input(byId)
-    .mutation(({ ctx, input }) => setLike(ctx.db, ctx.session.user.id, input.id, false)),
+    .mutation(({ ctx, input }) =>
+      withSync(ctx, input.id, setLike(ctx.db, ctx.session.user.id, input.id, false)),
+    ),
   save: protectedProcedure
     .input(byId)
-    .mutation(({ ctx, input }) => setSave(ctx.db, ctx.session.user.id, input.id, true)),
+    .mutation(({ ctx, input }) =>
+      withSync(ctx, input.id, setSave(ctx.db, ctx.session.user.id, input.id, true)),
+    ),
   unsave: protectedProcedure
     .input(byId)
-    .mutation(({ ctx, input }) => setSave(ctx.db, ctx.session.user.id, input.id, false)),
+    .mutation(({ ctx, input }) =>
+      withSync(ctx, input.id, setSave(ctx.db, ctx.session.user.id, input.id, false)),
+    ),
 
   /** `times` > 1 comes from plays queued while offline. */
   played: protectedProcedure

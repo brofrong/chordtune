@@ -27,6 +27,8 @@ export type ArrangementDoc = {
   titleTranslit: string;
   lyrics: string;
   chords: string[];
+  views: number;
+  likes: number;
   createdAt: number;
 };
 

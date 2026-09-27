@@ -37,6 +37,8 @@ export function toArrangementDoc(row: ArrangementRow): ArrangementDoc {
     titleTranslit: otherScript(songRow.title),
     lyrics: lyrics(parse(row.content).doc),
     chords: row.chords,
+    views: row.viewCount,
+    likes: row.likeCount,
     createdAt: row.createdAt.getTime(),
   };
 }
