@@ -349,7 +349,8 @@ export function SongForm() {
           pendingCapo
             ? {
                 to: pendingCapo.to,
-                blocked: pendingCapo.result.unreachable + pendingCapo.result.stale,
+                unreachable: pendingCapo.result.unreachable,
+                brokenTabs: pendingCapo.result.brokenTabs,
               }
             : null
         }

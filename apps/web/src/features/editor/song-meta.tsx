@@ -86,7 +86,7 @@ export function SongMetaSheet({
   fields: SongFields;
   onChange: (patch: Partial<SongFields>) => void;
   capoHints: CapoHint[] | null;
-  pendingCapo: { to: number; blocked: number } | null;
+  pendingCapo: { to: number; unreachable: number; brokenTabs: number } | null;
   onCapoPick: (capo: number | null) => void;
   onRecalculate: () => void;
   onKeepWritten: () => void;
@@ -202,13 +202,20 @@ export function SongMetaSheet({
           {pendingCapo && (
             <div className="flex flex-col gap-2 rounded-2xl border border-chord/40 bg-chord/5 p-3 text-sm">
               <p>{t('recalcCapo', { fret: pendingCapo.to })}</p>
-              {pendingCapo.blocked > 0 && (
+              {pendingCapo.unreachable > 0 && (
                 <p className="text-destructive text-xs">
-                  {t('recalcBlocked', { count: pendingCapo.blocked })}
+                  {t('recalcBlocked', { count: pendingCapo.unreachable })}
                 </p>
               )}
+              {pendingCapo.brokenTabs > 0 && (
+                <p className="text-destructive text-xs">{t('recalcTabError')}</p>
+              )}
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" disabled={pendingCapo.blocked > 0} onClick={onRecalculate}>
+                <Button
+                  size="sm"
+                  disabled={pendingCapo.unreachable > 0 || pendingCapo.brokenTabs > 0}
+                  onClick={onRecalculate}
+                >
                   {t('recalc')}
                 </Button>
                 <Button size="sm" variant="outline" onClick={onKeepWritten}>

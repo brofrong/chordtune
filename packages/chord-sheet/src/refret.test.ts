@@ -94,6 +94,36 @@ describe('refretBlock', () => {
     const kept = refretBlock(block('2.1{h} 4.1'), STANDARD, 0, 1);
     expect(kept.block.bars[0]?.beats[0]?.notes[0]?.effects.hammer).toBe(true);
   });
+
+  test('a string still held for a later tie cannot be taken by another note', () => {
+    const tab = block('0.3.4 7.4.4 -.3.4 r.4');
+    const moved = refretBlock(tab, STANDARD, 0, 5);
+    const beats = moved.block.bars[0]?.beats ?? [];
+    const attack = beats[0]?.notes[0];
+    const tied = beats[2]?.notes[0];
+    // The tie keeps the same string and fret as the note it holds.
+    expect(tied?.tie).toBe(true);
+    expect(tied?.string).toBe(attack?.string);
+    expect(tied?.fret).toBe(attack?.fret);
+    // The other note (on a different source string) never lands on the held string.
+    const other = beats[1]?.notes[0];
+    expect(other?.string).not.toBe(attack?.string);
+    expect(moved.unreachable).toBe(0);
+    expect(pitches(moved.block, 5)).toEqual(pitches(tab, 0));
+  });
+
+  test('a tie of an unreachable note keeps the unreachable flag', () => {
+    const tab = block('(0.6 0.5 0.4).4 (-.6 -.5 -.4).4');
+    const moved = refretBlock(tab, STANDARD, 0, 3);
+    const attackBeat = moved.block.bars[0]?.beats[0]?.notes ?? [];
+    const tieBeat = moved.block.bars[0]?.beats[1]?.notes ?? [];
+    attackBeat.forEach((note, i) => {
+      if (note.unreachable) {
+        expect(tieBeat[i]).toMatchObject({ tie: true, unreachable: true, fret: note.fret });
+      }
+    });
+    expect(attackBeat.some((note) => note.unreachable)).toBe(true);
+  });
 });
 
 describe('rewriteAlphaTex', () => {
@@ -115,5 +145,39 @@ describe('rewriteAlphaTex', () => {
     const low = ['0.6'];
     const lowBlock = parseAlphaTex(low).block;
     expect(rewriteAlphaTex(low, lowBlock, refretBlock(lowBlock, STANDARD, 0, 3).block)).toBeNull();
+  });
+
+  test('a string held for a later tie re-parses to the same notes', () => {
+    const source = ['0.3.4 7.4.4 -.3.4 r.4'];
+    const before = parseAlphaTex(source).block;
+    const after = refretBlock(before, STANDARD, 0, 5).block;
+    const rewritten = rewriteAlphaTex(source, before, after);
+    expect(rewritten).not.toBeNull();
+    const reparsed = rewritten ? parseAlphaTex(rewritten).block : null;
+    const flatten = (tab: TabBlock) =>
+      tab.bars.flatMap((bar) => bar.beats.flatMap((beat) => beat.notes));
+    expect(reparsed && flatten(reparsed)).toEqual(flatten(after));
+  });
+
+  test('a dropped hammer-on/slide mark is removed from the rewritten source', () => {
+    const source = ['0.1{h} 2.1'];
+    const before = parseAlphaTex(source).block;
+    const after = refretBlock(before, STANDARD, 0, 1).block;
+    // The hammer-on is dropped because the two notes end up on different strings.
+    expect(before.bars[0]?.beats[0]?.notes[0]?.effects.hammer).toBe(true);
+    expect(after.bars[0]?.beats[0]?.notes[0]?.effects.hammer).toBeUndefined();
+    const rewritten = rewriteAlphaTex(source, before, after);
+    expect(rewritten).toEqual(['4.2 1.1']);
+    // The rewritten source must not re-parse as a slur to some other note.
+    const reparsed = rewritten ? parseAlphaTex(rewritten).block : null;
+    expect(reparsed?.bars[0]?.beats[0]?.notes[0]?.effects.hammer).toBeUndefined();
+  });
+
+  test('a dropped mark leaves other effects in its group untouched', () => {
+    const source = ['0.1{h v} 2.1'];
+    const before = parseAlphaTex(source).block;
+    const after = refretBlock(before, STANDARD, 0, 1).block;
+    const rewritten = rewriteAlphaTex(source, before, after);
+    expect(rewritten).toEqual(['4.2{v} 1.1']);
   });
 });

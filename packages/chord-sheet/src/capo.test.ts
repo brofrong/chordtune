@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { withCapo } from './capo';
+import { recalcBlock, withCapo } from './capo';
 import { parse } from './parse';
 import { serialize } from './serialize';
 import { GUITAR_TUNINGS } from './tuning';
@@ -44,9 +44,35 @@ describe('withCapo', () => {
   });
 
   test('unreachable notes and stale blocks are counted', () => {
+    // Unreachable notes always make their block stale too (its source cannot be rewritten), so
+    // this block is not also a "broken tab": the one message about unreachable notes covers it.
     const low = parse('{start_of_alphatex}\n0.6 2.6\n{end_of_alphatex}').doc;
-    expect(withCapo(low, STANDARD, 0, 3)).toMatchObject({ unreachable: 2, stale: 1 });
+    expect(withCapo(low, STANDARD, 0, 3)).toMatchObject({
+      unreachable: 2,
+      stale: 1,
+      brokenTabs: 0,
+    });
+    // Stale for its own reason — the tab's note count does not match its source — with no
+    // unreachable note to blame: a genuine "broken tab".
     const broken = parse('{start_of_alphatex}\n0.1 3.9\n{end_of_alphatex}').doc;
-    expect(withCapo(broken, STANDARD, 1, 0)).toMatchObject({ unreachable: 0, stale: 1 });
+    expect(withCapo(broken, STANDARD, 1, 0)).toMatchObject({
+      unreachable: 0,
+      stale: 1,
+      brokenTabs: 1,
+    });
+  });
+});
+
+describe('recalcBlock', () => {
+  test('a block with unreachable notes is not also counted as a broken tab', () => {
+    expect(recalcBlock(2, null)).toEqual({ unreachable: 2, brokenTabs: 0 });
+  });
+
+  test('a stale block with no unreachable notes is a broken tab', () => {
+    expect(recalcBlock(0, null)).toEqual({ unreachable: 0, brokenTabs: 1 });
+  });
+
+  test('a block that rewrote cleanly is neither', () => {
+    expect(recalcBlock(0, ['0.1'])).toEqual({ unreachable: 0, brokenTabs: 0 });
   });
 });

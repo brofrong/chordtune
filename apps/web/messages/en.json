@@ -154,7 +154,7 @@
     "capoAuthor": "author's",
     "capoAsAuthor": "As the author",
     "noBarre": "no barre",
-    "unreachable": "{count, plural, one {# note} other {# notes}} can't be played with a capo on fret {fret}",
+    "unreachable": "{count, plural, one {# note} other {# notes}} can't be played {fret, plural, =0 {without a capo} other {with a capo on fret {fret}}}",
     "asciiTabCapo": "{fret, plural, =0 {Tab for playing without a capo} other {Tab for a capo on fret {fret}}}"
   },
   "editor": {
@@ -188,7 +188,8 @@
     "recalcCapo": "Recalculate chords and tabs {fret, plural, =0 {for playing without a capo} other {for a capo on fret {fret}}}? The sound stays the same.",
     "recalc": "Recalculate",
     "keepWritten": "Keep as written",
-    "recalcBlocked": "{count, plural, one {# tab note doesn't fit} other {# tab notes don't fit}} — can't recalculate",
+    "recalcBlocked": "{count, plural, one {# tab note doesn't fit} other {# tab notes don't fit}}",
+    "recalcTabError": "A tab has an error — fix it to recalculate",
     "voicingsResetCapo": "Chords recalculated, shapes cleared",
     "switchBlocked": "Fix the errors in the text first",
     "unknownRhythm": "Marker @{key} points to a pattern that does not exist",
