@@ -152,6 +152,19 @@ describe('saveArrangement', () => {
     expect(row?.voicings).toEqual({ Dm: [null, null, 0, 2, 3, 1] });
     expect(row?.zenMode).toBe('strip');
   });
+
+  test('normalises a non-canonical chord key before storing its voicing', async () => {
+    const saved = await saveArrangement(db, noopSearch, {
+      authorId,
+      input: {
+        ...base,
+        content: '[Куплет]\n${Hm}la ${A#}la',
+        voicings: { Hm: [null, 2, 4, 4, 3, 2] },
+      },
+    });
+    const row = await db.query.arrangement.findFirst({ where: { id: saved.id } });
+    expect(row?.voicings).toEqual({ Bm: [null, 2, 4, 4, 3, 2] });
+  });
 });
 
 describe('arrangementInput', () => {

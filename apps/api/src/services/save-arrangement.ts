@@ -1,4 +1,5 @@
 import {
+  chordKey,
   chordList,
   isChord,
   isRhythm,
@@ -166,7 +167,10 @@ export async function saveArrangement(
       notes: input.notes,
       tuning: input.tuning,
       voicings: Object.fromEntries(
-        Object.entries(input.voicings).filter(([chord]) => chords.includes(chord)),
+        Object.entries(input.voicings).flatMap(([chord, shape]) => {
+          const key = chordKey(chord);
+          return key && chords.includes(key) ? [[key, shape] as const] : [];
+        }),
       ),
       zenMode: input.zenMode,
     };
