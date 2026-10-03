@@ -148,7 +148,14 @@
     "noRhythm": "No rhythm",
     "stop": "Stop",
     "offlineBanner": "Offline — showing the saved copy",
-    "noNetwork": "No connection, and this song isn't saved"
+    "noNetwork": "No connection, and this song isn't saved",
+    "capoNone": "No capo",
+    "capoFret": "Fret {fret}",
+    "capoAuthor": "author's",
+    "capoAsAuthor": "As the author",
+    "noBarre": "no barre",
+    "unreachable": "{count, plural, one {# note} other {# notes}} can't be played with a capo on fret {fret}",
+    "asciiTabCapo": "{fret, plural, =0 {Tab for playing without a capo} other {Tab for a capo on fret {fret}}}"
   },
   "editor": {
     "newTitle": "New song",

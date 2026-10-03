@@ -1,13 +1,16 @@
 'use client';
 
+import { capoHints } from '@chordtune/audio';
 import {
   chordKey,
   chordList,
   chordSpellings,
+  countUnreachable,
   parse,
   type Shape,
   type SongDoc,
   timeline,
+  withCapo,
 } from '@chordtune/chord-sheet';
 import { Play, Square } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
@@ -35,10 +38,12 @@ import { useStrumPlayer } from '@/features/rhythm/use-strum-player';
 import { TabStaff } from '@/features/tab/tab-staff';
 import { ZenMode } from '@/features/zen/zen-mode';
 import type { ArrangementView } from '@/lib/trpc';
+import { CapoPicker } from './capo-picker';
 import { LineView, TabView } from './line-view';
 import { SongActions } from './song-actions';
 import { SongDock } from './song-dock';
 import { SongHeader } from './song-header';
+import { useSongSettings } from './song-settings';
 import { formatSpeed } from './speed-chips';
 import { type SongActionHooks, useSongActions } from './use-song-actions';
 
@@ -64,24 +69,37 @@ export function SongView({
   const bpm = arrangement.tempo ?? DEFAULT_BPM;
   const [speed, setSpeed] = useState(1);
   const sound = useMemo(() => songSound(arrangement), [arrangement]);
-  const options = { bpm, speed, ...sound };
   const player = useStrumPlayer();
   const { rhythms } = arrangement;
 
-  const chords = useMemo(() => chordList(doc), [doc]);
-  const spellings = useMemo(() => chordSpellings(doc), [doc]);
-  const browser = useChordBrowser(chords, sound, spellings);
+  const [settings, updateSettings] = useSongSettings(arrangement.id);
+  const authorCapo = arrangement.capo ?? 0;
+  const capo = preview ? authorCapo : (settings.capo ?? authorCapo);
+  const view = useMemo(
+    () => withCapo(doc, sound.tuning.strings, authorCapo, capo).doc,
+    [doc, sound.tuning.strings, authorCapo, capo],
+  );
+  // The author's shapes only fit their own capo.
+  const viewSound = useMemo(
+    () => ({ ...sound, capo, voicings: capo === authorCapo ? sound.voicings : {} }),
+    [sound, capo, authorCapo],
+  );
+  const options = { bpm, speed, ...viewSound };
+
+  const chords = useMemo(() => chordList(view), [view]);
+  const spellings = useMemo(() => chordSpellings(view), [view]);
+  const browser = useChordBrowser(chords, viewSound, spellings);
   const [panelOpen, setPanelOpen] = useChordPanelOpen();
   const [peek, setPeek] = useState<{ chord: string; anchor: HTMLElement } | null>(null);
   // An edit in the editor's live preview can remount the tapped chord and leave `peek.anchor`
-  // pointing at a detached node: close the popover the moment `doc` changes, before that frame
+  // pointing at a detached node: close the popover the moment `view` changes, before that frame
   // paints (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes).
-  const [peekDoc, setPeekDoc] = useState(doc);
-  if (peekDoc !== doc) {
-    setPeekDoc(doc);
+  const [peekDoc, setPeekDoc] = useState(view);
+  if (peekDoc !== view) {
+    setPeekDoc(view);
     setPeek(null);
   }
-  const playShape = (shape: Shape) => void player.play('shape', shapePlayback(shape, sound));
+  const playShape = (shape: Shape) => void player.play('shape', shapePlayback(shape, viewSound));
   const onChord = (raw: string, anchor: HTMLElement) => {
     const chord = chordKey(raw);
     if (chord) {
@@ -92,13 +110,13 @@ export function SongView({
   const [zenOpen, setZenOpen] = useState(false);
 
   const playing = useMemo(() => {
-    const opts = { bpm, speed, ...sound };
+    const opts = { bpm, speed, ...viewSound };
     if (player.playing === 'song') {
-      return songPlayback(doc, rhythms, opts);
+      return songPlayback(view, rhythms, opts);
     }
     const match = player.playing?.match(/^section:(\d+)$/);
-    return match ? sectionPlayback(doc, rhythms, Number(match[1]), opts) : null;
-  }, [player.playing, doc, rhythms, bpm, sound, speed]);
+    return match ? sectionPlayback(view, rhythms, Number(match[1]), opts) : null;
+  }, [player.playing, view, rhythms, bpm, viewSound, speed]);
 
   const active: PlayingAt | null = playing ? playingAt(playing, player.position) : null;
 
@@ -113,12 +131,12 @@ export function SongView({
   const speedHint = speed === 1 ? '' : ` · ${formatSpeed(speed)}`;
   const listenHint =
     player.playing === 'song' && active
-      ? (doc.sections[active.section]?.label ?? rhythmHint)
+      ? (view.sections[active.section]?.label ?? rhythmHint)
       : `${rhythmHint} · ${bpm} BPM${speedHint}`;
-  const canPlay = useMemo(() => timeline(doc, rhythms).length > 0, [doc, rhythms]);
+  const canPlay = useMemo(() => timeline(view, rhythms).length > 0, [view, rhythms]);
 
   const playSection = (section: number) => {
-    const { notes } = sectionPlayback(doc, rhythms, section, options);
+    const { notes } = sectionPlayback(view, rhythms, section, options);
     player.toggle(`section:${section}`, notes);
   };
 
@@ -145,7 +163,21 @@ export function SongView({
           {sound.tuning.id !== 'standard' ? (
             <span>{t('tuning', { name: tTuner(`tunings.guitar.${sound.tuning.id}`) })}</span>
           ) : null}
-          {arrangement.capo ? <span>{t('capo', { fret: arrangement.capo })}</span> : null}
+          {preview ? (
+            arrangement.capo ? (
+              <span>{t('capo', { fret: arrangement.capo })}</span>
+            ) : null
+          ) : (
+            <CapoPicker
+              value={capo}
+              authorCapo={authorCapo}
+              hints={() => capoHints(doc, sound.tuning.strings, authorCapo)}
+              onChange={(next) => {
+                player.stop();
+                updateSettings({ capo: next });
+              }}
+            />
+          )}
           {arrangement.tempo ? <span>{t('bpm', { bpm: arrangement.tempo })}</span> : null}
           {arrangement.key ? <span>{t('key', { key: arrangement.key })}</span> : null}
           <span>{t('by', { name: arrangement.author.name })}</span>
@@ -172,7 +204,7 @@ export function SongView({
                   playing={player.playing === id}
                   label={t('play')}
                   onClick={() => {
-                    const { notes, loopSec } = patternPlayback(rhythm, firstChord(doc), options);
+                    const { notes, loopSec } = patternPlayback(rhythm, firstChord(view), options);
                     player.toggle(id, notes, { loopSec });
                   }}
                 />
@@ -183,7 +215,7 @@ export function SongView({
       )}
 
       <div className="flex flex-col gap-5">
-        {doc.sections.map((section, sectionIndex) => (
+        {view.sections.map((section, sectionIndex) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: sections are positional
           <section key={sectionIndex} className="flex flex-col gap-1">
             {section.label !== null && (
@@ -210,18 +242,34 @@ export function SongView({
             {section.lines.map((line, lineIndex) => {
               const here = active?.section === sectionIndex && active.line === lineIndex;
               if (line.type === 'tab') {
-                // biome-ignore lint/suspicious/noArrayIndexKey: lines are positional
-                return <TabView key={lineIndex} lines={line.lines} />;
+                return (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: lines are positional
+                  <div key={lineIndex} className="flex flex-col gap-1">
+                    {capo !== authorCapo && (
+                      <p className="text-muted-foreground text-xs">
+                        {t('asciiTabCapo', { fret: authorCapo })}
+                      </p>
+                    )}
+                    <TabView lines={line.lines} />
+                  </div>
+                );
               }
               if (line.type === 'alphatex') {
+                const lost = countUnreachable(line.block);
                 return (
-                  <TabStaff
-                    // biome-ignore lint/suspicious/noArrayIndexKey: lines are positional
-                    key={lineIndex}
-                    block={line.block}
-                    activeBeat={here ? active.beat : null}
-                    className="py-1"
-                  />
+                  // biome-ignore lint/suspicious/noArrayIndexKey: lines are positional
+                  <div key={lineIndex} className="flex flex-col gap-1">
+                    {lost > 0 && (
+                      <p className="rounded-md bg-destructive/10 px-2 py-1 text-destructive text-xs">
+                        {t('unreachable', { count: lost, fret: capo })}
+                      </p>
+                    )}
+                    <TabStaff
+                      block={line.block}
+                      activeBeat={here ? active.beat : null}
+                      className="py-1"
+                    />
+                  </div>
                 );
               }
               return (
@@ -248,7 +296,7 @@ export function SongView({
         raised={preview}
         listening={player.playing === 'song'}
         listenHint={listenHint}
-        onListen={() => player.toggle('song', songPlayback(doc, rhythms, options).notes)}
+        onListen={() => player.toggle('song', songPlayback(view, rhythms, options).notes)}
         speed={speed}
         onSpeedChange={changeSpeed}
         canPlay={canPlay}
@@ -260,7 +308,7 @@ export function SongView({
       <AnimatePresence>
         {zenOpen && (
           <ZenMode
-            doc={doc}
+            doc={view}
             rhythms={rhythms}
             bpm={bpm}
             speed={speed}

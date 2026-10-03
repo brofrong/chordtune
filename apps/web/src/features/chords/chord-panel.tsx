@@ -134,7 +134,7 @@ export function ChordStrip({
         <span className="uppercase tracking-wide">{t('title')}</span>
         {!open && (
           <span className="min-w-0 truncate font-semibold text-chord text-sm normal-case">
-            {browser.chords.join(' ')}
+            {browser.chords.map(browser.label).join(' ')}
           </span>
         )}
         {open ? (

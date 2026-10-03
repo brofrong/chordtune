@@ -148,7 +148,14 @@
     "noRhythm": "Без ритма",
     "stop": "Стоп",
     "offlineBanner": "Офлайн — показана сохранённая копия",
-    "noNetwork": "Нет сети, а эта песня не сохранена"
+    "noNetwork": "Нет сети, а эта песня не сохранена",
+    "capoNone": "Без каподастра",
+    "capoFret": "{fret} лад",
+    "capoAuthor": "у автора",
+    "capoAsAuthor": "Как у автора",
+    "noBarre": "без баррэ",
+    "unreachable": "{count, plural, one {# ноту} few {# ноты} many {# нот} other {# ноты}} не сыграть с каподастром на {fret}-м ладу",
+    "asciiTabCapo": "{fret, plural, =0 {Таб для игры без каподастра} other {Таб для каподастра на {fret}-м ладу}}"
   },
   "editor": {
     "newTitle": "Новая песня",
