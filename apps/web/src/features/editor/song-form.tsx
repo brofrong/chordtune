@@ -255,7 +255,9 @@ export function SongForm() {
         bpm={bpm}
         capo={fields.capo}
         player={player}
-        preview={<SongView arrangement={previewArrangement} preview />}
+        // Keyed by `previewArrangement.id`, not by doc/docVersion: it only changes with `editId`,
+        // so speed survives an edit but still resets when switching to a different song.
+        preview={<SongView key={previewArrangement.id} arrangement={previewArrangement} preview />}
       />
 
       <SongMetaSheet

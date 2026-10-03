@@ -30,5 +30,6 @@ export default async function SongPage({ params }: SongPageProps) {
   if (!arrangement) {
     notFound();
   }
-  return <SongView arrangement={arrangement} />;
+  // Keyed by id: speed (`useState` in SongView) must reset when navigating to a different song.
+  return <SongView key={arrangement.id} arrangement={arrangement} />;
 }

@@ -48,7 +48,8 @@ export function SongById() {
             {t('offlineBanner')}
           </p>
         )}
-        <SongView arrangement={arrangement} />
+        {/* Keyed by id: speed (`useState` in SongView) must reset when `?id=` switches songs. */}
+        <SongView key={arrangement.id} arrangement={arrangement} />
       </>
     );
   }

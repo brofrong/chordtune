@@ -88,9 +88,11 @@ export function SongView({
   return (
     <article
       className={
+        // The dock grew a speed-chips row (1.75rem) plus its gap (0.5rem): bottom padding is
+        // raised by that much so the last content still clears it, above the mobile tab bar.
         preview
-          ? 'flex w-full flex-col gap-6 pb-24'
-          : 'mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-4 pb-28'
+          ? 'flex w-full flex-col gap-6 pb-[8.25rem]'
+          : 'mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-4 pb-[9.25rem]'
       }
     >
       {!preview && <SongHeader arrangement={arrangement} />}
