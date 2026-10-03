@@ -320,6 +320,8 @@
     "fret": "{note}, {fret} лад",
     "voicingTitle": "Аппликатура {chord}",
     "editVoicing": "Аппликатура {chord}",
+    "editVoicingOwn": "Аппликатура {chord} (своя)",
+    "variant": "{chord}, вариант {n}",
     "drawOwn": "Нарисовать свою",
     "byDefault": "Как по умолчанию",
     "listen": "Послушать",

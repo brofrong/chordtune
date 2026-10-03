@@ -42,6 +42,9 @@ export function VoicingSheet({
   const check = chord && drawing ? checkShape(drawing, chord, strings) : null;
 
   const close = () => {
+    if (player.playing === 'shape') {
+      player.stop();
+    }
     setDrawing(null);
     onClose();
   };
@@ -97,13 +100,14 @@ export function VoicingSheet({
           ) : (
             <>
               <div className="flex flex-wrap gap-2">
-                {variants.map((shape) => {
+                {variants.map((shape, index) => {
                   const id = shape.join();
                   return (
                     <button
                       key={id}
                       type="button"
                       aria-pressed={id === selected}
+                      aria-label={t('variant', { chord: chord ?? '', n: index + 1 })}
                       onClick={() => {
                         play(shape);
                         onPick(shape);

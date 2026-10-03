@@ -25,18 +25,19 @@ export function EditorChords({
       <h2 className="text-muted-foreground text-xs uppercase tracking-wide">{t('title')}</h2>
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
         {chords.map((chord) => {
-          const shape = chordVariants(chord, sound.tuning.strings, sound.voicings[chord])[0];
+          const own = sound.voicings[chord];
+          const shape = chordVariants(chord, sound.tuning.strings, own)[0];
           return (
             <button
               key={chord}
               type="button"
-              aria-label={t('editVoicing', { chord })}
+              aria-label={t(own ? 'editVoicingOwn' : 'editVoicing', { chord })}
               onClick={() => onEdit(chord)}
               className="flex shrink-0 flex-col items-center gap-0.5 rounded-2xl border border-border bg-surface px-2 py-1.5"
             >
               <span className="font-semibold text-chord text-sm">
                 {chord}
-                {sound.voicings[chord] ? ' •' : ''}
+                {own ? ' •' : ''}
               </span>
               {shape ? (
                 <ChordDiagram frets={shape} size="sm" />

@@ -320,6 +320,8 @@
     "fret": "{note}, fret {fret}",
     "voicingTitle": "{chord} shape",
     "editVoicing": "{chord} shape",
+    "editVoicingOwn": "{chord} shape (custom)",
+    "variant": "{chord}, shape {n}",
     "drawOwn": "Draw your own",
     "byDefault": "Use the default",
     "listen": "Listen",
