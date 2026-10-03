@@ -15,6 +15,7 @@ export * from './shape';
 export * from './tab';
 export * from './tempo';
 export * from './timeline';
+export * from './transpose';
 export * from './tuning';
 export * from './types';
 export * from './validate';
