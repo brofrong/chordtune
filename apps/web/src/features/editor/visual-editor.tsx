@@ -103,6 +103,14 @@ export function VisualEditor({
     onChange(setLineItems(doc, section, line, joinLine(text, edit(text, marks))));
   };
 
+  // `playingSection`/`playingTab` are positional ids: inserting or removing a line or a
+  // section shifts every later one, so what used to match a playing id now points at a
+  // different line. Stop playback first so the play/stop indicator never drifts from reality.
+  const reorder = (next: SongDoc) => {
+    player.stop();
+    onChange(next);
+  };
+
   const currentMark = (() => {
     if (!target || target.mark === null) {
       return null;
@@ -178,7 +186,7 @@ export function VisualEditor({
               size="icon-sm"
               className="ml-auto text-muted-foreground"
               aria-label={t('removeSection')}
-              onClick={() => onChange(removeSection(doc, sectionIndex))}
+              onClick={() => reorder(removeSection(doc, sectionIndex))}
             >
               <Trash2 />
             </Button>
@@ -224,7 +232,7 @@ export function VisualEditor({
                     size="icon-xs"
                     className="text-muted-foreground"
                     aria-label={t('removeLine')}
-                    onClick={() => onChange(removeLine(doc, sectionIndex, lineIndex))}
+                    onClick={() => reorder(removeLine(doc, sectionIndex, lineIndex))}
                   >
                     <Trash2 />
                   </Button>
@@ -279,7 +287,7 @@ export function VisualEditor({
                   size="icon-xs"
                   className="text-muted-foreground"
                   aria-label={t('removeLine')}
-                  onClick={() => onChange(removeLine(doc, sectionIndex, lineIndex))}
+                  onClick={() => reorder(removeLine(doc, sectionIndex, lineIndex))}
                 >
                   <Trash2 />
                 </Button>
@@ -294,7 +302,7 @@ export function VisualEditor({
               className="text-muted-foreground"
               onClick={() => {
                 const at = section.lines.length;
-                onChange(insertLine(doc, sectionIndex, at, { type: 'line', items: [] }));
+                reorder(insertLine(doc, sectionIndex, at, { type: 'line', items: [] }));
                 setEditingLine({ section: sectionIndex, line: at });
               }}
             >
@@ -307,7 +315,7 @@ export function VisualEditor({
               className="text-muted-foreground"
               onClick={() => {
                 const at = section.lines.length;
-                onChange(insertLine(doc, sectionIndex, at, alphatexLine([])));
+                reorder(insertLine(doc, sectionIndex, at, alphatexLine([])));
                 setEditingTab({ section: sectionIndex, line: at });
               }}
             >
@@ -322,7 +330,7 @@ export function VisualEditor({
         variant="outline"
         size="sm"
         className="self-start"
-        onClick={() => onChange(addSection(doc, t('defaultSection')))}
+        onClick={() => reorder(addSection(doc, t('defaultSection')))}
       >
         <Plus />
         {t('addSection')}
@@ -377,7 +385,7 @@ export function VisualEditor({
             : undefined;
           // A block that was added and never written is dropped.
           if (editingTab && line?.type === 'alphatex' && line.source.length === 0) {
-            onChange(removeLine(doc, editingTab.section, editingTab.line));
+            reorder(removeLine(doc, editingTab.section, editingTab.line));
           }
           setEditingTab(null);
         }}
