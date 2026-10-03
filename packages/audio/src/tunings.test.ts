@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
+import { SONG_TUNING_IDS } from '@chordtune/chord-sheet';
+
 import { midiToHz } from './pitch';
 import {
   analysisWindowSize,
@@ -61,5 +63,11 @@ describe('tunings', () => {
     expect(analysisWindowSize(48000, 60)).toBe(2048);
     expect(analysisWindowSize(48000, 28)).toBe(4096);
     expect(analysisWindowSize(96000, 28)).toBe(8192);
+  });
+
+  test('guitar tunings are the song tunings', () => {
+    const guitar = INSTRUMENTS.find((instrument) => instrument.id === 'guitar');
+    expect(guitar?.tunings.map((tuning) => tuning.id)).toEqual(SONG_TUNING_IDS);
+    expect(guitar?.tunings[0]?.strings).toEqual([40, 45, 50, 55, 59, 64]);
   });
 });

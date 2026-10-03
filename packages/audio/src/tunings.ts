@@ -1,3 +1,5 @@
+import { GUITAR_TUNINGS, SONG_TUNING_IDS } from '@chordtune/chord-sheet';
+
 import { centsBetween, DEFAULT_A4_HZ, midiToHz, midiToNoteName } from './pitch';
 
 export type InstrumentId = 'guitar' | 'bass' | 'ukulele' | 'chromatic';
@@ -27,16 +29,7 @@ export const INSTRUMENTS: readonly Instrument[] = [
     id: 'guitar',
     minHz: 60,
     maxHz: 1200,
-    tunings: [
-      tuning('guitar', 'standard', [40, 45, 50, 55, 59, 64]),
-      tuning('guitar', 'drop-d', [38, 45, 50, 55, 59, 64]),
-      tuning('guitar', 'half-step-down', [39, 44, 49, 54, 58, 63]),
-      tuning('guitar', 'd-standard', [38, 43, 48, 53, 57, 62]),
-      tuning('guitar', 'drop-c', [36, 43, 48, 53, 57, 62]),
-      tuning('guitar', 'open-g', [38, 43, 50, 55, 59, 62]),
-      tuning('guitar', 'open-d', [38, 45, 50, 54, 57, 62]),
-      tuning('guitar', 'dadgad', [38, 45, 50, 55, 57, 62]),
-    ],
+    tunings: SONG_TUNING_IDS.map((id) => tuning('guitar', id, [...GUITAR_TUNINGS[id]])),
   },
   {
     id: 'bass',

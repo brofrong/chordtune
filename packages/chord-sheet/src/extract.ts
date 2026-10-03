@@ -1,4 +1,4 @@
-import { parseChord } from './chord';
+import { chordKey } from './shape';
 import type { SongDoc } from './types';
 
 /** Unique chords in order of appearance, normalised (`Hm` → `Bm`); non-chords are dropped. */
@@ -10,9 +10,9 @@ export function chordList(doc: SongDoc): string[] {
         continue;
       }
       for (const item of line.items) {
-        const chord = item.type === 'chord' ? parseChord(item.chord) : null;
-        if (chord) {
-          chords.add(`${chord.root}${chord.suffix}${chord.bass ? `/${chord.bass}` : ''}`);
+        const key = item.type === 'chord' ? chordKey(item.chord) : null;
+        if (key) {
+          chords.add(key);
         }
       }
     }
