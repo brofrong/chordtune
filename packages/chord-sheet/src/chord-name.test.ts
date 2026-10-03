@@ -32,8 +32,7 @@ describe('nameChord', () => {
 
   test('ignoreBass: no slash chords for a re-entrant ukulele', () => {
     const am = [69, 60, 64, 69]; // GCEA 2000: the lowest note is the C string
-    expect(nameChord(am)).toContain('Am/C');
-    expect(nameChord(am)).not.toContain('Am');
+    expect(nameChord(am)[0]).toBe('Am/C');
     expect(nameChord(am, { ignoreBass: true })[0]).toBe('Am');
   });
 
@@ -42,6 +41,10 @@ describe('nameChord', () => {
     expect(nameChord([40, 52])).toEqual([]);
     expect(nameChord([40, 41])).toEqual([]);
     expect(nameChord([])).toEqual([]);
+  });
+
+  test('a three-note dominant seventh without its fifth is named', () => {
+    expect(nameChord([40, 44, 50])[0]).toBe('E7'); // E2, G#2, D3
   });
 });
 

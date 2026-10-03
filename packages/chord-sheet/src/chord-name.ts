@@ -39,7 +39,8 @@ const QUALITIES: readonly { suffix: string; intervals: readonly number[] }[] = [
 
 export const CHORD_SUFFIXES = QUALITIES.map((quality) => quality.suffix);
 
-const NO_FIFTH_PENALTY = 10;
+// Exactness beats slash beats rank: no-fifth penalty > slash penalty + rank spread.
+const NO_FIFTH_PENALTY = 40;
 const SLASH_PENALTY = 20;
 
 const pitchClassOf = (midi: number) => ((midi % 12) + 12) % 12;
