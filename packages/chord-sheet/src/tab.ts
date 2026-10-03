@@ -4,7 +4,14 @@ export type TabDuration = 1 | 2 | 4 | 8 | 16 | 32;
 export type NoteEffects = { hammer?: true; slide?: true; bend?: number[]; vibrato?: true };
 
 /** `string` 1 is the high E. A tie holds the previous fret on the string without a new attack. */
-export type TabNote = { string: number; fret: number | 'x'; tie: boolean; effects: NoteEffects };
+export type TabNote = {
+  string: number;
+  fret: number | 'x';
+  tie: boolean;
+  effects: NoteEffects;
+  /** Set when a capo leaves no fret for the note: `fret` is then below the capo. */
+  unreachable?: true;
+};
 
 export type TabBeat = {
   /** Length in quarter notes, with the dot and the tuplet applied. */

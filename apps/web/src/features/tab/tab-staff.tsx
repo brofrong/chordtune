@@ -303,7 +303,13 @@ function NoteMark({
   target: { layout: BeatLayout; note: TabNote } | null;
 }) {
   const y = stringY(note.string);
-  const label = note.fret === 'x' ? 'x' : note.tie ? `(${note.fret})` : String(note.fret);
+  const label = note.unreachable
+    ? '?'
+    : note.fret === 'x'
+      ? 'x'
+      : note.tie
+        ? `(${note.fret})`
+        : String(note.fret);
   const up =
     target && typeof target.note.fret === 'number' && typeof note.fret === 'number'
       ? target.note.fret > note.fret
@@ -363,7 +369,7 @@ function NoteMark({
         paintOrder="stroke"
         className={cn(
           'stroke-[4px] stroke-background font-mono text-[11px]',
-          active ? 'fill-primary' : 'fill-foreground',
+          note.unreachable ? 'fill-destructive' : active ? 'fill-primary' : 'fill-foreground',
         )}
       >
         {label}

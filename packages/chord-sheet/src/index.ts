@@ -8,6 +8,7 @@ export * from './import-obsidian';
 export * from './jtab';
 export * from './line';
 export * from './parse';
+export * from './refret';
 export * from './rhythm';
 export * from './rhythm-presets';
 export * from './serialize';

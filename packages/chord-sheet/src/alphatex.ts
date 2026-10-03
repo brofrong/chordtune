@@ -84,6 +84,15 @@ function tokenize(lines: readonly string[], firstLineNo: number, diagnostics: Di
   return tokens;
 }
 
+/** Every note word (`fret.string[.duration]`) in written order, with its 0-based place. */
+export function alphaTexNoteTokens(
+  lines: readonly string[],
+): { line: number; col: number; text: string }[] {
+  return tokenize(lines, 0, [])
+    .filter((token) => token.kind === 'word' && NOTE_RE.test(token.value))
+    .map((token) => ({ line: token.line, col: token.col - 1, text: token.value }));
+}
+
 function splitSyllables(text: string): string[] {
   return text
     .split(/\s+/)
