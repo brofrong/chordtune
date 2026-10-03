@@ -28,6 +28,10 @@ export function scheduleTab(
     if (!beat) {
       continue;
     }
+    // A string reached by a hammer-on sounds soft only on the very next beat; a rest still
+    // counts as a beat, so the flag must not carry over it to a later note.
+    const legatoHere = new Set(legato);
+    legato.clear();
     for (const note of beat.notes) {
       if (note.tie) {
         continue;
@@ -37,7 +41,7 @@ export function scheduleTab(
       if (beat.palmMute) {
         gain *= PALM_MUTE_GAIN;
       }
-      if (legato.delete(note.string)) {
+      if (legatoHere.has(note.string)) {
         gain *= LEGATO_GAIN;
       }
       if (note.effects.hammer) {

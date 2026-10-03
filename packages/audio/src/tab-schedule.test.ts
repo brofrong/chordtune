@@ -35,4 +35,10 @@ describe('scheduleTab', () => {
     const notes = scheduleTab(block('7.2{sl} 9.2'), { bpm: 60 });
     expect(notes[1]?.gain).toEqual(notes[0]?.gain);
   });
+
+  test('a hammer-on softens only the very next beat, not a later one across rests', () => {
+    const notes = scheduleTab(block('3.3{h} r r 5.3'), { bpm: 60 });
+    expect(notes.map((n) => n.time)).toEqual([0, 3]);
+    expect(notes[1]?.gain).toEqual(notes[0]?.gain);
+  });
 });
