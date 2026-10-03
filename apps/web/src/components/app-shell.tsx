@@ -1,6 +1,6 @@
 'use client';
 
-import { AudioLines, Bookmark, ListMusic } from 'lucide-react';
+import { AudioLines, Bookmark, Grid3x3, ListMusic } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 const TABS = [
   { href: '/', key: 'tuner', icon: AudioLines },
   { href: '/songs', key: 'songs', icon: ListMusic },
+  { href: '/chords', key: 'chords', icon: Grid3x3 },
   { href: '/library', key: 'library', icon: Bookmark },
 ] as const;
 
@@ -71,7 +72,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </main>
 
       <nav className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 md:hidden">
-        <div className="grid h-16 grid-cols-3 rounded-[22px] border border-border bg-popover/80 p-1.5 shadow-lg backdrop-blur-xl">
+        <div className="grid h-16 grid-cols-4 rounded-[22px] border border-border bg-popover/80 p-1.5 shadow-lg backdrop-blur-xl">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const active = isActive(tab.href);

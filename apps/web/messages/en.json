@@ -5,6 +5,7 @@
     "nav": {
       "tuner": "Tuner",
       "songs": "Songs",
+      "chords": "Chords",
       "library": "Library"
     },
     "language": "Language",
@@ -330,6 +331,29 @@
     "drawnMatches": "{chord} ✓",
     "drawnSoundsLike": "Sounds like {name}, not {chord}",
     "drawnUnknown": "Not a chord we know",
-    "drawnEmpty": "Press notes on the neck"
+    "drawnEmpty": "Press notes on the neck",
+    "pageTitle": "Chords",
+    "identify": "Identify",
+    "search": "Find",
+    "identifyHint": "Press notes on the neck to see which chord it is",
+    "clear": "Clear",
+    "notes": "Notes: {notes}",
+    "unknown": "Not a chord we know",
+    "searchPlaceholder": "A chord, e.g. F#m7",
+    "notAChord": "That doesn't look like a chord",
+    "shapesFor": "{chord} shapes",
+    "intervals": {
+      "1": "Minor second",
+      "2": "Major second",
+      "3": "Minor third",
+      "4": "Major third",
+      "5": "Perfect fourth",
+      "6": "Tritone",
+      "7": "Perfect fifth",
+      "8": "Minor sixth",
+      "9": "Major sixth",
+      "10": "Minor seventh",
+      "11": "Major seventh"
+    }
   }
 }
