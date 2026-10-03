@@ -1,7 +1,7 @@
 'use client';
 
 import { type Item, isChord } from '@chordtune/chord-sheet';
-import { Trash2 } from 'lucide-react';
+import { Guitar, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -24,6 +24,7 @@ export function ChordPalette({
   onPick,
   onRemove,
   onClose,
+  onVoicing,
 }: {
   anchor: HTMLElement | null;
   chords: string[];
@@ -33,6 +34,7 @@ export function ChordPalette({
   onPick: (item: MarkItem) => void;
   onRemove: () => void;
   onClose: () => void;
+  onVoicing?: (chord: string) => void;
 }) {
   const t = useTranslations('editor.palette');
   const [value, setValue] = useState(current?.type === 'chord' ? current.chord : '');
@@ -127,6 +129,17 @@ export function ChordPalette({
               </button>
             ))}
           </div>
+        )}
+        {current?.type === 'chord' && onVoicing && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="justify-start"
+            onClick={() => onVoicing(current.chord)}
+          >
+            <Guitar />
+            {t('voicing')}
+          </Button>
         )}
         {current && (
           <Button

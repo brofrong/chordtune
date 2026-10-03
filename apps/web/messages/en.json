@@ -206,7 +206,8 @@
       "bar": "Bar",
       "repeat": "Repeat",
       "rhythm": "Rhythm",
-      "remove": "Remove"
+      "remove": "Remove",
+      "voicing": "Shape"
     },
     "playSection": "Listen to the section",
     "editTitle": "Edit song",
@@ -316,6 +317,17 @@
     "play": "Play {chord}",
     "noShape": "No shape",
     "openString": "{note} string: open or not played",
-    "fret": "{note}, fret {fret}"
+    "fret": "{note}, fret {fret}",
+    "voicingTitle": "{chord} shape",
+    "editVoicing": "{chord} shape",
+    "drawOwn": "Draw your own",
+    "byDefault": "Use the default",
+    "listen": "Listen",
+    "save": "Save",
+    "cancel": "Cancel",
+    "drawnMatches": "{chord} ✓",
+    "drawnSoundsLike": "Sounds like {name}, not {chord}",
+    "drawnUnknown": "Not a chord we know",
+    "drawnEmpty": "Press notes on the neck"
   }
 }

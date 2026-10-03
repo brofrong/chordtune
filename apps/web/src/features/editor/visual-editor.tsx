@@ -2,6 +2,7 @@
 
 import {
   alphatexLine,
+  chordKey,
   chordList,
   type Item,
   isTempo,
@@ -68,6 +69,7 @@ export function VisualEditor({
   player,
   playingTab,
   onPlayTab,
+  onEditVoicing,
 }: {
   doc: SongDoc;
   onChange: (doc: SongDoc) => void;
@@ -81,6 +83,7 @@ export function VisualEditor({
   /** `"section:line"` of the tab block that is playing. */
   playingTab: string | null;
   onPlayTab: (section: number, line: number) => void;
+  onEditVoicing: (chord: string) => void;
 }) {
   const t = useTranslations('editor');
   const [target, setTarget] = useState<Target | null>(null);
@@ -360,6 +363,13 @@ export function VisualEditor({
             );
           }
           setTarget(null);
+        }}
+        onVoicing={(chord) => {
+          const key = chordKey(chord);
+          setTarget(null);
+          if (key) {
+            onEditVoicing(key);
+          }
         }}
       />
 

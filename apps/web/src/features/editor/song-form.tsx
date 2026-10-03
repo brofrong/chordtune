@@ -274,6 +274,7 @@ export function SongForm() {
         // Keyed by `previewArrangement.id`, not by doc/docVersion: it only changes with `editId`,
         // so speed survives an edit but still resets when switching to a different song.
         preview={<SongView key={previewArrangement.id} arrangement={previewArrangement} preview />}
+        onVoicingsChange={(voicings) => update({ voicings })}
       />
 
       <SongMetaSheet

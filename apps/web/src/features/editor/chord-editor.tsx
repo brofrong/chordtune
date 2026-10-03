@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  chordList,
   type Diagnostic,
   fromChordsOverLyrics,
   type ImportedSong,
@@ -8,11 +9,14 @@ import {
   type SongDoc,
   serialize,
   toChordsOverLyrics,
+  type Voicings,
   validate,
 } from '@chordtune/chord-sheet';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
+import { EditorChords } from '@/features/chords/editor-chords';
+import { VoicingSheet } from '@/features/chords/voicing-sheet';
 import {
   beatAt,
   playingAt,
@@ -48,6 +52,7 @@ export function ChordEditor({
   sound,
   player,
   preview,
+  onVoicingsChange,
 }: {
   doc: SongDoc;
   /** Bumped when the document is replaced from outside (draft, import), to refresh the text. */
@@ -60,6 +65,7 @@ export function ChordEditor({
   player: StrumPlayerControls;
   /** The song page as readers will see it, for «Проверить». */
   preview: React.ReactNode;
+  onVoicingsChange: (voicings: Voicings) => void;
 }) {
   const t = useTranslations('editor');
   // An empty song starts as text: typing is the quickest way in.
@@ -67,6 +73,8 @@ export function ChordEditor({
   const [text, setText] = useState(() => toChordsOverLyrics(doc));
   const [errors, setErrors] = useState<Diagnostic[]>([]);
   const [blocked, setBlocked] = useState(false);
+  const [voicingChord, setVoicingChord] = useState<string | null>(null);
+  const chords = useMemo(() => chordList(doc), [doc]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: only an outside replacement resets the text
   useEffect(() => {
@@ -131,28 +139,45 @@ export function ChordEditor({
       ) : mode === 'text' ? (
         <TextEditor text={text} onTextChange={changeText} onImport={onImport} />
       ) : (
-        <VisualEditor
-          doc={doc}
-          onChange={onDocChange}
-          rhythms={rhythms}
-          active={active}
-          songBpm={bpm}
-          sound={sound}
-          player={player}
-          playingSection={playingSection}
-          onPlaySection={(section) => {
-            const { notes } = sectionPlayback(doc, rhythms, section, options);
-            player.toggle(`section:${section}`, notes);
-          }}
-          playingTab={playingTab}
-          onPlayTab={(section, line) => {
-            const playback = tabAt(section, line);
-            if (playback) {
-              player.toggle(`tab:${section}:${line}`, playback.notes);
-            }
-          }}
-        />
+        <>
+          <EditorChords chords={chords} sound={sound} onEdit={setVoicingChord} />
+          <VisualEditor
+            doc={doc}
+            onChange={onDocChange}
+            rhythms={rhythms}
+            active={active}
+            songBpm={bpm}
+            sound={sound}
+            player={player}
+            playingSection={playingSection}
+            onPlaySection={(section) => {
+              const { notes } = sectionPlayback(doc, rhythms, section, options);
+              player.toggle(`section:${section}`, notes);
+            }}
+            playingTab={playingTab}
+            onPlayTab={(section, line) => {
+              const playback = tabAt(section, line);
+              if (playback) {
+                player.toggle(`tab:${section}:${line}`, playback.notes);
+              }
+            }}
+            onEditVoicing={setVoicingChord}
+          />
+        </>
       )}
+      <VoicingSheet
+        chord={voicingChord}
+        sound={sound}
+        player={player}
+        onClose={() => setVoicingChord(null)}
+        onPick={(shape) => {
+          if (!voicingChord) {
+            return;
+          }
+          const { [voicingChord]: _old, ...rest } = sound.voicings;
+          onVoicingsChange(shape ? { ...rest, [voicingChord]: shape } : rest);
+        }}
+      />
 
       {(errors.length > 0 || missing.length > 0 || blocked) && (
         <ul className="flex flex-col gap-1 text-destructive text-sm">

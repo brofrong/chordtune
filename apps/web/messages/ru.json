@@ -206,7 +206,8 @@
       "bar": "Такт",
       "repeat": "Повтор",
       "rhythm": "Ритм",
-      "remove": "Убрать"
+      "remove": "Убрать",
+      "voicing": "Аппликатура"
     },
     "playSection": "Прослушать раздел",
     "editTitle": "Правка песни",
@@ -316,6 +317,17 @@
     "play": "Сыграть {chord}",
     "noShape": "Нет аппликатуры",
     "openString": "Струна {note}: открытая или не играть",
-    "fret": "{note}, {fret} лад"
+    "fret": "{note}, {fret} лад",
+    "voicingTitle": "Аппликатура {chord}",
+    "editVoicing": "Аппликатура {chord}",
+    "drawOwn": "Нарисовать свою",
+    "byDefault": "Как по умолчанию",
+    "listen": "Послушать",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "drawnMatches": "{chord} ✓",
+    "drawnSoundsLike": "Звучит как {name}, а не {chord}",
+    "drawnUnknown": "Не похоже на известный аккорд",
+    "drawnEmpty": "Отметь ноты на грифе"
   }
 }
