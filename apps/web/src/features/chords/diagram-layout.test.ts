@@ -16,6 +16,7 @@ describe('diagramLayout', () => {
       open: [1, 5],
       muted: [0],
       barre: null,
+      rows: 5,
     });
   });
 
@@ -30,6 +31,7 @@ describe('diagramLayout', () => {
       open: [],
       muted: [],
       barre: { fret: 1, from: 0, to: 5 },
+      rows: 5,
     });
   });
 
@@ -44,11 +46,22 @@ describe('diagramLayout', () => {
       open: [],
       muted: [0],
       barre: { fret: 1, from: 1, to: 5 },
+      rows: 5,
     });
   });
 
   test('a shape that reaches the 5th fret still starts at the nut', () => {
     expect(diagramLayout([null, null, 2, 4, 5, 2]).base).toBe(1);
     expect(diagramLayout([null, null, 3, 5, 6, 3]).base).toBe(3);
+  });
+
+  test('a shape wider than five frets reports extra rows so no dot is drawn outside the box', () => {
+    const layout = diagramLayout([1, null, null, null, null, 9]);
+    expect(layout.base).toBe(1);
+    expect(layout.rows).toBe(9);
+    expect(layout.dots).toEqual([
+      { string: 0, fret: 1 },
+      { string: 5, fret: 9 },
+    ]);
   });
 });

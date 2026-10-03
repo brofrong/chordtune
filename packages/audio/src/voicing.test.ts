@@ -8,7 +8,7 @@ import {
 } from '@chordtune/chord-sheet';
 
 import { OPEN_STRING_MIDI } from './guitar-synth';
-import { barreOf, voicingFor, voicingsFor } from './voicing';
+import { barreOf, voicingCacheSize, voicingFor, voicingsFor } from './voicing';
 
 const ROOTS = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 const SUFFIXES = ['', 'm', '7', 'm7', 'maj7', 'sus4', 'dim', '6'];
@@ -126,6 +126,22 @@ describe('voicingsFor', () => {
   test('barre flag', () => {
     expect(voicingsFor('F')[0]?.barre).toBe(true);
     expect(voicingsFor('Am')[0]?.barre).toBe(false);
+  });
+});
+
+describe('the voicing cache', () => {
+  test('stays bounded however many distinct chords are looked up', () => {
+    for (let i = 0; i < 600; i++) {
+      voicingsFor(`Z${i}`);
+    }
+    expect(voicingCacheSize()).toBeLessThanOrEqual(512);
+  });
+
+  test('German and English spellings of the same chord share one entry', () => {
+    voicingsFor('Hm');
+    const after1 = voicingCacheSize();
+    voicingsFor('Bm');
+    expect(voicingCacheSize()).toBe(after1);
   });
 });
 

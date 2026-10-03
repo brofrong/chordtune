@@ -1,5 +1,6 @@
 import {
   type ChordTones,
+  chordKey,
   chordTones,
   isReentrant,
   parseChord,
@@ -12,6 +13,8 @@ const MAX_WINDOW_FRET = 12;
 const HAND_SPAN = 3;
 const MAX_FINGERS = 4;
 const DEFAULT_LIMIT = 8;
+/** A song's chords rarely exceed this many distinct spellings; bounds memory on huge songs. */
+const CACHE_LIMIT = 512;
 
 export type Voicing = {
   /** Thickest string first; `null` does not sound. */
@@ -24,6 +27,7 @@ export type Voicing = {
 /** The index finger across strings `from`…`to` (thickest = 0) at `fret`. */
 export type Barre = { fret: number; from: number; to: number };
 
+/** Least-recently-used first; a lookup moves its entry to the end. */
 const cache = new Map<string, Voicing[]>();
 
 /**
@@ -36,13 +40,29 @@ export function voicingsFor(
   strings: readonly number[] = OPEN_STRING_MIDI,
   { limit = DEFAULT_LIMIT }: { limit?: number } = {},
 ): Voicing[] {
-  const key = `${raw}|${strings.join()}|${limit}`;
-  let found = cache.get(key);
-  if (!found) {
-    found = findVoicings(raw, strings, limit);
-    cache.set(key, found);
+  // Normalised so `Hm` and `Bm` share one entry; a song with thousands of distinct
+  // spellings still only searches each actual chord once.
+  const key = `${chordKey(raw) ?? raw}|${strings.join()}|${limit}`;
+  const cached = cache.get(key);
+  if (cached) {
+    cache.delete(key);
+    cache.set(key, cached);
+    return cached;
+  }
+  const found = findVoicings(raw, strings, limit);
+  cache.set(key, found);
+  if (cache.size > CACHE_LIMIT) {
+    const oldest = cache.keys().next().value;
+    if (oldest !== undefined) {
+      cache.delete(oldest);
+    }
   }
   return found;
+}
+
+/** Test hook: how many distinct lookups the bounded cache currently holds. */
+export function voicingCacheSize(): number {
+  return cache.size;
 }
 
 /** The easiest shape, or null if it is not a chord or nothing fits. */

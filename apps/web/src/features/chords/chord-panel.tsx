@@ -3,7 +3,7 @@
 import type { Shape } from '@chordtune/chord-sheet';
 import { ChevronDown, ChevronUp, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import type { SongSound } from '@/features/rhythm/playback';
@@ -11,28 +11,51 @@ import { cn } from '@/lib/utils';
 import { ChordCard } from './chord-card';
 import { chordVariants } from './chord-variants';
 
+/** The panel shows at most this many of the song's chords; a huge song still renders fast. */
+export const MAX_PANEL_CHORDS = 64;
+
 export type ChordBrowser = {
   chords: string[];
   variants: (chord: string) => Shape[];
   index: (chord: string) => number;
   setIndex: (chord: string, index: number) => void;
+  /** The chord as the song spells it (`Hm`), not the normalised key used everywhere else. */
+  label: (chord: string) => string;
 };
 
 /** Every chord's shapes and which one is shown, shared by the panel and the popover. */
-export function useChordBrowser(chords: string[], sound: SongSound): ChordBrowser {
+export function useChordBrowser(
+  chords: string[],
+  sound: SongSound,
+  spellings: Map<string, string>,
+): ChordBrowser {
   const [shown, setShown] = useState<Record<string, number>>({});
   const { strings } = sound.tuning;
   const { voicings } = sound;
-  const table = useMemo(
-    () => new Map(chords.map((chord) => [chord, chordVariants(chord, strings, voicings[chord])])),
-    [chords, strings, voicings],
-  );
+  // A chord's variants are searched only once it is actually shown (a card or a popover),
+  // not for every chord in the song up front — a search is too slow to run thousands of times
+  // eagerly, including on the server for the song page's first render.
+  const cache = useRef(new Map<string, Shape[]>());
+  const deps = useRef({ strings, voicings });
+  if (deps.current.strings !== strings || deps.current.voicings !== voicings) {
+    cache.current = new Map();
+    deps.current = { strings, voicings };
+  }
 
   return {
-    chords,
-    variants: (chord) => table.get(chord) ?? chordVariants(chord, strings, voicings[chord]),
+    chords: chords.slice(0, MAX_PANEL_CHORDS),
+    variants: (chord) => {
+      const found = cache.current.get(chord);
+      if (found) {
+        return found;
+      }
+      const computed = chordVariants(chord, strings, voicings[chord]);
+      cache.current.set(chord, computed);
+      return computed;
+    },
     index: (chord) => shown[chord] ?? 0,
     setIndex: (chord, index) => setShown((current) => ({ ...current, [chord]: index })),
+    label: (chord) => spellings.get(chord) ?? chord,
   };
 }
 

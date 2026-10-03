@@ -6,6 +6,7 @@ import {
   parse,
   type SongDoc,
   serialize,
+  songTuning,
 } from '@chordtune/chord-sheet';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { X } from 'lucide-react';
@@ -122,7 +123,11 @@ export function SongForm() {
   }, [fields, doc, ready, editId]);
 
   const update = (patch: Partial<SongFields>) => {
-    const retuned = patch.tuning !== undefined && patch.tuning !== fields.tuning;
+    // Tunings that share shapes (half-step-down/d-standard with standard, drop-c with drop-d)
+    // keep the author's voicings; only an actual change of strings invalidates them.
+    const retuned =
+      patch.tuning !== undefined &&
+      songTuning(patch.tuning).strings !== songTuning(fields.tuning).strings;
     if (retuned && Object.keys(fields.voicings).length > 0) {
       toast(t('voicingsReset'));
     }
@@ -184,6 +189,11 @@ export function SongForm() {
       openAuth();
       return;
     }
+    // Drop voicings for chords no longer in the song: otherwise they count against the
+    // 64-voicing limit even though the author already removed them.
+    const voicings = Object.fromEntries(
+      Object.entries(fields.voicings).filter(([chord]) => chords.includes(chord)),
+    );
     const input = {
       artist: { name: artist },
       song: { title },
@@ -191,7 +201,7 @@ export function SongForm() {
       rhythms: fields.rhythms,
       capo: fields.capo || null,
       tuning: fields.tuning,
-      voicings: fields.voicings,
+      voicings,
       zenMode: fields.zenMode,
       tempo: fields.tempo === null ? null : Math.min(MAX_TEMPO, Math.max(MIN_TEMPO, fields.tempo)),
       key: fields.key.trim() || null,

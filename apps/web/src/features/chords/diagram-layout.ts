@@ -10,6 +10,8 @@ export type DiagramLayout = {
   open: number[];
   muted: number[];
   barre: { fret: number; from: number; to: number } | null;
+  /** Rows to draw: `DIAGRAM_FRETS` unless a dot sits further out, e.g. a wide drawn shape. */
+  rows: number;
 };
 
 /** What a chord box draws: from the nut when the shape fits in five frets, else from its lowest fret. */
@@ -30,11 +32,13 @@ export function diagramLayout(frets: readonly (number | null)[]): DiagramLayout 
       dots.push({ string, fret: fret - base + 1 });
     }
   });
+  const highest = fretted.length === 0 ? 0 : Math.max(...fretted) - base + 1;
   return {
     base,
     dots,
     open,
     muted,
     barre: barre ? { fret: barre.fret - base + 1, from: barre.from, to: barre.to } : null,
+    rows: Math.max(DIAGRAM_FRETS, highest),
   };
 }

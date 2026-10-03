@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { chordList, lyrics } from './extract';
+import { chordList, chordSpellings, lyrics } from './extract';
 import { parse } from './parse';
 import type { Rhythm } from './rhythm';
 import { timeline } from './timeline';
@@ -144,6 +144,17 @@ describe('chordList', () => {
   test('unique chords in order, German H as B, non-chords dropped', () => {
     const { doc } = parse('${Am} ${Hm} ${Am} ${Xyz}\n[Припев]\n${F#m7/C#} ${Bm}');
     expect(chordList(doc)).toEqual(['Am', 'Bm', 'F#m7/C#']);
+  });
+});
+
+describe('chordSpellings', () => {
+  test('keeps the first spelling written in the song, keyed by the normalised chord', () => {
+    const { doc } = parse('${Am} ${Hm} ${Am} ${Xyz}\n[Припев]\n${F#m7/C#} ${Bm}');
+    expect([...chordSpellings(doc)]).toEqual([
+      ['Am', 'Am'],
+      ['Bm', 'Hm'],
+      ['F#m7/C#', 'F#m7/C#'],
+    ]);
   });
 });
 

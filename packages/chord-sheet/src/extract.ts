@@ -20,6 +20,28 @@ export function chordList(doc: SongDoc): string[] {
   return [...chords];
 }
 
+/** Key → the first spelling written in the song (`Bm` → `Hm` when the song writes it that way). */
+export function chordSpellings(doc: SongDoc): Map<string, string> {
+  const spellings = new Map<string, string>();
+  for (const section of doc.sections) {
+    for (const line of section.lines) {
+      if (line.type !== 'line') {
+        continue;
+      }
+      for (const item of line.items) {
+        if (item.type !== 'chord') {
+          continue;
+        }
+        const key = chordKey(item.chord);
+        if (key && !spellings.has(key)) {
+          spellings.set(key, item.chord);
+        }
+      }
+    }
+  }
+  return spellings;
+}
+
 /** Song text without chords, markers, headers and tabs — for search. */
 export function lyrics(doc: SongDoc): string {
   const lines: string[] = [];

@@ -22,11 +22,14 @@ export function Fretboard({
   strings: readonly number[];
   frets: (number | null)[];
   onChange: (frets: (number | null)[]) => void;
+  /** Minimum rows to draw; a shape fretted further out still shows in full. */
   fretCount?: number;
 }) {
   const t = useTranslations('chords');
   const set = (string: number, fret: number | null) =>
     onChange(strings.map((_, i) => (i === string ? fret : (frets[i] ?? null))));
+  const highest = Math.max(0, ...frets.filter((fret): fret is number => fret !== null));
+  const rows = Math.max(fretCount, highest);
 
   return (
     <div
@@ -51,7 +54,7 @@ export function Fretboard({
               : ''}
         </button>
       ))}
-      {Array.from({ length: fretCount }, (_, i) => i + 1).map((fret) => (
+      {Array.from({ length: rows }, (_, i) => i + 1).map((fret) => (
         <Fragment key={fret}>
           <span className="flex items-center justify-end pr-1.5 text-muted-foreground text-xs tabular-nums">
             {MARKERS.has(fret) ? fret : ''}

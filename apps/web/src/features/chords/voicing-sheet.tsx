@@ -110,7 +110,11 @@ export function VoicingSheet({
                       aria-label={t('variant', { chord: chord ?? '', n: index + 1 })}
                       onClick={() => {
                         play(shape);
-                        onPick(shape);
+                        // Tapping the already-shown default with no own shape yet is just
+                        // listening, not picking: nothing changed, so don't store it as one.
+                        if (own || id !== variants[0]?.join()) {
+                          onPick(shape);
+                        }
                       }}
                       className={cn(
                         'relative rounded-2xl border border-border bg-surface p-1.5',

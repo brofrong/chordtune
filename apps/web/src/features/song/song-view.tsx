@@ -3,6 +3,7 @@
 import {
   chordKey,
   chordList,
+  chordSpellings,
   parse,
   type Shape,
   type SongDoc,
@@ -68,7 +69,8 @@ export function SongView({
   const { rhythms } = arrangement;
 
   const chords = useMemo(() => chordList(doc), [doc]);
-  const browser = useChordBrowser(chords, sound);
+  const spellings = useMemo(() => chordSpellings(doc), [doc]);
+  const browser = useChordBrowser(chords, sound, spellings);
   const [panelOpen, setPanelOpen] = useChordPanelOpen();
   const [peek, setPeek] = useState<{ chord: string; anchor: HTMLElement } | null>(null);
   // An edit in the editor's live preview can remount the tapped chord and leave `peek.anchor`

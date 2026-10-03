@@ -27,6 +27,7 @@ export function ChordCard({
   const variants = browser.variants(chord);
   const index = Math.min(browser.index(chord), Math.max(0, variants.length - 1));
   const shape = variants[index];
+  const label = browser.label(chord);
   const step = (delta: number) =>
     browser.setIndex(chord, (index + delta + variants.length) % variants.length);
 
@@ -37,11 +38,11 @@ export function ChordCard({
         className,
       )}
     >
-      <span className="font-semibold text-chord text-sm">{chord}</span>
+      <span className="font-semibold text-chord text-sm">{label}</span>
       {shape ? (
         <button
           type="button"
-          aria-label={t('play', { chord })}
+          aria-label={t('play', { chord: label })}
           className="rounded-lg"
           onClick={() => onPlay(shape)}
         >

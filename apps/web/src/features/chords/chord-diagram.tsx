@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { DIAGRAM_FRETS, diagramLayout } from './diagram-layout';
+import { diagramLayout } from './diagram-layout';
 
 // `left` leaves room for a two-digit base-fret label: its right edge sits at `left - dot - 2`,
 // and two digits at `font` px run about `1.2 * font` wide, so `left` needs to clear
@@ -26,7 +26,7 @@ export function ChordDiagram({
   const x = (string: number) => left + string * gap;
   const y = (line: number) => TOP + line * row;
   const width = x(strings - 1) + 6;
-  const height = y(DIAGRAM_FRETS) + 4;
+  const height = y(layout.rows) + 4;
 
   return (
     <svg
@@ -55,7 +55,7 @@ export function ChordDiagram({
         stroke="currentColor"
         strokeWidth={layout.base === 1 ? 3 : 1}
       />
-      {Array.from({ length: DIAGRAM_FRETS }, (_, i) => (
+      {Array.from({ length: layout.rows }, (_, i) => (
         <line
           // biome-ignore lint/suspicious/noArrayIndexKey: frets are positional
           key={i}
@@ -74,7 +74,7 @@ export function ChordDiagram({
           x1={x(string)}
           x2={x(string)}
           y1={y(0)}
-          y2={y(DIAGRAM_FRETS)}
+          y2={y(layout.rows)}
           stroke="currentColor"
           strokeOpacity={0.6}
         />
