@@ -1,12 +1,14 @@
 import { cn } from '@/lib/utils';
 import { DIAGRAM_FRETS, diagramLayout } from './diagram-layout';
 
+// `left` leaves room for a two-digit base-fret label: its right edge sits at `left - dot - 2`,
+// and two digits at `font` px run about `1.2 * font` wide, so `left` needs to clear
+// `1.2 * font + dot + 2` plus a pixel of breathing room.
 const SIZES = {
-  sm: { gap: 11, row: 13, dot: 4, font: 8 },
-  md: { gap: 15, row: 18, dot: 5.5, font: 10 },
+  sm: { gap: 11, row: 13, dot: 4, font: 8, left: 17 },
+  md: { gap: 15, row: 18, dot: 5.5, font: 10, left: 21 },
 } as const;
 const TOP = 12;
-const LEFT = 14;
 
 /** A chord box: strings, five frets, the nut or the first fret's number, `×`/`o`, dots, barre. */
 export function ChordDiagram({
@@ -18,10 +20,10 @@ export function ChordDiagram({
   size?: keyof typeof SIZES;
   className?: string;
 }) {
-  const { gap, row, dot, font } = SIZES[size];
+  const { gap, row, dot, font, left } = SIZES[size];
   const layout = diagramLayout(frets);
   const strings = frets.length;
-  const x = (string: number) => LEFT + string * gap;
+  const x = (string: number) => left + string * gap;
   const y = (line: number) => TOP + line * row;
   const width = x(strings - 1) + 6;
   const height = y(DIAGRAM_FRETS) + 4;
@@ -36,7 +38,7 @@ export function ChordDiagram({
     >
       {layout.base > 1 && (
         <text
-          x={LEFT - dot - 2}
+          x={left - dot - 2}
           y={y(0.5) + font / 3}
           textAnchor="end"
           fontSize={font}
