@@ -1,4 +1,5 @@
 export * from './alphatex';
+export * from './capo';
 export * from './chord';
 export * from './chord-name';
 export * from './chords-over-lyrics';
