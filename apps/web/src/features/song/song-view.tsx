@@ -1,12 +1,23 @@
 'use client';
 
-import { parse, type SongDoc, timeline } from '@chordtune/chord-sheet';
+import {
+  chordKey,
+  chordList,
+  parse,
+  type Shape,
+  type SongDoc,
+  timeline,
+} from '@chordtune/chord-sheet';
 import { Play, Square } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent } from '@/components/ui/popover';
+import { ChordCard } from '@/features/chords/chord-card';
+import { ChordSidebar, ChordStrip, useChordBrowser } from '@/features/chords/chord-panel';
+import { useChordPanelOpen } from '@/features/chords/use-chord-panel';
 import { useOfflineHooks } from '@/features/library/use-offline-hooks';
 import {
   DEFAULT_BPM,
@@ -14,6 +25,7 @@ import {
   patternPlayback,
   playingAt,
   sectionPlayback,
+  shapePlayback,
   songPlayback,
   songSound,
 } from '@/features/rhythm/playback';
@@ -55,6 +67,18 @@ export function SongView({
   const player = useStrumPlayer();
   const { rhythms } = arrangement;
 
+  const chords = useMemo(() => chordList(doc), [doc]);
+  const browser = useChordBrowser(chords, sound);
+  const [panelOpen, setPanelOpen] = useChordPanelOpen();
+  const [peek, setPeek] = useState<{ chord: string; anchor: HTMLElement } | null>(null);
+  const playShape = (shape: Shape) => void player.play('shape', shapePlayback(shape, sound));
+  const onChord = (raw: string, anchor: HTMLElement) => {
+    const chord = chordKey(raw);
+    if (chord) {
+      setPeek({ chord, anchor });
+    }
+  };
+
   const [zenOpen, setZenOpen] = useState(false);
 
   const playing = useMemo(() => {
@@ -88,14 +112,14 @@ export function SongView({
     player.toggle(`section:${section}`, notes);
   };
 
-  return (
+  const article = (
     <article
       className={
         // The dock grew a speed-chips row (1.75rem) plus its gap (0.5rem): bottom padding is
         // raised by that much so the last content still clears it, above the mobile tab bar.
         preview
           ? 'flex w-full flex-col gap-6 pb-[8.25rem]'
-          : 'mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-4 pb-[9.25rem]'
+          : 'flex w-full min-w-0 max-w-2xl flex-1 flex-col gap-6 px-4 pt-4 pb-[9.25rem]'
       }
     >
       {!preview && <SongHeader arrangement={arrangement} />}
@@ -117,6 +141,14 @@ export function SongView({
           <span>{t('by', { name: arrangement.author.name })}</span>
         </p>
       </header>
+
+      <ChordStrip
+        browser={browser}
+        onPlay={playShape}
+        open={panelOpen}
+        onOpenChange={setPanelOpen}
+        className={preview ? undefined : 'lg:hidden'}
+      />
 
       {rhythms.length > 0 && (
         <section className="flex flex-col gap-1">
@@ -188,6 +220,7 @@ export function SongView({
                   key={lineIndex}
                   items={line.items}
                   activeItem={here ? active.item : null}
+                  onChord={onChord}
                 />
               );
             })}
@@ -230,7 +263,27 @@ export function SongView({
           />
         )}
       </AnimatePresence>
+      <Popover open={peek !== null} onOpenChange={(open) => !open && setPeek(null)}>
+        <PopoverContent anchor={peek?.anchor ?? null} className="w-auto p-1.5">
+          {peek && <ChordCard chord={peek.chord} browser={browser} onPlay={playShape} />}
+        </PopoverContent>
+      </Popover>
     </article>
+  );
+
+  if (preview) {
+    return article;
+  }
+  return (
+    <div className="mx-auto flex w-full max-w-2xl justify-center gap-6 lg:max-w-5xl">
+      {article}
+      <ChordSidebar
+        browser={browser}
+        onPlay={playShape}
+        open={panelOpen}
+        onOpenChange={setPanelOpen}
+      />
+    </div>
   );
 }
 

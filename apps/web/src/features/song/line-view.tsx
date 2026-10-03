@@ -30,10 +30,13 @@ function segments(items: readonly Item[]): Segment[] {
 export function LineView({
   items,
   activeItem,
+  onChord,
 }: {
   items: readonly Item[];
   /** Index of the item being played, to highlight its chord. */
   activeItem?: number | null;
+  /** Tapping a chord: its text and the element to anchor a popover to. */
+  onChord?: (chord: string, anchor: HTMLElement) => void;
 }) {
   const hasMarks = items.some((item) => item.type !== 'text');
   if (!hasMarks) {
@@ -52,7 +55,16 @@ export function LineView({
         >
           <span className="flex min-h-5 items-end gap-0.5 pr-1">
             {segment.marks.map(({ item, index: itemIndex }) => (
-              <MarkChip key={itemIndex} item={item} active={activeItem === itemIndex} />
+              <MarkChip
+                key={itemIndex}
+                item={item}
+                active={activeItem === itemIndex}
+                onClick={
+                  item.type === 'chord' && onChord
+                    ? (event) => onChord(item.chord, event.currentTarget)
+                    : undefined
+                }
+              />
             ))}
           </span>
           {hasText && (
