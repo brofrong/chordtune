@@ -1,4 +1,4 @@
-import type { Rhythm } from '@chordtune/chord-sheet';
+import type { Rhythm, SongTuningId, Voicings, ZenModeId } from '@chordtune/chord-sheet';
 import { defineRelations, sql } from 'drizzle-orm';
 import {
   date,
@@ -69,6 +69,11 @@ export const arrangement = pgTable(
     capo: integer('capo'),
     tempo: integer('tempo'),
     notes: text('notes').notNull().default(''),
+    tuning: text('tuning').$type<SongTuningId>().notNull().default('standard'),
+    /** The author's shape per chord (keyed like `chordList`), thickest string first. */
+    voicings: jsonb('voicings').$type<Voicings>().notNull().default({}),
+    /** Zen view the author suggests; `null` lets the app pick. */
+    zenMode: text('zen_mode').$type<ZenModeId>(),
     status: text('status', { enum: ARRANGEMENT_STATUSES }).notNull().default('published'),
     // Denormalised counters, changed in the same transaction as the action rows below.
     viewCount: integer('view_count').notNull().default(0),

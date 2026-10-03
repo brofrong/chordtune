@@ -23,6 +23,9 @@ async function create(authorId: string, title: string) {
       tempo: null,
       key: null,
       notes: '',
+      tuning: 'standard',
+      voicings: {},
+      zenMode: null,
     },
   });
   return saved.id;

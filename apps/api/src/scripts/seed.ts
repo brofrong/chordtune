@@ -60,6 +60,9 @@ for (const fileName of readdirSync(dir).filter((name) => name.endsWith('.md'))) 
       tempo: imported.tempo,
       key: null,
       notes: imported.notes,
+      tuning: 'standard',
+      voicings: {},
+      zenMode: null,
     },
   });
   console.log(`added ${imported.artist} — ${imported.title}`);

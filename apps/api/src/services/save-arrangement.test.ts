@@ -5,7 +5,7 @@ import type { Database } from '../db';
 import { artist, song } from '../db/schema';
 import { noopSearch } from '../search';
 import { createTestDb, createUser } from '../test/db';
-import { type ArrangementInput, saveArrangement } from './save-arrangement';
+import { type ArrangementInput, arrangementInput, saveArrangement } from './save-arrangement';
 
 const base: ArrangementInput = {
   artist: { name: 'Noize MC' },
@@ -16,6 +16,9 @@ const base: ArrangementInput = {
   tempo: 90,
   key: 'Dm',
   notes: '',
+  tuning: 'standard',
+  voicings: { Dm: [null, null, 0, 2, 3, 1] },
+  zenMode: null,
 };
 
 async function rejection(promise: Promise<unknown>): Promise<TRPCError> {
@@ -132,5 +135,51 @@ describe('saveArrangement', () => {
     };
     await saveArrangement(db, search, { authorId, input: base });
     expect(upserted).toEqual(['Кошка']);
+  });
+
+  test('stores tuning, voicings and zen mode; drops voicings of chords not in the song', async () => {
+    const saved = await saveArrangement(db, noopSearch, {
+      authorId,
+      input: {
+        ...base,
+        tuning: 'drop-d',
+        voicings: { Dm: [null, null, 0, 2, 3, 1], G: [3, 2, 0, 0, 0, 3] },
+        zenMode: 'strip',
+      },
+    });
+    const row = await db.query.arrangement.findFirst({ where: { id: saved.id } });
+    expect(row?.tuning).toBe('drop-d');
+    expect(row?.voicings).toEqual({ Dm: [null, null, 0, 2, 3, 1] });
+    expect(row?.zenMode).toBe('strip');
+  });
+});
+
+describe('arrangementInput', () => {
+  const parse = (patch: Partial<ArrangementInput>) =>
+    arrangementInput.safeParse({ ...base, ...patch }).success;
+
+  test('accepts the defaults', () => {
+    expect(parse({})).toBe(true);
+    expect(parse({ voicings: {}, zenMode: 'inline', tuning: 'dadgad' })).toBe(true);
+  });
+
+  test('rejects unknown tunings and zen modes', () => {
+    expect(parse({ tuning: 'banjo' as ArrangementInput['tuning'] })).toBe(false);
+    expect(parse({ zenMode: 'auto' as ArrangementInput['zenMode'] })).toBe(false);
+  });
+
+  test('rejects bad voicings', () => {
+    expect(parse({ voicings: { Am: [null, 0, 2, 2, 1] } })).toBe(false);
+    expect(parse({ voicings: { Am: [null, 0, 2, 2, 1, 25] } })).toBe(false);
+    expect(parse({ voicings: { Am: [null, null, null, null, null, null] } })).toBe(false);
+    expect(parse({ voicings: { Куплет: [null, 0, 2, 2, 1, 0] } })).toBe(false);
+  });
+
+  test('at most 64 voicings', () => {
+    const roots = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'G#', 'A', 'Bb', 'B'];
+    const keys = roots.flatMap((root) => ['', 'm', '7', 'm7', 'maj7', '6'].map((s) => root + s));
+    const many = Object.fromEntries(keys.slice(0, 65).map((key) => [key, [0, 0, 0, 0, 0, 0]]));
+    expect(parse({ voicings: many })).toBe(false);
+    expect(parse({ voicings: Object.fromEntries(Object.entries(many).slice(0, 64)) })).toBe(true);
   });
 });

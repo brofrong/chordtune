@@ -1,4 +1,14 @@
-import { chordList, isRhythm, parse, type Rhythm, validate } from '@chordtune/chord-sheet';
+import {
+  chordList,
+  isChord,
+  isRhythm,
+  isShape,
+  parse,
+  type Rhythm,
+  SONG_TUNING_IDS,
+  validate,
+  ZEN_MODES,
+} from '@chordtune/chord-sheet';
 import { TRPCError } from '@trpc/server';
 import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
@@ -11,6 +21,8 @@ import { syncArrangement } from '../search/documents';
 
 export const MAX_CONTENT_LENGTH = 50_000;
 export const MAX_RHYTHMS = 16;
+export const MAX_VOICINGS = 64;
+const SONG_STRINGS = 6;
 
 export const arrangementInput = z.object({
   artist: z.union([
@@ -32,6 +44,17 @@ export const arrangementInput = z.object({
   tempo: z.number().int().min(30).max(300).nullable(),
   key: z.string().trim().max(8).nullable(),
   notes: z.string().max(5_000),
+  tuning: z.enum(SONG_TUNING_IDS),
+  voicings: z
+    .record(
+      z.string(),
+      z.custom<(number | null)[]>((value) => isShape(value, SONG_STRINGS), 'Invalid shape'),
+    )
+    .refine((voicings) => Object.keys(voicings).every(isChord), { message: 'Invalid chord' })
+    .refine((voicings) => Object.keys(voicings).length <= MAX_VOICINGS, {
+      message: `At most ${MAX_VOICINGS} voicings`,
+    }),
+  zenMode: z.enum(ZEN_MODES).nullable(),
 });
 
 export type ArrangementInput = z.infer<typeof arrangementInput>;
@@ -131,15 +154,21 @@ export async function saveArrangement(
   const saved = await db.transaction(async (tx) => {
     const artistRow = await resolveArtist(tx, input.artist);
     const songRow = await resolveSong(tx, artistRow.id, input.song);
+    const chords = chordList(doc);
     const values = {
       songId: songRow.id,
       content: input.content,
       rhythms: input.rhythms,
-      chords: chordList(doc),
+      chords,
       key: input.key || null,
       capo: input.capo,
       tempo: input.tempo,
       notes: input.notes,
+      tuning: input.tuning,
+      voicings: Object.fromEntries(
+        Object.entries(input.voicings).filter(([chord]) => chords.includes(chord)),
+      ),
+      zenMode: input.zenMode,
     };
 
     let id = arrangementId;

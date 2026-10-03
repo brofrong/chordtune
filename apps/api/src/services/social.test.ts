@@ -27,6 +27,9 @@ beforeEach(async () => {
       tempo: null,
       key: null,
       notes: '',
+      tuning: 'standard',
+      voicings: {},
+      zenMode: null,
     },
   });
   id = saved.id;
