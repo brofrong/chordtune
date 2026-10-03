@@ -1,4 +1,5 @@
 export * from './analyzer';
+export * from './capo-hints';
 export * from './chords';
 export * from './fft';
 export * from './guitar-synth';
