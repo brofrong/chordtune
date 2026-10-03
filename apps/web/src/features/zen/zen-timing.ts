@@ -10,6 +10,8 @@ export type ZenLine = {
   /** When each chord (or tab beat) of the line starts, and its item index (or beat index). */
   chordStarts: number[];
   chordItems: number[];
+  /** BPM of the line's first event: its section's or block's tempo, else the song's. */
+  tempo: number;
 };
 
 /**
@@ -38,6 +40,7 @@ export function zenLines(doc: SongDoc, rhythms: Rhythm[], bpm: number): ZenLine[
         end: span.end,
         chordStarts: [],
         chordItems: [],
+        tempo: event.tempo ?? bpm,
       };
       byKey.set(key, line);
       lines.push(line);

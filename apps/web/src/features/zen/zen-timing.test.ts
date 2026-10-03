@@ -12,8 +12,8 @@ describe('zenLines', () => {
     // 60 BPM, 4/4 without rhythms: a bar is 4 s.
     const lines = zenLines(doc('${Am}a ${G}b\n${F}c'), [], 60);
     expect(lines).toEqual([
-      { section: 0, line: 0, start: 0, end: 8, chordStarts: [0, 4], chordItems: [0, 2] },
-      { section: 0, line: 1, start: 8, end: 12, chordStarts: [8], chordItems: [0] },
+      { section: 0, line: 0, start: 0, end: 8, chordStarts: [0, 4], chordItems: [0, 2], tempo: 60 },
+      { section: 0, line: 1, start: 8, end: 12, chordStarts: [8], chordItems: [0], tempo: 60 },
     ]);
   });
 
@@ -62,7 +62,13 @@ describe('zenLines', () => {
       end: 6,
       chordStarts: [4, 4.25, 4.5, 5],
       chordItems: [0, 1, 2, 3],
+      tempo: 120,
     });
+  });
+
+  test('section and block tempos reach the line', () => {
+    const lines = zenLines(doc('${Am}a\n[Соло] 120bpm\n${G}b'), [], 60);
+    expect(lines.map((line) => line.tempo)).toEqual([60, 120]);
   });
 });
 
