@@ -4,7 +4,7 @@ import { isTempo, MAX_TEMPO, MIN_TEMPO } from './tempo';
 import type { Diagnostic, Item, Line, Section, SongDoc } from './types';
 
 const META_RE = /^\{(\w+):\s*(.*?)\s*\}$/;
-const HEADER_RE = /^\[([^\]]+)\](?:\s*@([A-Z]))?(?:\s*(\d+)\s*bpm)?\s*$/;
+const HEADER_RE = /^\[([^\]]+)\](?:\s*@([A-Z]))?(?:\s*(\d+)\s*[bB][pP][mM])?\s*$/;
 const REPEAT_RE = /^[x×]([1-9]\d*)$/;
 const RHYTHM_KEY_RE = /[A-Z]/;
 

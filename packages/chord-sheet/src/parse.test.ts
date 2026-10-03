@@ -190,6 +190,11 @@ describe('alphaTex blocks and section tempo', () => {
     ]);
   });
 
+  test('the bpm suffix is case-insensitive', () => {
+    expect(parse('[Бридж] 140BPM').doc.sections[0]?.tempo).toBe(140);
+    expect(parse('[Бридж] 140Bpm').doc.sections[0]?.tempo).toBe(140);
+  });
+
   test('an unclosed alphaTex block is an error', () => {
     expect(parse('{start_of_alphatex}\n0.6').diagnostics).toContainEqual({
       line: 1,

@@ -118,7 +118,7 @@ export function timeline(doc: SongDoc, rhythms: readonly Rhythm[]): TimelineEven
         }
 
         const previous = events.at(-1);
-        if (barred && chordCount === 0 && hasText && previous) {
+        if (barred && chordCount === 0 && hasText && previous?.kind === 'chord') {
           previous.length += 1;
           position += 1;
         }

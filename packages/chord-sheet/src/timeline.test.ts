@@ -133,6 +133,11 @@ describe('timeline with tabs and tempo', () => {
     const doc = parse([...block([]), '${Am}a'].join('\n')).doc;
     expect(timeline(doc, RHYTHMS).map((e) => [e.kind, e.start])).toEqual([['chord', 0]]);
   });
+
+  test('a lyrics-only bar after a tab block takes no time, like one with no previous chord', () => {
+    const doc = parse([...block(['0.6 0.6 0.6 0.6']), '| fire |'].join('\n')).doc;
+    expect(timeline(doc, RHYTHMS).map((e) => [e.kind, e.start, e.length])).toEqual([['tab', 0, 1]]);
+  });
 });
 
 describe('chordList', () => {
