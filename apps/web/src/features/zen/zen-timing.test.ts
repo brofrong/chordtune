@@ -3,7 +3,7 @@
 import { describe, expect, test } from 'bun:test';
 import { parse, type Rhythm } from '@chordtune/chord-sheet';
 
-import { zenLines, zenOffset, zenPosition } from './zen-timing';
+import { zenLines, zenOffset, zenPosition, zenRowGlide } from './zen-timing';
 
 const doc = (source: string) => parse(source).doc;
 
@@ -86,5 +86,25 @@ describe('zenOffset', () => {
     expect(zenOffset(0.7)).toBe(0);
     expect(zenOffset(0.85)).toBeCloseTo(0.5, 9);
     expect(zenOffset(1)).toBe(1);
+  });
+});
+
+describe('zenRowGlide', () => {
+  const starts = [0, 4, 8];
+
+  test('finds the active row and how far through it playback is', () => {
+    expect(zenRowGlide(starts, 12, 0)).toEqual({ index: 0, progress: 0 });
+    expect(zenRowGlide(starts, 12, 2)).toEqual({ index: 0, progress: 0.5 });
+    expect(zenRowGlide(starts, 12, 4)).toEqual({ index: 1, progress: 0 });
+    expect(zenRowGlide(starts, 12, 10)).toEqual({ index: 2, progress: 0.5 });
+  });
+
+  test('the last row glides towards the block total, not a further row', () => {
+    expect(zenRowGlide(starts, 12, 8)).toEqual({ index: 2, progress: 0 });
+    expect(zenRowGlide(starts, 12, 12)).toEqual({ index: 2, progress: 1 });
+  });
+
+  test('a single row holds at 0 (no next row or total to glide towards)', () => {
+    expect(zenRowGlide([0], 0, 0)).toEqual({ index: 0, progress: 1 });
   });
 });

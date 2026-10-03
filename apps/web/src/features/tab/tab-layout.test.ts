@@ -3,7 +3,7 @@
 import { describe, expect, test } from 'bun:test';
 import { parseAlphaTex } from '@chordtune/chord-sheet';
 
-import { beamGroups, layoutTab } from './tab-layout';
+import { beamGroups, layoutTab, tabBeatQuarters } from './tab-layout';
 
 const block = (source: string) => parseAlphaTex(source.split('\n')).block;
 
@@ -36,6 +36,15 @@ describe('layoutTab', () => {
 
   test('empty block has no rows', () => {
     expect(layoutTab(block(''), 300)).toEqual([]);
+  });
+});
+
+describe('tabBeatQuarters', () => {
+  test('sums quarters up to a bar/beat, as drawn (repeats do not change it)', () => {
+    const tab = block('\\ro 0.6.1 | 0.6 0.6 0.6 0.6 \\rc 2');
+    expect(tabBeatQuarters(tab, 0, 0)).toBe(0);
+    expect(tabBeatQuarters(tab, 1, 0)).toBe(4);
+    expect(tabBeatQuarters(tab, 1, 2)).toBe(6);
   });
 });
 

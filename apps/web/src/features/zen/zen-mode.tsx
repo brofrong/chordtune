@@ -17,12 +17,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { LineView, TabView } from '@/features/song/line-view';
 import { SpeedChips } from '@/features/song/speed-chips';
+import { tabBeatQuarters } from '@/features/tab/tab-layout';
 import { TabStaff } from '@/features/tab/tab-staff';
 import { spring } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 import { useWakeLock } from './use-wake-lock';
 import { advanceClock } from './zen-clock';
-import { zenLines, zenOffset, zenPosition } from './zen-timing';
+import { zenLines, zenOffset, zenPosition, zenRowGlide } from './zen-timing';
 
 const COUNT_FROM = 3;
 const COUNT_MS = 700;
@@ -78,6 +79,16 @@ export function ZenMode({
   const position = zenPosition(lines, time);
   const current = lines[position.index];
   const next = lines[position.index + 1];
+  const currentLine = current ? doc.sections[current.section]?.lines[current.line] : undefined;
+  // The active beat of the current line's tab block, if it is one — shared by the staff
+  // highlight below and by the row-to-row scroll glide in the layout effect further down.
+  const activeTabBeat =
+    current && currentLine?.type === 'alphatex'
+      ? (() => {
+          const beat = tabBeats(currentLine.block)[current.chordItems[position.chord] ?? -1];
+          return beat ? { bar: beat.bar, beat: beat.beat } : null;
+        })()
+      : null;
 
   useWakeLock(phase !== 'done');
 
@@ -172,19 +183,34 @@ export function ZenMode({
   const [offset, setOffset] = useState(0);
   useLayoutEffect(() => {
     const height = viewport.current?.clientHeight ?? 0;
-    const top = (key?: string) => {
-      const element = key ? rows.current.get(key) : undefined;
-      if (!element) {
-        return 0;
+    const element = (key?: string) => (key ? rows.current.get(key) : undefined);
+    const currentElement = element(current ? `${current.section}:${current.line}` : undefined);
+    const nextElement = next ? element(`${next.section}:${next.line}`) : undefined;
+
+    let from = currentElement?.offsetTop ?? 0;
+    let to = nextElement?.offsetTop ?? from;
+    let progress = position.progress;
+
+    // Inside a multi-row tab block, glide row to row within the active beat's own row (by its
+    // share of the block, in quarter notes) instead of the whole line's progress, which would
+    // otherwise jump by a row's height the moment the highlighted row changes.
+    if (currentElement && currentLine?.type === 'alphatex' && activeTabBeat) {
+      const rowElements = Array.from(
+        currentElement.querySelectorAll<HTMLElement>('[data-row-start-beat]'),
+      );
+      if (rowElements.length > 0) {
+        const starts = rowElements.map((row) => Number(row.dataset.rowStartBeat));
+        const total = tabBeatQuarters(currentLine.block, currentLine.block.bars.length);
+        const quarters = tabBeatQuarters(currentLine.block, activeTabBeat.bar, activeTabBeat.beat);
+        const glide = zenRowGlide(starts, total, quarters);
+        from = rowElements[glide.index]?.offsetTop ?? from;
+        to = rowElements[glide.index + 1]?.offsetTop ?? to;
+        progress = glide.progress;
       }
-      // Inside a tab block, follow the row with the current beat.
-      const row = element.querySelector<HTMLElement>('[data-active-row]');
-      return row ? row.offsetTop : element.offsetTop;
-    };
-    const from = top(current ? `${current.section}:${current.line}` : undefined);
-    const to = next ? top(`${next.section}:${next.line}`) : from;
-    setOffset(height * ANCHOR - (from + (to - from) * zenOffset(position.progress)));
-  }, [current, next, position.progress]);
+    }
+
+    setOffset(height * ANCHOR - (from + (to - from) * zenOffset(progress)));
+  }, [current, next, currentLine, activeTabBeat, position.progress]);
 
   const zenIndex = useMemo(
     () => new Map(lines.map((line, index) => [`${line.section}:${line.line}`, index])),
@@ -285,19 +311,7 @@ export function ZenMode({
                     {line.type === 'tab' ? (
                       <TabView lines={line.lines} />
                     ) : line.type === 'alphatex' ? (
-                      <TabStaff
-                        block={line.block}
-                        activeBeat={
-                          isCurrent
-                            ? (() => {
-                                const beat = tabBeats(line.block)[
-                                  current?.chordItems[position.chord] ?? -1
-                                ];
-                                return beat ? { bar: beat.bar, beat: beat.beat } : null;
-                              })()
-                            : null
-                        }
-                      />
+                      <TabStaff block={line.block} activeBeat={isCurrent ? activeTabBeat : null} />
                     ) : (
                       <LineView
                         items={line.items}

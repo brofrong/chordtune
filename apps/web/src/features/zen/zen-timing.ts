@@ -96,3 +96,25 @@ export function zenOffset(progress: number): number {
   const x = Math.min(1, (progress - GLIDE_FROM) / (1 - GLIDE_FROM));
   return x * x * (3 - 2 * x);
 }
+
+export type RowGlide = { index: number; progress: number };
+
+/**
+ * Where playback sits among a tab block's rows: `starts` are each row's first beat, in quarter
+ * notes from the block's start, ascending; `total` is the block's length the same way. `quarters`
+ * is the currently active beat's position. Progress runs 0 to 1 within the active row, towards
+ * the next row's start (or `total`, for the last row) — fed to `zenOffset` the same as a line's,
+ * so a multi-row tab block glides row to row instead of snapping when the active one changes.
+ */
+export function zenRowGlide(starts: readonly number[], total: number, quarters: number): RowGlide {
+  let index = 0;
+  for (let i = 1; i < starts.length; i++) {
+    if ((starts[i] ?? Number.POSITIVE_INFINITY) <= quarters) {
+      index = i;
+    }
+  }
+  const from = starts[index] ?? 0;
+  const to = starts[index + 1] ?? total;
+  const progress = to > from ? Math.min(1, Math.max(0, (quarters - from) / (to - from))) : 1;
+  return { index, progress };
+}

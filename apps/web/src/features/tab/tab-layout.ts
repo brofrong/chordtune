@@ -57,6 +57,24 @@ export function layoutTab(block: TabBlock, width: number): RowLayout[] {
   return rows;
 }
 
+/**
+ * Quarter notes from the block's start to a bar/beat, ignoring repeats (as drawn, not as
+ * played) — the same domain `layoutTab` draws rows in, so a row's start can be compared against
+ * the currently active beat regardless of which pass through a repeat it's on.
+ */
+export function tabBeatQuarters(block: TabBlock, bar: number, beat = 0): number {
+  let at = 0;
+  for (let i = 0; i < bar; i++) {
+    for (const b of block.bars[i]?.beats ?? []) {
+      at += b.quarters;
+    }
+  }
+  for (const b of (block.bars[bar]?.beats ?? []).slice(0, beat)) {
+    at += b.quarters;
+  }
+  return at;
+}
+
 /** Runs of two or more 8th-or-shorter notes in the same quarter of a bar share a beam. */
 export function beamGroups(block: TabBlock, row: RowLayout): BeatLayout[][] {
   const groups: BeatLayout[][] = [];

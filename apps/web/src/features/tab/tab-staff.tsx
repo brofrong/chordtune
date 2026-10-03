@@ -5,7 +5,13 @@ import { useLayoutEffect, useRef, useState } from 'react';
 
 import type { ActiveBeat } from '@/features/rhythm/playback';
 import { cn } from '@/lib/utils';
-import { type BeatLayout, beamGroups, layoutTab, type RowLayout } from './tab-layout';
+import {
+  type BeatLayout,
+  beamGroups,
+  layoutTab,
+  type RowLayout,
+  tabBeatQuarters,
+} from './tab-layout';
 
 const STRING_GAP = 10;
 const TEXT_Y = 9;
@@ -63,7 +69,13 @@ export function TabStaff({
           activeBeat !== null &&
           row.beats.some((b) => b.bar === activeBeat.bar && b.beat === activeBeat.beat);
         return (
-          <div key={first} data-active-row={active || undefined}>
+          <div
+            key={first}
+            data-active-row={active || undefined}
+            // The row's start, in quarter notes from the block's start (as drawn, repeats
+            // ignored) — zen mode reads this to glide smoothly from row to row.
+            data-row-start-beat={tabBeatQuarters(block, first)}
+          >
             <svg width={row.width} height={height} className="block overflow-visible" aria-hidden>
               <Row block={block} row={row} activeBeat={activeBeat} />
             </svg>
