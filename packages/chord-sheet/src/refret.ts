@@ -57,15 +57,31 @@ export function refretBlock(
         }
       });
 
-      const movable: Movable[] = [];
+      const allStrings = Array.from({ length: count }, (_, i) => i + 1);
+      const movableAll: Movable[] = [];
       beat.notes.forEach((note, index) => {
         if (note.fret !== 'x' && !note.tie) {
-          movable.push({ note, index, pitch: open(note.string) + from + (note.fret as number) });
+          movableAll.push({ note, index, pitch: open(note.string) + from + (note.fret as number) });
         }
       });
-      const freeStrings = Array.from({ length: count }, (_, i) => i + 1).filter(
-        (string) => !taken.has(string),
-      );
+
+      // A note with no valid fret on any string (not just the free ones) is unreachable no
+      // matter what the rest of the beat does: settle it on its own string and reserve that
+      // string before searching, so the search never gives it away to another note.
+      const movable: Movable[] = [];
+      for (const entry of movableAll) {
+        const reachable = allStrings.some((string) => {
+          const fret = entry.pitch - open(string) - to;
+          return fret >= 0 && fret <= MAX_FRET;
+        });
+        if (reachable) {
+          movable.push(entry);
+        } else {
+          placed[entry.index] = markUnreachable(entry.note, entry.pitch, taken);
+        }
+      }
+
+      const freeStrings = allStrings.filter((string) => !taken.has(string));
       const assignment = bestAssignment(movable, freeStrings, to, open);
       for (const { note, index, pitch } of movable) {
         const choice = assignment.get(index);
@@ -87,10 +103,10 @@ export function refretBlock(
 
 /**
  * The best way to put a beat's movable notes on its free strings: as many notes placed as
- * possible, then the smallest total |new string − old string|, then (by trying closer and
- * thicker strings first in the search, so the first assignment found at the best score wins)
- * thicker strings on ties. Notes left out (no string left with a fret in 0–24) are absent from
- * the result; the caller marks them `unreachable` on their own string.
+ * possible, then the smallest total |new string − old string|, then — on a tie in both — the
+ * thickest strings overall (the higher the sum of the assigned string numbers, the thicker).
+ * Notes left out (no string left with a fret in 0–24) are absent from the result; the caller
+ * marks them `unreachable` on their own string.
  */
 function bestAssignment(
   movable: readonly Movable[],
@@ -112,13 +128,19 @@ function bestAssignment(
   const assignment: (Place | null)[] = new Array(movable.length).fill(null);
   let bestCount = -1;
   let bestDistance = Infinity;
+  let bestThickness = -Infinity;
   let bestAssignment: (Place | null)[] = [];
 
-  const recurse = (i: number, count: number, distance: number) => {
+  const recurse = (i: number, count: number, distance: number, thickness: number) => {
     if (i === movable.length) {
-      if (count > bestCount || (count === bestCount && distance < bestDistance)) {
+      const better =
+        count > bestCount ||
+        (count === bestCount && distance < bestDistance) ||
+        (count === bestCount && distance === bestDistance && thickness > bestThickness);
+      if (better) {
         bestCount = count;
         bestDistance = distance;
+        bestThickness = thickness;
         bestAssignment = [...assignment];
       }
       return;
@@ -133,14 +155,19 @@ function bestAssignment(
       }
       used.add(place.string);
       assignment[i] = place;
-      recurse(i + 1, count + 1, distance + Math.abs(place.string - current.note.string));
+      recurse(
+        i + 1,
+        count + 1,
+        distance + Math.abs(place.string - current.note.string),
+        thickness + place.string,
+      );
       used.delete(place.string);
     }
     assignment[i] = null;
-    recurse(i + 1, count, distance);
+    recurse(i + 1, count, distance, thickness);
   };
 
-  recurse(0, 0, 0);
+  recurse(0, 0, 0, 0);
 
   const result = new Map<number, Place>();
   bestAssignment.forEach((place, i) => {

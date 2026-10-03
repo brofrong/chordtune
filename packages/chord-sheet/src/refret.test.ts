@@ -64,6 +64,23 @@ describe('refretBlock', () => {
     expect(pitches(moved.block, 1)).toEqual(pitches(tab, 0));
   });
 
+  test('an always-unreachable note reserves its string so another note cannot collide with it', () => {
+    const tab = block('(0.6 0.5)');
+    const moved = refretBlock(tab, STANDARD, 0, 3);
+    const beatNotes = moved.block.bars[0]?.beats[0]?.notes ?? [];
+    const strings = beatNotes.map((n) => n.string);
+    // Both end up unreachable: capo 3 needs an open string at or below E2 − 3, and once the
+    // open low E's home string (6, the only one low enough for the low E itself) is reserved,
+    // it is also the only string low enough for the open A (its pitch is only 5 above E2) — so
+    // the A note cannot actually move anywhere else and is honestly marked unreachable too, on
+    // its own (distinct) string, rather than being silently placed on top of the low E.
+    expect(new Set(strings).size).toBe(2);
+    expect(beatNotes[0]).toMatchObject({ string: 6, fret: -3, unreachable: true });
+    expect(beatNotes[1]).toMatchObject({ string: 5, fret: -3, unreachable: true });
+    expect(moved.unreachable).toBe(2);
+    expect(pitches(moved.block, 3)).toEqual(pitches(tab, 0));
+  });
+
   test('a tie follows its note to the new string', () => {
     const moved = refretBlock(block('0.1 -.1'), STANDARD, 0, 2);
     expect(notes(moved.block)).toEqual(['3.2', '3.2']);
