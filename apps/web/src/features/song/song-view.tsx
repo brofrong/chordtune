@@ -1,6 +1,6 @@
 'use client';
 
-import { chordList, parse, type SongDoc } from '@chordtune/chord-sheet';
+import { parse, type SongDoc, timeline } from '@chordtune/chord-sheet';
 import { Play, Square } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { useTranslations } from 'next-intl';
@@ -18,12 +18,14 @@ import {
 } from '@/features/rhythm/playback';
 import { RhythmBadge } from '@/features/rhythm/rhythm-badge';
 import { useStrumPlayer } from '@/features/rhythm/use-strum-player';
+import { TabStaff } from '@/features/tab/tab-staff';
 import { ZenMode } from '@/features/zen/zen-mode';
 import type { ArrangementView } from '@/lib/trpc';
 import { LineView, TabView } from './line-view';
 import { SongActions } from './song-actions';
 import { SongDock } from './song-dock';
 import { SongHeader } from './song-header';
+import { formatSpeed } from './speed-chips';
 import { type SongActionHooks, useSongActions } from './use-song-actions';
 
 export function SongView({
@@ -45,31 +47,41 @@ export function SongView({
   );
   const doc = useMemo(() => parse(arrangement.content).doc, [arrangement.content]);
   const bpm = arrangement.tempo ?? DEFAULT_BPM;
+  const [speed, setSpeed] = useState(1);
+  const options = { bpm, capo: arrangement.capo, speed };
   const player = useStrumPlayer();
   const { rhythms } = arrangement;
 
   const [zenOpen, setZenOpen] = useState(false);
 
   const playing = useMemo(() => {
+    const opts = { bpm, capo: arrangement.capo, speed };
     if (player.playing === 'song') {
-      return songPlayback(doc, rhythms, { bpm });
+      return songPlayback(doc, rhythms, opts);
     }
     const match = player.playing?.match(/^section:(\d+)$/);
-    return match ? sectionPlayback(doc, rhythms, Number(match[1]), { bpm }) : null;
-  }, [player.playing, doc, rhythms, bpm]);
+    return match ? sectionPlayback(doc, rhythms, Number(match[1]), opts) : null;
+  }, [player.playing, doc, rhythms, bpm, arrangement.capo, speed]);
 
   const active: PlayingAt | null = playing ? playingAt(playing, player.position) : null;
 
+  const changeSpeed = (next: number) => {
+    // Scheduled notes are fixed at their speed: stop instead of drifting.
+    player.stop();
+    setSpeed(next);
+  };
+
   const firstRhythm = rhythms[0];
   const rhythmHint = firstRhythm ? `${firstRhythm.name} ${firstRhythm.key}` : t('noRhythm');
+  const speedHint = speed === 1 ? '' : ` · ${formatSpeed(speed)}`;
   const listenHint =
     player.playing === 'song' && active
       ? (doc.sections[active.section]?.label ?? rhythmHint)
-      : `${rhythmHint} · ${bpm} BPM`;
-  const canPlay = useMemo(() => chordList(doc).length > 0, [doc]);
+      : `${rhythmHint} · ${bpm} BPM${speedHint}`;
+  const canPlay = useMemo(() => timeline(doc, rhythms).length > 0, [doc, rhythms]);
 
   const playSection = (section: number) => {
-    const { notes } = sectionPlayback(doc, rhythms, section, { bpm });
+    const { notes } = sectionPlayback(doc, rhythms, section, options);
     player.toggle(`section:${section}`, notes);
   };
 
@@ -110,7 +122,7 @@ export function SongView({
                   playing={player.playing === id}
                   label={t('play')}
                   onClick={() => {
-                    const { notes, loopSec } = patternPlayback(rhythm, firstChord(doc), { bpm });
+                    const { notes, loopSec } = patternPlayback(rhythm, firstChord(doc), options);
                     player.toggle(id, notes, { loopSec });
                   }}
                 />
@@ -133,6 +145,11 @@ export function SongView({
                     rhythm={rhythms.find((r) => r.key === section.rhythm)}
                   />
                 )}
+                {section.tempo && (
+                  <span className="text-muted-foreground text-xs tabular-nums">
+                    {t('bpm', { bpm: section.tempo })}
+                  </span>
+                )}
                 <PlayButton
                   playing={player.playing === `section:${sectionIndex}`}
                   label={t('playSection')}
@@ -141,24 +158,28 @@ export function SongView({
               </div>
             )}
             {section.lines.map((line, lineIndex) => {
+              const here = active?.section === sectionIndex && active.line === lineIndex;
               if (line.type === 'tab') {
                 // biome-ignore lint/suspicious/noArrayIndexKey: lines are positional
                 return <TabView key={lineIndex} lines={line.lines} />;
               }
               if (line.type === 'alphatex') {
-                // TODO(task 7): render the alphaTex block.
-                return null;
+                return (
+                  <TabStaff
+                    // biome-ignore lint/suspicious/noArrayIndexKey: lines are positional
+                    key={lineIndex}
+                    block={line.block}
+                    activeBeat={here ? active.beat : null}
+                    className="py-1"
+                  />
+                );
               }
               return (
                 <LineView
                   // biome-ignore lint/suspicious/noArrayIndexKey: lines are positional
                   key={lineIndex}
                   items={line.items}
-                  activeItem={
-                    active?.section === sectionIndex && active.line === lineIndex
-                      ? active.item
-                      : null
-                  }
+                  activeItem={here ? active.item : null}
                 />
               );
             })}
@@ -176,7 +197,9 @@ export function SongView({
         raised={preview}
         listening={player.playing === 'song'}
         listenHint={listenHint}
-        onListen={() => player.toggle('song', songPlayback(doc, rhythms, { bpm }).notes)}
+        onListen={() => player.toggle('song', songPlayback(doc, rhythms, options).notes)}
+        speed={speed}
+        onSpeedChange={changeSpeed}
         canPlay={canPlay}
         onPlay={() => {
           player.stop();
@@ -188,7 +211,9 @@ export function SongView({
           <ZenMode
             doc={doc}
             rhythms={rhythms}
-            initialBpm={bpm}
+            bpm={bpm}
+            speed={speed}
+            onSpeedChange={setSpeed}
             title={arrangement.song.title}
             artist={arrangement.artist.name}
             played={actions.me.played}

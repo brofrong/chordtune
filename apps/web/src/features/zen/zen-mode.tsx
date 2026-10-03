@@ -1,7 +1,7 @@
 'use client';
 
-import type { Rhythm, SongDoc } from '@chordtune/chord-sheet';
-import { Minus, Pause, Play, Plus, RotateCcw, X } from 'lucide-react';
+import { type Rhythm, type SongDoc, tabBeats } from '@chordtune/chord-sheet';
+import { Pause, Play, RotateCcw, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import {
@@ -16,6 +16,8 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { LineView, TabView } from '@/features/song/line-view';
+import { SpeedChips } from '@/features/song/speed-chips';
+import { TabStaff } from '@/features/tab/tab-staff';
 import { spring } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 import { useWakeLock } from './use-wake-lock';
@@ -25,9 +27,6 @@ import { zenLines, zenOffset, zenPosition } from './zen-timing';
 const COUNT_FROM = 3;
 const COUNT_MS = 700;
 const ANCHOR = 0.34;
-const MIN_BPM = 40;
-const MAX_BPM = 220;
-const BPM_STEP = 5;
 
 type Phase = 'count' | 'play' | 'pause' | 'done';
 
@@ -43,7 +42,9 @@ function clock(seconds: number) {
 export function ZenMode({
   doc,
   rhythms,
-  initialBpm,
+  bpm,
+  speed,
+  onSpeedChange,
   title,
   artist,
   played,
@@ -52,7 +53,11 @@ export function ZenMode({
 }: {
   doc: SongDoc;
   rhythms: Rhythm[];
-  initialBpm: number;
+  /** The song tempo; section and block tempos come from the document. */
+  bpm: number;
+  /** Playback speed: time is song time, so changing it keeps the place in the song. */
+  speed: number;
+  onSpeedChange: (speed: number) => void;
   title: string;
   artist: string;
   /** The viewer's play count, shown on the finish card. */
@@ -61,11 +66,12 @@ export function ZenMode({
   onClose: () => void;
 }) {
   const t = useTranslations('zen');
-  const [bpm, setBpm] = useState(initialBpm);
   const [phase, setPhase] = useState<Phase>('count');
   const [count, setCount] = useState(COUNT_FROM);
   const [time, setTime] = useState(0);
   const timeRef = useRef(0);
+  const speedRef = useRef(speed);
+  speedRef.current = speed;
   const finished = useRef(false);
   const lines = useMemo(() => zenLines(doc, rhythms, bpm), [doc, rhythms, bpm]);
   const total = lines.at(-1)?.end ?? 0;
@@ -96,7 +102,7 @@ export function ZenMode({
     let frame = 0;
     let last = performance.now();
     const tick = (now: number) => {
-      timeRef.current = advanceClock(timeRef.current, now - last);
+      timeRef.current = advanceClock(timeRef.current, now - last, speedRef.current);
       last = now;
       setTime(timeRef.current);
       frame = requestAnimationFrame(tick);
@@ -123,14 +129,6 @@ export function ZenMode({
     document.addEventListener('visibilitychange', onVisibility);
     return () => document.removeEventListener('visibilitychange', onVisibility);
   }, []);
-
-  const changeBpm = (delta: number) => {
-    const nextBpm = Math.min(MAX_BPM, Math.max(MIN_BPM, bpm + delta));
-    // Keep the place in the song: every duration scales with 1 / bpm.
-    timeRef.current = (timeRef.current * bpm) / nextBpm;
-    setTime(timeRef.current);
-    setBpm(nextBpm);
-  };
 
   const restart = useCallback(() => {
     timeRef.current = 0;
@@ -174,7 +172,15 @@ export function ZenMode({
   const [offset, setOffset] = useState(0);
   useLayoutEffect(() => {
     const height = viewport.current?.clientHeight ?? 0;
-    const top = (key?: string) => (key ? (rows.current.get(key)?.offsetTop ?? 0) : 0);
+    const top = (key?: string) => {
+      const element = key ? rows.current.get(key) : undefined;
+      if (!element) {
+        return 0;
+      }
+      // Inside a tab block, follow the row with the current beat.
+      const row = element.querySelector<HTMLElement>('[data-active-row]');
+      return row ? row.offsetTop : element.offsetTop;
+    };
     const from = top(current ? `${current.section}:${current.line}` : undefined);
     const to = next ? top(`${next.section}:${next.line}`) : from;
     setOffset(height * ANCHOR - (from + (to - from) * zenOffset(position.progress)));
@@ -247,10 +253,6 @@ export function ZenMode({
                 </p>
               )}
               {section.lines.map((line, lineIndex) => {
-                if (line.type === 'alphatex') {
-                  // TODO(task 8): render the alphaTex block.
-                  return null;
-                }
                 const key = `${sectionIndex}:${lineIndex}`;
                 const index = zenIndex.get(key);
                 const isCurrent =
@@ -271,11 +273,31 @@ export function ZenMode({
                     }}
                     className={cn(
                       'origin-left py-2 text-xl transition-[opacity,transform] duration-500',
-                      isCurrent ? 'scale-[1.04] opacity-100' : isPast ? 'opacity-15' : 'opacity-35',
+                      isCurrent && line.type !== 'alphatex'
+                        ? 'scale-[1.04] opacity-100'
+                        : isCurrent
+                          ? 'opacity-100'
+                          : isPast
+                            ? 'opacity-15'
+                            : 'opacity-35',
                     )}
                   >
                     {line.type === 'tab' ? (
                       <TabView lines={line.lines} />
+                    ) : line.type === 'alphatex' ? (
+                      <TabStaff
+                        block={line.block}
+                        activeBeat={
+                          isCurrent
+                            ? (() => {
+                                const beat = tabBeats(line.block)[
+                                  current?.chordItems[position.chord] ?? -1
+                                ];
+                                return beat ? { bar: beat.bar, beat: beat.beat } : null;
+                              })()
+                            : null
+                        }
+                      />
                     ) : (
                       <LineView
                         items={line.items}
@@ -315,29 +337,9 @@ export function ZenMode({
           ))}
         </div>
         <span className="text-muted-foreground text-xs tabular-nums">
-          {clock(time)} / {clock(total)}
+          {clock(time / speed)} / {clock(total / speed)}
         </span>
-        <div className="ml-auto flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={t('slower')}
-            className="rounded-xl bg-surface"
-            onClick={() => changeBpm(-BPM_STEP)}
-          >
-            <Minus />
-          </Button>
-          <span className="w-16 text-center font-semibold text-sm tabular-nums">{bpm} BPM</span>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={t('faster')}
-            className="rounded-xl bg-surface"
-            onClick={() => changeBpm(BPM_STEP)}
-          >
-            <Plus />
-          </Button>
-        </div>
+        <SpeedChips speed={speed} onChange={onSpeedChange} className="ml-auto" />
       </footer>
 
       <AnimatePresence>
