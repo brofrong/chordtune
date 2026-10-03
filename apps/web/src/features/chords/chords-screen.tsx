@@ -24,6 +24,20 @@ export function ChordsScreen() {
     ? settings.instrument
     : 'guitar';
 
+  // Switching tabs keeps the pressed shape and the search query; only a new tuning (a new neck)
+  // clears what's pressed. Comparing against a mirrored piece of state during render is the
+  // documented way to reset state when a prop changes, without an extra effect or a remount.
+  // (Changing the tuning already runs through InstrumentPicker's onChange below, which stops
+  // whatever is ringing before updating the setting.)
+  const tuningKey = `${tuning.instrument}:${tuning.id}`;
+  const [resetKey, setResetKey] = useState(tuningKey);
+  const [frets, setFrets] = useState<(number | null)[]>(() => tuning.strings.map(() => null));
+  const [query, setQuery] = useState('Am');
+  if (resetKey !== tuningKey) {
+    setResetKey(tuningKey);
+    setFrets(tuning.strings.map(() => null));
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pt-4 pb-28">
       <h1 className="font-bold font-display text-3xl tracking-tight">{t('pageTitle')}</h1>
@@ -31,6 +45,7 @@ export function ChordsScreen() {
         <ToggleGroup
           variant="outline"
           spacing={0}
+          aria-label={t('mode')}
           value={[mode]}
           onValueChange={(value) => {
             if (value[0] === 'identify' || value[0] === 'search') {
@@ -56,14 +71,19 @@ export function ChordsScreen() {
         />
       </div>
       {mode === 'identify' ? (
-        // A new tuning is a new neck: start with nothing pressed.
         <ChordFinder
-          key={`${tuning.instrument}:${tuning.id}`}
           strings={tuning.strings}
           player={player}
+          frets={frets}
+          onFretsChange={setFrets}
         />
       ) : (
-        <ChordSearch strings={tuning.strings} player={player} />
+        <ChordSearch
+          strings={tuning.strings}
+          player={player}
+          query={query}
+          onQueryChange={setQuery}
+        />
       )}
     </div>
   );

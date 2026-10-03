@@ -1,14 +1,20 @@
 'use client';
 
 import { strumShape, voicingsFor } from '@chordtune/audio';
-import { CHORD_SUFFIXES, isChord, NOTE_NAMES, parseChord } from '@chordtune/chord-sheet';
+import {
+  CHORD_SUFFIXES,
+  isChord,
+  NOTE_NAMES,
+  parseChord,
+  pitchClass,
+} from '@chordtune/chord-sheet';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
 
 import { Input } from '@/components/ui/input';
 import type { StrumPlayerControls } from '@/features/rhythm/use-strum-player';
 import { cn } from '@/lib/utils';
 import { ChordDiagram } from './chord-diagram';
+import { normalizeChordQuery } from './chord-query';
 
 const SEARCH_LIMIT = 12;
 
@@ -16,13 +22,16 @@ const SEARCH_LIMIT = 12;
 export function ChordSearch({
   strings,
   player,
+  query,
+  onQueryChange,
 }: {
   strings: readonly number[];
   player: StrumPlayerControls;
+  query: string;
+  onQueryChange: (query: string) => void;
 }) {
   const t = useTranslations('chords');
-  const [query, setQuery] = useState('Am');
-  const chord = query.trim();
+  const chord = normalizeChordQuery(query);
   const parsed = parseChord(chord);
   const root = parsed?.root ?? 'C';
   const suffix = parsed?.suffix ?? '';
@@ -48,20 +57,25 @@ export function ChordSearch({
       <Input
         value={query}
         aria-invalid={chord !== '' && !isChord(chord)}
+        aria-label={t('searchPlaceholder')}
         placeholder={t('searchPlaceholder')}
-        autoCapitalize="characters"
+        autoCapitalize="off"
         autoCorrect="off"
         spellCheck={false}
         className="max-w-xs"
-        onChange={(event) => setQuery(event.target.value)}
+        onChange={(event) => onQueryChange(event.target.value)}
       />
       <div className="flex flex-wrap gap-1.5">
-        {NOTE_NAMES.map((name) => chip(name, parsed?.root === name, () => setQuery(name + suffix)))}
+        {NOTE_NAMES.map((name) =>
+          chip(name, parsed !== null && pitchClass(parsed.root) === pitchClass(name), () =>
+            onQueryChange(name + suffix),
+          ),
+        )}
       </div>
       <div className="flex flex-wrap gap-1.5">
         {CHORD_SUFFIXES.map((quality) =>
           chip(root + quality, parsed !== null && suffix === quality, () =>
-            setQuery(root + quality),
+            onQueryChange(root + quality),
           ),
         )}
       </div>
@@ -75,11 +89,11 @@ export function ChordSearch({
             {t('shapesFor', { chord })}
           </h2>
           <div className="flex flex-wrap gap-2">
-            {shapes.map(({ frets }) => (
+            {shapes.map(({ frets }, index) => (
               <button
                 key={frets.join()}
                 type="button"
-                aria-label={t('play', { chord })}
+                aria-label={t('variant', { chord, n: index + 1 })}
                 onClick={() => void player.play('search', strumShape(frets, strings))}
                 className="rounded-2xl border border-border bg-surface p-1.5"
               >

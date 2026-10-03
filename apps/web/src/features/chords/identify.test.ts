@@ -21,7 +21,7 @@ describe('identify', () => {
     });
   });
 
-  test('a fifth is a power chord, other pairs are intervals', () => {
+  test('a root-position fifth is a power chord, other pairs are intervals', () => {
     expect(identify([0, 2, null, null], BASS)).toEqual({
       kind: 'chord',
       notes: ['E', 'B'],
@@ -32,11 +32,23 @@ describe('identify', () => {
       kind: 'interval',
       notes: ['E', 'G'],
       semitones: 3,
+      names: [],
     });
     expect(identify([0, 1, null, null, null, null], GUITAR)).toEqual({
       kind: 'interval',
       notes: ['E', 'Bb'],
       semitones: 6,
+      names: [],
+    });
+  });
+
+  test('an inverted fifth (a fourth apart) reads as the interval, not the slash power chord', () => {
+    // E2 and A2 open: a fourth above E, which only names as the slash power chord A5/E.
+    expect(identify([0, 0, null, null, null, null], GUITAR)).toEqual({
+      kind: 'interval',
+      notes: ['E', 'A'],
+      semitones: 5,
+      names: ['A5/E'],
     });
   });
 

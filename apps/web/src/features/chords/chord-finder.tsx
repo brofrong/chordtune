@@ -1,9 +1,8 @@
 'use client';
 
 import { strumShape } from '@chordtune/audio';
-import { Eraser } from 'lucide-react';
+import { Eraser, Play } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import type { StrumPlayerControls } from '@/features/rhythm/use-strum-player';
@@ -14,19 +13,31 @@ import { identify } from './identify';
 export function ChordFinder({
   strings,
   player,
+  frets,
+  onFretsChange,
 }: {
   strings: readonly number[];
   player: StrumPlayerControls;
+  frets: (number | null)[];
+  onFretsChange: (frets: (number | null)[]) => void;
 }) {
   const t = useTranslations('chords');
-  const [frets, setFrets] = useState<(number | null)[]>(() => strings.map(() => null));
   const result = identify(frets, strings);
   const play = () => void player.play('finder', strumShape(frets, strings));
+  const clear = () => {
+    if (player.playing === 'finder') {
+      player.stop();
+    }
+    onFretsChange(strings.map(() => null));
+  };
 
   return (
     <div className="flex flex-col gap-6 md:flex-row md:items-start">
-      <Fretboard strings={strings} frets={frets} onChange={setFrets} />
-      <div className="flex min-w-0 flex-1 flex-col gap-3">
+      <Fretboard strings={strings} frets={frets} onChange={onFretsChange} />
+      <div
+        className="order-first flex min-w-0 flex-1 flex-col gap-3 md:order-none"
+        aria-live="polite"
+      >
         {result.kind === 'empty' && (
           <p className="text-muted-foreground text-sm">{t('identifyHint')}</p>
         )}
@@ -34,25 +45,42 @@ export function ChordFinder({
           <button
             type="button"
             onClick={play}
+            aria-label={t('play', { chord: result.notes[0] ?? '' })}
             className="text-left font-bold font-display text-5xl text-chord"
           >
             {result.notes[0]}
           </button>
         )}
         {result.kind === 'interval' && (
-          <button
-            type="button"
-            onClick={play}
-            className="text-left font-bold font-display text-3xl"
-          >
-            {t(`intervals.${result.semitones}` as 'intervals.1')}
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={play}
+              aria-label={t('play', { chord: t(`intervals.${result.semitones}` as 'intervals.1') })}
+              className="text-left font-bold font-display text-3xl"
+            >
+              {t(`intervals.${result.semitones}` as 'intervals.1')}
+            </button>
+            {result.names.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {result.names.map((name) => (
+                  <span
+                    key={name}
+                    className="rounded-full bg-surface-2 px-2.5 py-0.5 font-semibold text-sm"
+                  >
+                    {name}
+                  </span>
+                ))}
+              </div>
+            )}
+          </>
         )}
         {result.kind === 'chord' && (
           <>
             <button
               type="button"
               onClick={play}
+              aria-label={t('play', { chord: result.names[0] ?? '' })}
               className="text-left font-bold font-display text-5xl text-chord"
             >
               {result.names[0]}
@@ -71,7 +99,19 @@ export function ChordFinder({
             )}
           </>
         )}
-        {result.kind === 'unknown' && <p className="font-semibold text-lg">{t('unknown')}</p>}
+        {result.kind === 'unknown' && (
+          <div className="flex items-center gap-2">
+            <p className="font-semibold text-lg">{t('unknown')}</p>
+            <button
+              type="button"
+              onClick={play}
+              aria-label={t('play', { chord: result.notes.join(' ') })}
+              className="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface-2"
+            >
+              <Play className="size-3.5 fill-current" />
+            </button>
+          </div>
+        )}
         {result.kind !== 'empty' && (
           <p className="text-muted-foreground text-sm">
             {t('notes', { notes: result.notes.join(' ') })}
@@ -81,7 +121,7 @@ export function ChordFinder({
           variant="outline"
           className="self-start"
           disabled={result.kind === 'empty'}
-          onClick={() => setFrets(strings.map(() => null))}
+          onClick={clear}
         >
           <Eraser />
           {t('clear')}

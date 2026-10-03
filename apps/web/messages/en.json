@@ -342,6 +342,7 @@
     "pageTitle": "Chords",
     "identify": "Identify",
     "search": "Find",
+    "mode": "Mode",
     "identifyHint": "Press notes on the neck to see which chord it is",
     "clear": "Clear",
     "notes": "Notes: {notes}",
