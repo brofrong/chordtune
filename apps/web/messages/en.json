@@ -116,6 +116,7 @@
     "failed": "That didn't work. Check your email and password."
   },
   "song": {
+    "tuning": "Tuning: {name}",
     "capo": "Capo: fret {fret}",
     "bpm": "{bpm} BPM",
     "key": "Key {key}",
@@ -160,6 +161,7 @@
     "title": "Title",
     "titlePlaceholder": "Song title",
     "existingSong": "Already in the catalogue — this adds another arrangement",
+    "tuning": "Tuning",
     "capo": "Capo",
     "noCapo": "None",
     "bpm": "BPM",
@@ -173,6 +175,7 @@
     "textPlaceholder": "[Verse]\nAm        G\nWhen you were here before",
     "textHint": "Write chords on a line above the lyrics. [Section] starts a section, | is a bar line, @A switches rhythm, x4 repeats. You can paste an Obsidian note and the form fills itself.",
     "imported": "Filled in from the note",
+    "voicingsReset": "Voicings cleared: in another tuning they are other chords",
     "switchBlocked": "Fix the errors in the text first",
     "unknownRhythm": "Marker @{key} points to a pattern that does not exist",
     "lineError": "Line {line}: {message}",

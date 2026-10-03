@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
-import { beatAt, tabPlayback } from '@/features/rhythm/playback';
+import { beatAt, type SongSound, tabPlayback } from '@/features/rhythm/playback';
 import type { StrumPlayerControls } from '@/features/rhythm/use-strum-player';
 import { readBlockMeta, setBlockMeta } from './tab-source';
 import { TabStaff } from './tab-staff';
@@ -56,7 +56,7 @@ const CHEATS: [code: string, key: CheatKey][] = [
 export function TabEditorSheet({
   source,
   bpm,
-  capo,
+  sound,
   player,
   onSave,
   onClose,
@@ -65,7 +65,7 @@ export function TabEditorSheet({
   source: string[] | null;
   /** Tempo around the block (section or song); `\tempo` in the block wins. */
   bpm: number;
-  capo: number | null;
+  sound: SongSound;
   player: StrumPlayerControls;
   onSave: (source: string[]) => void;
   onClose: () => void;
@@ -77,7 +77,7 @@ export function TabEditorSheet({
   const lines = useMemo(() => text.split('\n'), [text]);
   const { block, diagnostics } = useMemo(() => parseAlphaTex(lines), [lines]);
   const errors = diagnostics.filter((diagnostic) => diagnostic.severity === 'error');
-  const playback = useMemo(() => tabPlayback(block, { bpm, capo }), [block, bpm, capo]);
+  const playback = useMemo(() => tabPlayback(block, { bpm, ...sound }), [block, bpm, sound]);
   const previewing = player.playing === PREVIEW_ID;
   const activeBeat = previewing ? beatAt(playback, player.position) : null;
   const time = readBlockMeta(lines, 'ts')?.replace(/\s+/, '/') ?? '4/4';

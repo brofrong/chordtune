@@ -1,20 +1,55 @@
-import { eventSeconds, type ScheduledNote, scheduleNotes, scheduleTab } from '@chordtune/audio';
+import {
+  eventSeconds,
+  type ScheduledNote,
+  scheduleNotes,
+  scheduleTab,
+  strumShape,
+  voicingFor,
+} from '@chordtune/audio';
 import {
   barBeats,
+  chordKey,
   type Rhythm,
   type SongDoc,
+  type SongTuning,
+  songTuning,
   type TabBeatTime,
   type TabBlock,
   type TimelineEvent,
   tabBeats,
   timeline,
+  type Voicings,
 } from '@chordtune/chord-sheet';
 
 export const DEFAULT_BPM = 90;
 export const DEFAULT_PREVIEW_CHORD = 'Am';
 
+/** How the song sounds: capo, tuning and the author's shapes. */
+export type SongSound = { capo: number | null; tuning: SongTuning; voicings: Voicings };
+
 /** `speed` plays everything that many times faster; tempo and bars stay as written. */
-export type PlaybackOptions = { bpm: number; capo?: number | null; speed?: number };
+export type PlaybackOptions = { bpm: number; speed?: number } & Partial<SongSound>;
+
+export function songSound(source: {
+  capo: number | null;
+  tuning?: string | null;
+  voicings?: Voicings | null;
+}): SongSound {
+  return { capo: source.capo, tuning: songTuning(source.tuning), voicings: source.voicings ?? {} };
+}
+
+/** Capo plus the tuning's shift: how far every fretted note is moved. */
+function soundCapo(capo: number | null | undefined, tuning: SongTuning): number {
+  return (capo ?? 0) + tuning.shift;
+}
+
+/** One strum of a shape in the song's sound, for diagrams. */
+export function shapePlayback(
+  shape: readonly (number | null)[],
+  sound: SongSound,
+): ScheduledNote[] {
+  return strumShape(shape, sound.tuning.strings, soundCapo(sound.capo, sound.tuning));
+}
 
 export type SongPlayback = {
   events: TimelineEvent[];
@@ -40,7 +75,7 @@ function atSpeed(notes: ScheduledNote[], speed: number): ScheduledNote[] {
 function schedule(
   events: TimelineEvent[],
   rhythms: Rhythm[],
-  { bpm, capo, speed = 1 }: PlaybackOptions,
+  { bpm, capo, speed = 1, tuning = songTuning('standard'), voicings = {} }: PlaybackOptions,
 ): SongPlayback {
   const seconds = eventSeconds(events, rhythms, bpm).map(({ start, end }) => ({
     start: start / speed,
@@ -54,7 +89,19 @@ function schedule(
     const start = seconds[index]?.start ?? 0;
     return tabBeats(event.block).map((beat) => start + beat.start * quarterSec);
   });
-  const notes = atSpeed(scheduleNotes(events, rhythms, { bpm, capo: capo ?? 0 }), speed);
+  const voicing = (chord: string) => {
+    const key = chordKey(chord);
+    return (key ? voicings[key] : undefined) ?? voicingFor(chord, tuning.strings);
+  };
+  const notes = atSpeed(
+    scheduleNotes(events, rhythms, {
+      bpm,
+      capo: soundCapo(capo, tuning),
+      strings: tuning.strings,
+      voicing,
+    }),
+    speed,
+  );
   return { events, seconds, beatStarts, notes };
 }
 
@@ -98,11 +145,17 @@ export function sectionPlayback(
 }
 
 /** One tab block on its own; `options.bpm` is the tempo around it, `\tempo` wins. */
-export function tabPlayback(block: TabBlock, { bpm, capo, speed = 1 }: PlaybackOptions) {
+export function tabPlayback(
+  block: TabBlock,
+  { bpm, capo, speed = 1, tuning = songTuning('standard') }: PlaybackOptions,
+) {
   const tempo = block.tempo ?? bpm;
   const beats = tabBeats(block);
   return {
-    notes: atSpeed(scheduleTab(block, { bpm: tempo, capo: capo ?? 0 }), speed),
+    notes: atSpeed(
+      scheduleTab(block, { bpm: tempo, capo: soundCapo(capo, tuning), strings: tuning.strings }),
+      speed,
+    ),
     beats,
     beatStarts: beats.map((beat) => (beat.start * 60) / tempo / speed),
   };

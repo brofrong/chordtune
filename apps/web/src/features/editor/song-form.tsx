@@ -17,7 +17,7 @@ import { useToast } from '@/components/toast';
 import { Button } from '@/components/ui/button';
 import { useAuthSheet } from '@/features/auth/auth-sheet';
 import { useSession } from '@/features/auth/use-session';
-import { DEFAULT_BPM } from '@/features/rhythm/playback';
+import { DEFAULT_BPM, songSound } from '@/features/rhythm/playback';
 import { RhythmChips } from '@/features/rhythm/rhythm-chips';
 import { useStrumPlayer } from '@/features/rhythm/use-strum-player';
 import { songHref } from '@/features/song/links';
@@ -92,6 +92,9 @@ export function SongForm() {
         artist: song.artist.name,
         title: song.song.title,
         capo: song.capo,
+        tuning: song.tuning,
+        voicings: song.voicings,
+        zenMode: song.zenMode,
         tempo: song.tempo,
         key: song.key ?? '',
         notes: song.notes,
@@ -118,9 +121,16 @@ export function SongForm() {
     return () => clearTimeout(timer);
   }, [fields, doc, ready, editId]);
 
-  const update = (patch: Partial<SongFields>) => setFields((current) => ({ ...current, ...patch }));
+  const update = (patch: Partial<SongFields>) => {
+    const retuned = patch.tuning !== undefined && patch.tuning !== fields.tuning;
+    if (retuned && Object.keys(fields.voicings).length > 0) {
+      toast(t('voicingsReset'));
+    }
+    setFields((current) => ({ ...current, ...patch, ...(retuned ? { voicings: {} } : {}) }));
+  };
   const chords = useMemo(() => chordList(doc), [doc]);
   const bpm = fields.tempo ?? DEFAULT_BPM;
+  const sound = useMemo(() => songSound(fields), [fields]);
 
   const onSaved = (saved: { id: string; artistSlug: string; songSlug: string }) => {
     if (!editId) {
@@ -180,6 +190,9 @@ export function SongForm() {
       content: serialize(doc),
       rhythms: fields.rhythms,
       capo: fields.capo || null,
+      tuning: fields.tuning,
+      voicings: fields.voicings,
+      zenMode: fields.zenMode,
       tempo: fields.tempo === null ? null : Math.min(MAX_TEMPO, Math.max(MIN_TEMPO, fields.tempo)),
       key: fields.key.trim() || null,
       notes: fields.notes,
@@ -199,6 +212,9 @@ export function SongForm() {
     chords,
     key: fields.key.trim() || null,
     capo: fields.capo,
+    tuning: fields.tuning,
+    voicings: fields.voicings,
+    zenMode: fields.zenMode,
     tempo: fields.tempo,
     notes: fields.notes,
     status: 'published',
@@ -253,7 +269,7 @@ export function SongForm() {
         onImport={importSong}
         rhythms={fields.rhythms}
         bpm={bpm}
-        capo={fields.capo}
+        sound={sound}
         player={player}
         // Keyed by `previewArrangement.id`, not by doc/docVersion: it only changes with `editId`,
         // so speed survives an edit but still resets when switching to a different song.

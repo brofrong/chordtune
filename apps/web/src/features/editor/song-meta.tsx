@@ -1,5 +1,6 @@
 'use client';
 
+import { SONG_TUNING_IDS, songTuning } from '@chordtune/chord-sheet';
 import { ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -30,9 +31,11 @@ const CAPO_FRETS = Array.from({ length: 13 }, (_, fret) => fret);
 /** The song's details folded into one line; tap to open the sheet with the fields. */
 export function SongMetaCard({ fields, onOpen }: { fields: SongFields; onOpen: () => void }) {
   const t = useTranslations('editor');
+  const tTuner = useTranslations('tuner');
   const empty = !fields.title.trim() && !fields.artist.trim();
   const details = [
     fields.artist.trim(),
+    fields.tuning !== 'standard' ? tTuner(`tunings.guitar.${fields.tuning}`) : null,
     fields.capo ? `Capo ${fields.capo}` : null,
     fields.tempo ? `${fields.tempo} BPM` : null,
     fields.key.trim() || null,
@@ -79,9 +82,14 @@ export function SongMetaSheet({
   onArtistMatch: (id: string | null) => void;
 }) {
   const t = useTranslations('editor');
+  const tTuner = useTranslations('tuner');
   const capoItems = CAPO_FRETS.map((fret) => ({
     value: String(fret),
     label: fret === 0 ? t('noCapo') : String(fret),
+  }));
+  const tuningItems = SONG_TUNING_IDS.map((id) => ({
+    value: id,
+    label: tTuner(`tunings.guitar.${id}`),
   }));
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -105,7 +113,26 @@ export function SongMetaSheet({
               artistId={artistId}
             />
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="flex flex-col gap-1.5">
+              <Label>{t('tuning')}</Label>
+              <Select
+                value={fields.tuning}
+                items={tuningItems}
+                onValueChange={(value) => onChange({ tuning: songTuning(value).id })}
+              >
+                <SelectTrigger className="h-10 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {tuningItems.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex flex-col gap-1.5">
               <Label>{t('capo')}</Label>
               <Select

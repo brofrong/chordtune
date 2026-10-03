@@ -15,6 +15,7 @@ import {
   playingAt,
   sectionPlayback,
   songPlayback,
+  songSound,
 } from '@/features/rhythm/playback';
 import { RhythmBadge } from '@/features/rhythm/rhythm-badge';
 import { useStrumPlayer } from '@/features/rhythm/use-strum-player';
@@ -40,6 +41,7 @@ export function SongView({
   hooks?: SongActionHooks;
 }) {
   const t = useTranslations('song');
+  const tTuner = useTranslations('tuner');
   const offline = useOfflineHooks();
   const actions = useSongActions(
     arrangement,
@@ -48,20 +50,21 @@ export function SongView({
   const doc = useMemo(() => parse(arrangement.content).doc, [arrangement.content]);
   const bpm = arrangement.tempo ?? DEFAULT_BPM;
   const [speed, setSpeed] = useState(1);
-  const options = { bpm, capo: arrangement.capo, speed };
+  const sound = useMemo(() => songSound(arrangement), [arrangement]);
+  const options = { bpm, speed, ...sound };
   const player = useStrumPlayer();
   const { rhythms } = arrangement;
 
   const [zenOpen, setZenOpen] = useState(false);
 
   const playing = useMemo(() => {
-    const opts = { bpm, capo: arrangement.capo, speed };
+    const opts = { bpm, speed, ...sound };
     if (player.playing === 'song') {
       return songPlayback(doc, rhythms, opts);
     }
     const match = player.playing?.match(/^section:(\d+)$/);
     return match ? sectionPlayback(doc, rhythms, Number(match[1]), opts) : null;
-  }, [player.playing, doc, rhythms, bpm, arrangement.capo, speed]);
+  }, [player.playing, doc, rhythms, bpm, sound, speed]);
 
   const active: PlayingAt | null = playing ? playingAt(playing, player.position) : null;
 
@@ -105,6 +108,9 @@ export function SongView({
           </div>
         )}
         <p className="mt-2 flex flex-wrap gap-x-4 text-muted-foreground text-sm">
+          {sound.tuning.id !== 'standard' ? (
+            <span>{t('tuning', { name: tTuner(`tunings.guitar.${sound.tuning.id}`) })}</span>
+          ) : null}
           {arrangement.capo ? <span>{t('capo', { fret: arrangement.capo })}</span> : null}
           {arrangement.tempo ? <span>{t('bpm', { bpm: arrangement.tempo })}</span> : null}
           {arrangement.key ? <span>{t('key', { key: arrangement.key })}</span> : null}

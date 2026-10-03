@@ -13,7 +13,13 @@ import {
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
-import { beatAt, playingAt, sectionPlayback, tabPlayback } from '@/features/rhythm/playback';
+import {
+  beatAt,
+  playingAt,
+  type SongSound,
+  sectionPlayback,
+  tabPlayback,
+} from '@/features/rhythm/playback';
 import type { StrumPlayerControls } from '@/features/rhythm/use-strum-player';
 import { EditorDock } from './editor-dock';
 import { TextEditor } from './text-editor';
@@ -39,7 +45,7 @@ export function ChordEditor({
   onImport,
   rhythms,
   bpm,
-  capo,
+  sound,
   player,
   preview,
 }: {
@@ -50,7 +56,7 @@ export function ChordEditor({
   onImport: (song: ImportedSong) => void;
   rhythms: Rhythm[];
   bpm: number;
-  capo: number | null;
+  sound: SongSound;
   player: StrumPlayerControls;
   /** The song page as readers will see it, for «Проверить». */
   preview: React.ReactNode;
@@ -91,7 +97,7 @@ export function ChordEditor({
     setMode(next);
   };
 
-  const options = { bpm, capo };
+  const options = { bpm, ...sound };
   const playingId = player.playing ?? '';
   const sectionMatch = /^section:(\d+)$/.exec(playingId);
   const tabMatch = /^tab:(\d+:\d+)$/.exec(playingId);
@@ -131,7 +137,7 @@ export function ChordEditor({
           rhythms={rhythms}
           active={active}
           songBpm={bpm}
-          capo={capo}
+          sound={sound}
           player={player}
           playingSection={playingSection}
           onPlaySection={(section) => {

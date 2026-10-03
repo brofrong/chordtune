@@ -12,6 +12,24 @@ interface OfflineSchema extends DBSchema {
   queue: { key: number; value: QueuedPlay };
 }
 
+/**
+ * Copies saved before tunings and voicings existed lack those fields.
+ *
+ * `ArrangementView` declares `tuning`/`voicings`/`zenMode` as always present (Task 4 made them
+ * required), so a copy of its properties ahead of the spread would make TS flag the leading
+ * literals as dead code (TS2783) even though older IndexedDB records genuinely lack them at
+ * runtime. Defaulting with `??` after the spread sidesteps that false positive while keeping the
+ * same behaviour: an existing value (including `voicings: {}` or `zenMode: null`) always wins.
+ */
+export function withSongDefaults(arrangement: ArrangementView): ArrangementView {
+  return {
+    ...arrangement,
+    tuning: arrangement.tuning ?? 'standard',
+    voicings: arrangement.voicings ?? {},
+    zenMode: arrangement.zenMode ?? null,
+  };
+}
+
 let connection: Promise<IDBPDatabase<OfflineSchema>> | null = null;
 
 function db() {
@@ -41,13 +59,16 @@ export async function removeOffline(id: string) {
 }
 
 export async function getOffline(id: string): Promise<ArrangementView | null> {
-  return (await (await db()).get('songs', id))?.arrangement ?? null;
+  const found = (await (await db()).get('songs', id))?.arrangement;
+  return found ? withSongDefaults(found) : null;
 }
 
 /** Saved songs, newest first. */
 export async function listOffline(): Promise<ArrangementView[]> {
   const songs = await (await db()).getAll('songs');
-  return songs.sort((a, b) => b.savedAt - a.savedAt).map((song) => song.arrangement);
+  return songs
+    .sort((a, b) => b.savedAt - a.savedAt)
+    .map((song) => withSongDefaults(song.arrangement));
 }
 
 /** Makes the device match the server list: refresh what is there, drop what was unsaved. */

@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { PlayingAt } from '@/features/rhythm/playback';
+import type { PlayingAt, SongSound } from '@/features/rhythm/playback';
 import type { StrumPlayerControls } from '@/features/rhythm/use-strum-player';
 import { TabView } from '@/features/song/line-view';
 import { MarkChip } from '@/features/song/mark-chip';
@@ -64,7 +64,7 @@ export function VisualEditor({
   playingSection,
   onPlaySection,
   songBpm,
-  capo,
+  sound,
   player,
   playingTab,
   onPlayTab,
@@ -76,7 +76,7 @@ export function VisualEditor({
   playingSection: number | null;
   onPlaySection: (section: number) => void;
   songBpm: number;
-  capo: number | null;
+  sound: SongSound;
   player: StrumPlayerControls;
   /** `"section:line"` of the tab block that is playing. */
   playingTab: string | null;
@@ -371,7 +371,7 @@ export function VisualEditor({
           return line?.type === 'alphatex' ? line.source : null;
         })()}
         bpm={(editingTab ? doc.sections[editingTab.section]?.tempo : null) ?? songBpm}
-        capo={capo}
+        sound={sound}
         player={player}
         onSave={(source) => {
           if (editingTab) {
