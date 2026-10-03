@@ -306,5 +306,16 @@
       "repeat": "repeat, twice in total",
       "meta": "tempo and time of the block"
     }
+  },
+  "chords": {
+    "title": "Chords",
+    "hide": "Hide chords",
+    "show": "Show chords",
+    "previous": "Previous shape",
+    "next": "Next shape",
+    "play": "Play {chord}",
+    "noShape": "No shape",
+    "openString": "{note} string: open or not played",
+    "fret": "{note}, fret {fret}"
   }
 }
