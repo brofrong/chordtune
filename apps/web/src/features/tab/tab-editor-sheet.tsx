@@ -49,7 +49,7 @@ const CHEATS: [code: string, key: CheatKey][] = [
   ['{txt "тише"}', 'text'],
   ['\\lyrics "сло-ва _ пес-ни"', 'lyrics'],
   ['\\ro … \\rc 2', 'repeat'],
-  ['\\tempo 140  \\ts 3 4', 'meta'],
+  ['\\tempo 140\n\\ts 3 4', 'meta'],
 ];
 
 /** Writes one alphaTex block: the source, a live tablature, problems, and a play button. */
@@ -82,8 +82,16 @@ export function TabEditorSheet({
   const activeBeat = previewing ? beatAt(playback, player.position) : null;
   const time = readBlockMeta(lines, 'ts')?.replace(/\s+/, '/') ?? '4/4';
 
+  // Editing while the preview plays would otherwise keep sounding the old notes.
+  const editText = (value: string) => {
+    if (previewing) {
+      player.stop();
+    }
+    setText(value);
+  };
+
   const setMeta = (command: 'tempo' | 'ts', value: string | null) =>
-    setText(setBlockMeta(lines, command, value).join('\n'));
+    editText(setBlockMeta(lines, command, value).join('\n'));
 
   const close = () => {
     if (previewing) {
@@ -154,7 +162,7 @@ export function TabEditorSheet({
               <Textarea
                 id="tab-source"
                 value={text}
-                onChange={(event) => setText(event.target.value)}
+                onChange={(event) => editText(event.target.value)}
                 placeholder={t('placeholder')}
                 spellCheck={false}
                 autoCapitalize="off"
@@ -191,7 +199,7 @@ export function TabEditorSheet({
               <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
                 {CHEATS.map(([code, key]) => (
                   <div key={key} className="contents">
-                    <dt className="font-mono text-xs">{code}</dt>
+                    <dt className="whitespace-pre-line font-mono text-xs">{code}</dt>
                     <dd className="text-muted-foreground text-xs">{t(`cheat.${key}`)}</dd>
                   </div>
                 ))}
