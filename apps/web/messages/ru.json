@@ -150,7 +150,7 @@
     "offlineBanner": "Офлайн — показана сохранённая копия",
     "noNetwork": "Нет сети, а эта песня не сохранена",
     "capoNone": "Без каподастра",
-    "capoFret": "{fret} лад",
+    "capoFret": "{fret}-й лад",
     "capoAuthor": "у автора",
     "capoAsAuthor": "Как у автора",
     "noBarre": "без баррэ",

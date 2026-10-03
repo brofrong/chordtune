@@ -171,6 +171,7 @@ export function SongView({
             <CapoPicker
               value={capo}
               authorCapo={authorCapo}
+              followsAuthor={settings.capo === null}
               hints={() => capoHints(doc, sound.tuning.strings, authorCapo)}
               onChange={(next) => {
                 player.stop();
