@@ -71,6 +71,14 @@ export function SongView({
   const browser = useChordBrowser(chords, sound);
   const [panelOpen, setPanelOpen] = useChordPanelOpen();
   const [peek, setPeek] = useState<{ chord: string; anchor: HTMLElement } | null>(null);
+  // An edit in the editor's live preview can remount the tapped chord and leave `peek.anchor`
+  // pointing at a detached node: close the popover the moment `doc` changes, before that frame
+  // paints (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes).
+  const [peekDoc, setPeekDoc] = useState(doc);
+  if (peekDoc !== doc) {
+    setPeekDoc(doc);
+    setPeek(null);
+  }
   const playShape = (shape: Shape) => void player.play('shape', shapePlayback(shape, sound));
   const onChord = (raw: string, anchor: HTMLElement) => {
     const chord = chordKey(raw);
