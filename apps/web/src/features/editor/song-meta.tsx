@@ -105,6 +105,11 @@ export function SongMetaSheet({
     value: id,
     label: tTuner(`tunings.guitar.${id}`),
   }));
+  const zenItems = [
+    { value: 'auto', label: t('zenAuto') },
+    { value: 'inline', label: t('zenInline') },
+    { value: 'strip', label: t('zenStrip') },
+  ];
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -221,6 +226,27 @@ export function SongMetaSheet({
               value={fields.notes}
               onChange={(event) => onChange({ notes: event.target.value })}
             />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>{t('zenMode')}</Label>
+            <Select
+              value={fields.zenMode ?? 'auto'}
+              items={zenItems}
+              onValueChange={(value) =>
+                onChange({ zenMode: value === 'inline' || value === 'strip' ? value : null })
+              }
+            >
+              <SelectTrigger className="h-10 w-full sm:w-56">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {zenItems.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </SheetContent>

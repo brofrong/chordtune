@@ -37,6 +37,7 @@ import { RhythmBadge } from '@/features/rhythm/rhythm-badge';
 import { useStrumPlayer } from '@/features/rhythm/use-strum-player';
 import { TabStaff } from '@/features/tab/tab-staff';
 import { ZenMode } from '@/features/zen/zen-mode';
+import { resolveZenMode } from '@/features/zen/zen-view';
 import type { ArrangementView } from '@/lib/trpc';
 import { CapoPicker } from './capo-picker';
 import { LineView, TabView } from './line-view';
@@ -134,6 +135,7 @@ export function SongView({
       ? (view.sections[active.section]?.label ?? rhythmHint)
       : `${rhythmHint} · ${bpm} BPM${speedHint}`;
   const canPlay = useMemo(() => timeline(view, rhythms).length > 0, [view, rhythms]);
+  const zenMode = resolveZenMode(settings.zenMode, arrangement.zenMode, view);
 
   const playSection = (section: number) => {
     const { notes } = sectionPlayback(view, rhythms, section, options);
@@ -314,6 +316,18 @@ export function SongView({
             bpm={bpm}
             speed={speed}
             onSpeedChange={setSpeed}
+            mode={zenMode}
+            onModeChange={(next) => updateSettings({ zenMode: next })}
+            sound={viewSound}
+            capoControl={
+              <CapoPicker
+                value={capo}
+                authorCapo={authorCapo}
+                followsAuthor={settings.capo === null}
+                hints={() => capoHints(doc, sound.tuning.strings, authorCapo)}
+                onChange={(next) => updateSettings({ capo: next })}
+              />
+            }
             title={arrangement.song.title}
             artist={arrangement.artist.name}
             played={actions.me.played}

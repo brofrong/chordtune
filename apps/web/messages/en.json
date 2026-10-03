@@ -231,7 +231,11 @@
     "metaTitle": "About the song",
     "modeCheck": "Check",
     "savedShort": "Done",
-    "done": "Done"
+    "done": "Done",
+    "zenMode": "Zen default",
+    "zenAuto": "Auto",
+    "zenInline": "Above the words",
+    "zenStrip": "Strip"
   },
   "rhythm": {
     "title": "Rhythm",
@@ -278,7 +282,14 @@
     "doneText": "{count, plural, one {Played # time} other {Played # times}}. Keep it up!",
     "again": "Again",
     "finish": "Done",
-    "tapToPause": "Tap the lyrics to pause"
+    "tapToPause": "Tap the lyrics to pause",
+    "start": "Start",
+    "fromStart": "From the top",
+    "view": "Chords",
+    "viewInline": "Above the words",
+    "viewStrip": "Strip",
+    "pickStart": "Scroll and tap a line or a chord to start there",
+    "showShapes": "Show shapes"
   },
   "library": {
     "title": "Library",

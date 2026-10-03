@@ -1,6 +1,6 @@
 'use client';
 
-import { type Rhythm, type SongDoc, tabBeats } from '@chordtune/chord-sheet';
+import { type Rhythm, type SongDoc, tabBeats, type ZenModeId } from '@chordtune/chord-sheet';
 import { Pause, Play, RotateCcw, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
@@ -15,21 +15,33 @@ import {
 } from 'react';
 
 import { Button } from '@/components/ui/button';
+import type { SongSound } from '@/features/rhythm/playback';
 import { LineView, TabView } from '@/features/song/line-view';
-import { SpeedChips } from '@/features/song/speed-chips';
 import { tabBeatQuarters } from '@/features/tab/tab-layout';
 import { TabStaff } from '@/features/tab/tab-staff';
 import { spring } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 import { useWakeLock } from './use-wake-lock';
 import { advanceClock } from './zen-clock';
+import { ZenPanel } from './zen-panel';
+import { ZenStrip } from './zen-strip';
 import { zenLines, zenOffset, zenPosition, zenRowGlide } from './zen-timing';
+import { type RowEmphasis, rowEmphasis, sectionStrip } from './zen-view';
 
 const COUNT_FROM = 3;
 const COUNT_MS = 700;
 const ANCHOR = 0.34;
 
-type Phase = 'count' | 'play' | 'pause' | 'done';
+type Phase = 'ready' | 'count' | 'play' | 'pause' | 'done';
+
+/** How bright a row is, by its distance from the row currently playing. */
+const EMPHASIS: Record<RowEmphasis, string> = {
+  current: 'opacity-100',
+  next: 'opacity-75',
+  after: 'opacity-55',
+  later: 'opacity-30',
+  past: 'opacity-15',
+};
 
 function clock(seconds: number) {
   const s = Math.max(0, Math.floor(seconds));
@@ -37,8 +49,9 @@ function clock(seconds: number) {
 }
 
 /**
- * Full-screen play-along: after a 3-2-1 count the lyrics scroll by themselves in tempo — each
- * line stays as long as its chords last, then the next one glides in.
+ * Full-screen play-along: a ready panel picks how chords look, speed and capo, then after a
+ * 3-2-1 count the lyrics scroll by themselves in tempo — each line stays as long as its chords
+ * last, then the next one glides in.
  */
 export function ZenMode({
   doc,
@@ -46,6 +59,10 @@ export function ZenMode({
   bpm,
   speed,
   onSpeedChange,
+  mode,
+  onModeChange,
+  sound,
+  capoControl,
   title,
   artist,
   played,
@@ -59,6 +76,12 @@ export function ZenMode({
   /** Playback speed: time is song time, so changing it keeps the place in the song. */
   speed: number;
   onSpeedChange: (speed: number) => void;
+  /** Chords above the words, or the section's chord strip. */
+  mode: ZenModeId;
+  onModeChange: (mode: ZenModeId) => void;
+  sound: SongSound;
+  /** The listener's capo picker, shown in the ready/pause panel. */
+  capoControl?: React.ReactNode;
   title: string;
   artist: string;
   /** The viewer's play count, shown on the finish card. */
@@ -67,7 +90,7 @@ export function ZenMode({
   onClose: () => void;
 }) {
   const t = useTranslations('zen');
-  const [phase, setPhase] = useState<Phase>('count');
+  const [phase, setPhase] = useState<Phase>('ready');
   const [count, setCount] = useState(COUNT_FROM);
   const [time, setTime] = useState(0);
   const timeRef = useRef(0);
@@ -141,6 +164,17 @@ export function ZenMode({
     return () => document.removeEventListener('visibilitychange', onVisibility);
   }, []);
 
+  const start = useCallback(() => {
+    setCount(COUNT_FROM);
+    setPhase('count');
+  }, []);
+
+  const fromStart = () => {
+    timeRef.current = 0;
+    finished.current = false;
+    setTime(0);
+  };
+
   const restart = useCallback(() => {
     timeRef.current = 0;
     finished.current = false;
@@ -152,10 +186,14 @@ export function ZenMode({
   const togglePause = () => {
     if (phase === 'play') {
       setPhase('pause');
-    } else if (phase === 'pause') {
-      setPhase('play');
+    } else if (phase === 'ready' || phase === 'pause') {
+      start();
     }
   };
+  // The key handler below runs from an effect with a narrow dependency list (so it does not
+  // resubscribe on every phase change), so it reads the latest togglePause through a ref.
+  const togglePauseRef = useRef(togglePause);
+  togglePauseRef.current = togglePause;
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -163,9 +201,7 @@ export function ZenMode({
         onClose();
       } else if (event.key === ' ') {
         event.preventDefault();
-        setPhase((current) =>
-          current === 'play' ? 'pause' : current === 'pause' ? 'play' : current,
-        );
+        togglePauseRef.current();
       }
     };
     const overflow = document.body.style.overflow;
@@ -212,11 +248,30 @@ export function ZenMode({
     setOffset(height * ANCHOR - (from + (to - from) * zenOffset(progress)));
   }, [current, next, currentLine, activeTabBeat, position.progress]);
 
-  const zenIndex = useMemo(
-    () => new Map(lines.map((line, index) => [`${line.section}:${line.line}`, index])),
-    [lines],
+  // Every line of the document, in the order it is shown, so each one's brightness can be set
+  // by its distance from the row currently playing.
+  const rowKeys = useMemo(
+    () => doc.sections.flatMap((section, s) => section.lines.map((_, l) => `${s}:${l}`)),
+    [doc],
   );
-  const beat = Math.floor(time / (60 / bpm)) % 4;
+  const currentRow = current ? rowKeys.indexOf(`${current.section}:${current.line}`) : -1;
+
+  // `position` is a fresh object every frame: memo the strip on the values that actually
+  // change it, so it is not rebuilt (and ZenStrip not re-rendered) on every tick.
+  const { index: playingIndex, chord: playingChord } = position;
+  const strip = useMemo(
+    () =>
+      sectionStrip(doc, lines, {
+        index: playingIndex,
+        chord: playingChord,
+        progress: 0,
+        done: false,
+      }),
+    [doc, lines, playingIndex, playingChord],
+  );
+
+  const beatSec = 60 / (current?.tempo ?? bpm);
+  const beat = Math.floor(Math.max(0, time - (current?.start ?? 0)) / beatSec) % 4;
   const currentSection = current ? doc.sections[current.section]?.label : null;
 
   return (
@@ -253,14 +308,18 @@ export function ZenMode({
         {currentSection && <span className="text-muted-foreground text-xs">{currentSection}</span>}
       </header>
 
+      {mode === 'strip' && <ZenStrip strip={strip} sound={sound} />}
+
       <div ref={viewport} className="-mt-20 relative flex-1 overflow-hidden">
-        <button
-          type="button"
-          aria-label={phase === 'play' ? t('pause') : t('resume')}
-          title={t('tapToPause')}
-          className="absolute inset-0 z-10 cursor-default"
-          onClick={togglePause}
-        />
+        {phase === 'play' && (
+          <button
+            type="button"
+            aria-label={t('pause')}
+            title={t('tapToPause')}
+            className="absolute inset-0 z-10 cursor-default"
+            onClick={togglePause}
+          />
+        )}
         <div
           className="absolute inset-x-0 top-0 px-6 will-change-transform"
           style={{ transform: `translateY(${offset}px)` }}
@@ -280,13 +339,8 @@ export function ZenMode({
               )}
               {section.lines.map((line, lineIndex) => {
                 const key = `${sectionIndex}:${lineIndex}`;
-                const index = zenIndex.get(key);
-                const isCurrent =
-                  index !== undefined && index === position.index && phase !== 'count';
-                const isPast =
-                  current !== undefined &&
-                  (sectionIndex < current.section ||
-                    (sectionIndex === current.section && lineIndex < current.line));
+                const emphasis = rowEmphasis(rowKeys.indexOf(key), currentRow);
+                const isCurrent = emphasis === 'current';
                 return (
                   <div
                     key={key}
@@ -299,13 +353,8 @@ export function ZenMode({
                     }}
                     className={cn(
                       'origin-left py-2 text-xl transition-[opacity,transform] duration-500',
-                      isCurrent && line.type !== 'alphatex'
-                        ? 'scale-[1.04] opacity-100'
-                        : isCurrent
-                          ? 'opacity-100'
-                          : isPast
-                            ? 'opacity-15'
-                            : 'opacity-35',
+                      EMPHASIS[emphasis],
+                      isCurrent && line.type === 'line' && 'scale-[1.04]',
                     )}
                   >
                     {line.type === 'tab' ? (
@@ -318,6 +367,7 @@ export function ZenMode({
                         activeItem={
                           isCurrent ? (current?.chordItems[position.chord] ?? null) : null
                         }
+                        marks={mode === 'strip' ? 'dots' : 'chips'}
                       />
                     )}
                   </div>
@@ -329,32 +379,46 @@ export function ZenMode({
         </div>
       </div>
 
-      <footer className="relative z-10 flex items-center gap-3 bg-linear-to-t from-background from-55% to-transparent px-4 pt-8 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-        <Button
-          size="icon"
-          aria-label={phase === 'play' ? t('pause') : t('resume')}
-          className="size-11 rounded-2xl shadow-glow"
-          disabled={phase === 'count' || phase === 'done'}
-          onClick={togglePause}
-        >
-          {phase === 'play' ? <Pause /> : <Play />}
-        </Button>
-        <div className="flex gap-1.5" aria-hidden>
-          {[0, 1, 2, 3].map((dot) => (
-            <span
-              key={dot}
-              className={cn(
-                'size-2 rounded-full bg-surface-2 transition-colors duration-75',
-                phase === 'play' && dot === beat && 'bg-primary shadow-glow',
-              )}
-            />
-          ))}
-        </div>
-        <span className="text-muted-foreground text-xs tabular-nums">
-          {clock(time / speed)} / {clock(total / speed)}
-        </span>
-        <SpeedChips speed={speed} onChange={onSpeedChange} className="ml-auto" />
-      </footer>
+      {phase === 'ready' || phase === 'pause' ? (
+        <footer className="relative z-30 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <ZenPanel
+            phase={phase}
+            mode={mode}
+            onModeChange={onModeChange}
+            speed={speed}
+            onSpeedChange={onSpeedChange}
+            capoControl={capoControl}
+            onStart={start}
+            onFromStart={fromStart}
+          />
+        </footer>
+      ) : (
+        <footer className="relative z-10 flex items-center gap-3 bg-linear-to-t from-background from-55% to-transparent px-4 pt-8 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <Button
+            size="icon"
+            aria-label={t('pause')}
+            className="size-11 rounded-2xl shadow-glow"
+            disabled={phase === 'count' || phase === 'done'}
+            onClick={togglePause}
+          >
+            {phase === 'play' ? <Pause /> : <Play />}
+          </Button>
+          <div className="flex gap-1.5" aria-hidden>
+            {[0, 1, 2, 3].map((dot) => (
+              <span
+                key={dot}
+                className={cn(
+                  'size-2 rounded-full bg-surface-2 transition-colors duration-75',
+                  phase === 'play' && dot === beat && 'bg-primary shadow-glow',
+                )}
+              />
+            ))}
+          </div>
+          <span className="text-muted-foreground text-xs tabular-nums">
+            {clock(time / speed)} / {clock(total / speed)}
+          </span>
+        </footer>
+      )}
 
       <AnimatePresence>
         {phase === 'count' && count > 0 && (

@@ -231,7 +231,11 @@
     "metaTitle": "О песне",
     "modeCheck": "Проверить",
     "savedShort": "Готово",
-    "done": "Готово"
+    "done": "Готово",
+    "zenMode": "Zen по умолчанию",
+    "zenAuto": "Авто",
+    "zenInline": "Над словами",
+    "zenStrip": "Полоса"
   },
   "rhythm": {
     "title": "Ритм",
@@ -278,7 +282,14 @@
     "doneText": "{count, plural, one {Сыграна # раз} few {Сыграна # раза} many {Сыграна # раз} other {Сыграна # раза}}. Так держать!",
     "again": "Ещё раз",
     "finish": "Готово",
-    "tapToPause": "Тап по тексту — пауза"
+    "tapToPause": "Тап по тексту — пауза",
+    "start": "Начать",
+    "fromStart": "Сначала",
+    "view": "Аккорды",
+    "viewInline": "Над словами",
+    "viewStrip": "Полоса",
+    "pickStart": "Листай текст и тапни строку или аккорд — начнём оттуда",
+    "showShapes": "Показать аппликатуры"
   },
   "library": {
     "title": "Моё",
