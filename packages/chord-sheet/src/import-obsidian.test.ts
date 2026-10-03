@@ -75,8 +75,13 @@ describe('importObsidian', () => {
     const outro = doc.sections.find((section) => section.label === 'outro');
     const line = outro?.lines[0];
     expect(line?.type === 'line' && line.items.some((item) => item.type === 'bar')).toBe(true);
-    expect(song.notes).toContain('```jtab');
-    expect(song.notes).toContain('**Проигрыш**');
+    expect(song.notes).not.toContain('```jtab');
+    expect(song.notes).not.toContain('**Проигрыш**');
+    const riff = doc.sections.find((section) => section.label === 'Проигрыш');
+    const block = riff?.lines[0];
+    expect(block?.type).toBe('alphatex');
+    expect(block?.type === 'alphatex' && block.block.bars).toHaveLength(8);
+    expect(block?.type === 'alphatex' && block.block.bars[0]?.beats[0]?.duration).toBe(8);
   });
 
   test('Лирика: section lines, pick by default, strum on choruses', () => {

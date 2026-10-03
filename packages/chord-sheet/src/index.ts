@@ -3,6 +3,7 @@ export * from './chord';
 export * from './chords-over-lyrics';
 export * from './extract';
 export * from './import-obsidian';
+export * from './jtab';
 export * from './line';
 export * from './parse';
 export * from './rhythm';

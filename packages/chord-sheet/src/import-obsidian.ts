@@ -1,4 +1,6 @@
+import { alphatexLine } from './alphatex';
 import { fromChordsOverLyrics, isChordLine } from './chords-over-lyrics';
+import { jtabToAlphaTex } from './jtab';
 import { parseHeader } from './parse';
 import { parsePickNotation, parseStrumNotation, type Rhythm, type RhythmDraft } from './rhythm';
 import { serialize } from './serialize';
@@ -26,6 +28,7 @@ const SECTION_LINE_RE =
   /^\s*((?:куплет|припев|пред-?припев|вступление|проигрыш|бридж|соло|кода|аутро|интро|verse|chorus|bridge|intro|outro|solo)(?:\s*\d+)?)\s*:\s*(.*)$/i;
 const UNKNOWN_RE = /^(неизвестен|неизвестно|не указан|нет|-)?$/i;
 const RHYTHM_KEYS = 'ABCDEFGHIJKLMNOP';
+const BOLD_RE = /^\*\*(.+?)\*\*$/;
 
 type Rhythms = { list: Rhythm[]; add(draft: RhythmDraft): string };
 
@@ -87,7 +90,8 @@ function artistAndTitle(markdown: string, fileName?: string): [string, string] {
 
 /**
  * Converts a guitar note from Obsidian: `#Artist - Title`, meta lines (`Каподастр:`, `BPM:`,
- * `Бой:`/`Перебор:`/`Паттерн:`) and ```chords blocks with chords over lyrics.
+ * `Бой:`/`Перебор:`/`Паттерн:`), ```chords blocks with chords over lyrics, and ```jtab blocks
+ * with even bars become alphaTex tabs in the section named by the `**heading**` before them.
  * Everything else goes to `notes`.
  */
 export function importObsidian(markdown: string, fileName?: string): ImportedSong {
@@ -99,6 +103,10 @@ export function importObsidian(markdown: string, fileName?: string): ImportedSon
   let tempo: number | null = null;
   const notes: string[] = [];
   const sheet: string[] = [];
+  const tabs: { label: string | null; source: string[] }[] = [];
+  let fenceLines: string[] = [];
+  /** `**Проигрыш**` right before a fence names the tab in it. */
+  let lastBold: string | null = null;
 
   const readMeta = (line: string, section: string | null): boolean => {
     const capoMatch = CAPO_RE.exec(line);
@@ -137,10 +145,13 @@ export function importObsidian(markdown: string, fileName?: string): ImportedSon
     if (fence === null) {
       if (trimmed.startsWith('```')) {
         fence = trimmed.slice(3).trim();
-        if (fence !== 'chords') {
+        fenceLines = [];
+        if (fence === 'chords') {
+          if (sheet.length > 0) {
+            sheet.push('');
+          }
+        } else if (fence !== 'jtab') {
           notes.push(trimmed);
-        } else if (sheet.length > 0) {
-          sheet.push('');
         }
         continue;
       }
@@ -152,15 +163,31 @@ export function importObsidian(markdown: string, fileName?: string): ImportedSon
       }
       if (!readMeta(line, null) && trimmed) {
         notes.push(line.trimEnd());
+        lastBold = BOLD_RE.exec(trimmed)?.[1]?.trim() ?? null;
       }
       continue;
     }
 
     if (trimmed === '```') {
-      if (fence !== 'chords') {
+      if (fence === 'jtab') {
+        const source = jtabToAlphaTex(fenceLines.join('\n'));
+        if (source) {
+          if (lastBold !== null && notes.at(-1) === `**${lastBold}**`) {
+            notes.pop();
+          }
+          tabs.push({ label: lastBold, source });
+        } else {
+          notes.push('```jtab', ...fenceLines, '```');
+        }
+      } else if (fence !== 'chords') {
         notes.push(trimmed);
       }
       fence = null;
+      lastBold = null;
+      continue;
+    }
+    if (fence === 'jtab') {
+      fenceLines.push(line.trimEnd());
       continue;
     }
     if (fence !== 'chords') {
@@ -191,6 +218,19 @@ export function importObsidian(markdown: string, fileName?: string): ImportedSon
 
   const { doc, diagnostics } = fromChordsOverLyrics(trimBlankLines(sheet).join('\n'));
   markSectionRhythms(doc, sectionRhythm, defaultRhythm ?? rhythms.list[0]?.key ?? null);
+
+  for (const tab of tabs) {
+    const line = alphatexLine(tab.source);
+    const label = tab.label?.toLowerCase();
+    const target = label
+      ? doc.sections.find((section) => section.label?.toLowerCase() === label)
+      : undefined;
+    if (target) {
+      target.lines.push(line);
+    } else {
+      doc.sections.push({ label: tab.label ?? 'Таб', rhythm: null, tempo: null, lines: [line] });
+    }
+  }
 
   return {
     artist,
