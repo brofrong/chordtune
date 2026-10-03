@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import {
+  GUITAR_TUNINGS,
   parseAlphaTex,
   RHYTHM_PRESETS,
   type Rhythm,
@@ -7,7 +8,7 @@ import {
   type TimelineEvent,
 } from '@chordtune/chord-sheet';
 
-import { eventSeconds, scheduleNotes } from './strum-schedule';
+import { eventSeconds, scheduleNotes, strumShape } from './strum-schedule';
 
 const preset = (id: string, key = 'A'): Rhythm =>
   rhythmFromPreset(RHYTHM_PRESETS.find((p) => p.id === id)!, key);
@@ -130,5 +131,35 @@ describe('tabs and tempo', () => {
     const plain = scheduleNotes([event('Am', 0, 1)], [preset('six')], { bpm: 60 });
     const capo = scheduleNotes([event('Am', 0, 1)], [preset('six')], { bpm: 60, capo: 3 });
     expect(capo.map((n) => n.midi)).toEqual(plain.map((n) => n.midi + 3));
+  });
+});
+
+describe('strumShape', () => {
+  test('one down strum, thickest string first', () => {
+    const notes = strumShape([null, 0, 2, 2, 1, 0]);
+    expect(notes.map((note) => note.midi)).toEqual([45, 52, 57, 60, 64]);
+    expect(notes.map((note) => note.string)).toEqual([5, 4, 3, 2, 1]);
+    expect(notes[0]?.time).toBe(0);
+    for (let i = 1; i < notes.length; i++) {
+      expect(notes[i]?.time ?? 0).toBeGreaterThan(notes[i - 1]?.time ?? 0);
+    }
+  });
+
+  test('strings and capo', () => {
+    expect(
+      strumShape([0, null, null, null, null, null], GUITAR_TUNINGS['drop-d'], 2)[0]?.midi,
+    ).toBe(40);
+  });
+});
+
+describe('scheduleNotes strings', () => {
+  test('notes use the given open strings', () => {
+    const notes = scheduleNotes([event('D', 0, 1, null)], [], {
+      bpm: 120,
+      strings: GUITAR_TUNINGS['drop-d'],
+      voicing: () => [0, null, null, null, null, null],
+    });
+    expect(notes.length).toBeGreaterThan(0);
+    expect(notes.every((note) => note.midi === 38 && note.string === 6)).toBe(true);
   });
 });

@@ -16,10 +16,11 @@ const LEGATO_GAIN = 0.55;
  */
 export function scheduleTab(
   block: TabBlock,
-  options: { bpm: number; capo?: number },
+  options: { bpm: number; capo?: number; strings?: readonly number[] },
 ): ScheduledNote[] {
   const quarterSec = 60 / options.bpm;
   const capo = options.capo ?? 0;
+  const strings = options.strings ?? OPEN_STRING_MIDI;
   const legato = new Set<number>();
   const notes: ScheduledNote[] = [];
 
@@ -47,7 +48,7 @@ export function scheduleTab(
       if (note.effects.hammer) {
         legato.add(note.string);
       }
-      const open = OPEN_STRING_MIDI[6 - note.string] ?? OPEN_STRING_MIDI[0];
+      const open = strings[strings.length - note.string] ?? strings[0];
       notes.push({
         time: start * quarterSec,
         midi: open + (note.fret === 'x' ? 0 : note.fret) + capo,

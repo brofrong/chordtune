@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { parseAlphaTex } from '@chordtune/chord-sheet';
+import { GUITAR_TUNINGS, parseAlphaTex } from '@chordtune/chord-sheet';
 
 import { scheduleTab } from './tab-schedule';
 
@@ -41,4 +41,9 @@ describe('scheduleTab', () => {
     expect(notes.map((n) => n.time)).toEqual([0, 3]);
     expect(notes[1]?.gain).toEqual(notes[0]?.gain);
   });
+});
+
+test('open strings of the given tuning', () => {
+  const notes = scheduleTab(block('0.6 0.1'), { bpm: 60, strings: GUITAR_TUNINGS['drop-d'] });
+  expect(notes.map((note) => note.midi)).toEqual([38, 64]);
 });

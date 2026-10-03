@@ -26,6 +26,8 @@ export type ScheduleOptions = {
   bpm: number;
   /** Frets the capo raises every note by. */
   capo?: number;
+  /** Open strings as MIDI notes, thickest first; standard tuning when missing. */
+  strings?: readonly number[];
   voicing?: (chord: string) => GuitarFrets | null;
 };
 
@@ -79,7 +81,8 @@ export function scheduleNotes(
   rhythms: readonly Rhythm[],
   options: ScheduleOptions,
 ): ScheduledNote[] {
-  const voicing = options.voicing ?? voicingFor;
+  const strings = options.strings ?? OPEN_STRING_MIDI;
+  const voicing = options.voicing ?? ((chord: string) => voicingFor(chord, strings));
   const capo = options.capo ?? 0;
   const seconds = eventSeconds(events, rhythms, options.bpm);
   const notes: ScheduledNote[] = [];
@@ -87,7 +90,11 @@ export function scheduleNotes(
   events.forEach((event, index) => {
     const offset = seconds[index]?.start ?? 0;
     if (event.kind === 'tab') {
-      for (const note of scheduleTab(event.block, { bpm: event.tempo ?? options.bpm, capo })) {
+      for (const note of scheduleTab(event.block, {
+        bpm: event.tempo ?? options.bpm,
+        capo,
+        strings,
+      })) {
         notes.push({ ...note, time: note.time + offset });
       }
       return;
@@ -106,13 +113,32 @@ export function scheduleNotes(
         const at = bar + i / stepCount;
         if (step && at >= event.start - EPSILON && at < end - EPSILON) {
           const time = offset + (at - event.start) * barSec;
-          notes.push(...playStep(step, rhythm.kind, frets, time, capo));
+          notes.push(...playStep(step, rhythm.kind, frets, time, capo, strings));
         }
       });
     }
   });
 
   return notes.sort((a, b) => a.time - b.time);
+}
+
+const SHAPE_SPREAD_SEC = 0.03;
+
+/** One slow down strum of a shape, for trying a chord out. */
+export function strumShape(
+  frets: GuitarFrets,
+  strings: readonly number[] = OPEN_STRING_MIDI,
+  capo = 0,
+): ScheduledNote[] {
+  const notes: ScheduledNote[] = [];
+  frets.forEach((fret, index) => {
+    if (fret !== null) {
+      notes.push(
+        note(index, fret, notes.length * SHAPE_SPREAD_SEC, PICK_GAIN, false, capo, strings),
+      );
+    }
+  });
+  return notes;
 }
 
 function note(
@@ -122,11 +148,12 @@ function note(
   gain: number,
   muted: boolean,
   capo: number,
+  strings: readonly number[],
 ) {
   return {
     time,
-    midi: (OPEN_STRING_MIDI[index] ?? OPEN_STRING_MIDI[0]) + fret + capo,
-    string: 6 - index,
+    midi: (strings[index] ?? strings[0]) + fret + capo,
+    string: strings.length - index,
     gain,
     muted,
   };
@@ -138,6 +165,7 @@ function playStep(
   frets: GuitarFrets,
   time: number,
   capo: number,
+  strings: readonly number[],
 ): ScheduledNote[] {
   const accent = step.accent ? ACCENT_GAIN : 1;
   // Indices into `frets`, low E first.
@@ -145,16 +173,24 @@ function playStep(
 
   if (kind === 'pick') {
     return (step.strings ?? []).flatMap((ref) => {
-      const index = pickedString(ref, frets, sounding);
+      const index = pickedString(ref, frets, sounding, strings);
       return index === null
         ? []
-        : [note(index, frets[index] ?? 0, time, PICK_GAIN * accent, false, capo)];
+        : [note(index, frets[index] ?? 0, time, PICK_GAIN * accent, false, capo, strings)];
     });
   }
 
   const strum = (indices: number[], gain: number, muted: boolean) =>
     indices.map((index, order) =>
-      note(index, frets[index] ?? 0, time + order * STRUM_SPREAD_SEC, gain * accent, muted, capo),
+      note(
+        index,
+        frets[index] ?? 0,
+        time + order * STRUM_SPREAD_SEC,
+        gain * accent,
+        muted,
+        capo,
+        strings,
+      ),
     );
 
   switch (step.stroke) {
@@ -165,14 +201,23 @@ function playStep(
     case 'u':
       return strum(sounding.slice(-UP_STRINGS).reverse(), UP_GAIN, step.stroke === 'u');
     case 'x':
-      return strum([0, 1, 2, 3, 4, 5], 1, true);
+      return strum(
+        strings.map((_, index) => index),
+        1,
+        true,
+      );
     default:
       return [];
   }
 }
 
 /** `B` is the lowest sounding string, `B'` the next one up with a different note. */
-function pickedString(ref: StringRef, frets: GuitarFrets, sounding: number[]): number | null {
+function pickedString(
+  ref: StringRef,
+  frets: GuitarFrets,
+  sounding: number[],
+  strings: readonly number[],
+): number | null {
   const bass = sounding[0];
   if (bass === undefined) {
     return null;
@@ -181,13 +226,13 @@ function pickedString(ref: StringRef, frets: GuitarFrets, sounding: number[]): n
     return bass;
   }
   if (ref === "B'") {
-    const bassPc = (OPEN_STRING_MIDI[bass] + (frets[bass] ?? 0)) % 12;
+    const bassPc = (strings[bass] + (frets[bass] ?? 0)) % 12;
     return (
       sounding.find(
-        (index) => index > bass && (OPEN_STRING_MIDI[index] + (frets[index] ?? 0)) % 12 !== bassPc,
+        (index) => index > bass && (strings[index] + (frets[index] ?? 0)) % 12 !== bassPc,
       ) ?? bass
     );
   }
-  const index = 6 - ref;
+  const index = strings.length - ref;
   return frets[index] === null || frets[index] === undefined ? null : index;
 }

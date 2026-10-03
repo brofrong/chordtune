@@ -1,8 +1,14 @@
 import { describe, expect, test } from 'bun:test';
-import { chordTones, parseChord } from '@chordtune/chord-sheet';
+import {
+  chordTones,
+  GUITAR_TUNINGS,
+  parseChord,
+  playsChord,
+  shapeMidis,
+} from '@chordtune/chord-sheet';
 
 import { OPEN_STRING_MIDI } from './guitar-synth';
-import { voicingFor } from './voicing';
+import { barreOf, voicingFor, voicingsFor } from './voicing';
 
 const ROOTS = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 const SUFFIXES = ['', 'm', '7', 'm7', 'maj7', 'sus4', 'dim', '6'];
@@ -65,5 +71,69 @@ describe('voicingFor', () => {
 
   test('not a chord', () => {
     expect(voicingFor('Xyz')).toBeNull();
+  });
+});
+
+const UKULELE = [67, 60, 64, 69];
+
+const lowestFretted = (frets: readonly (number | null)[]) => {
+  const fretted = frets.filter((fret): fret is number => fret !== null && fret > 0);
+  return frets.includes(0) || fretted.length === 0 ? 0 : Math.min(...fretted);
+};
+
+describe('voicingsFor', () => {
+  test('several distinct shapes in different places on the neck', () => {
+    const shapes = voicingsFor('G');
+    expect(shapes[0]?.frets).toEqual([3, 2, 0, 0, 0, 3]);
+    expect(shapes.length).toBeGreaterThanOrEqual(4);
+    expect(shapes.length).toBeLessThanOrEqual(8);
+    expect(new Set(shapes.map((shape) => shape.frets.join())).size).toBe(shapes.length);
+    expect(new Set(shapes.slice(0, 4).map((shape) => lowestFretted(shape.frets))).size).toBe(4);
+  });
+
+  test('limit', () => {
+    expect(voicingsFor('C', undefined, { limit: 3 })).toHaveLength(3);
+  });
+
+  test('every shape plays the chord in other tunings', () => {
+    for (const id of ['drop-d', 'open-g', 'dadgad'] as const) {
+      const strings = GUITAR_TUNINGS[id];
+      for (const raw of ['C', 'D', 'G', 'Am', 'Em']) {
+        const shapes = voicingsFor(raw, strings);
+        expect(shapes.length, `${raw} in ${id}`).toBeGreaterThan(0);
+        for (const { frets } of shapes) {
+          expect(playsChord(shapeMidis(frets, strings), raw), `${raw} ${frets} in ${id}`).toBe(
+            true,
+          );
+        }
+      }
+    }
+  });
+
+  test('ukulele: re-entrant, the bass is not checked', () => {
+    expect(voicingsFor('C', UKULELE)[0]?.frets).toEqual([0, 0, 0, 3]);
+    expect(voicingsFor('Am', UKULELE)[0]?.frets).toEqual([2, 0, 0, 0]);
+    expect(voicingsFor('F', UKULELE)[0]?.frets).toEqual([2, 0, 1, 0]);
+  });
+
+  test('voicingFor is the first shape', () => {
+    expect(voicingFor('D', GUITAR_TUNINGS['drop-d'])).toEqual(
+      voicingsFor('D', GUITAR_TUNINGS['drop-d'])[0]?.frets ?? null,
+    );
+    expect(voicingsFor('Xyz')).toEqual([]);
+  });
+
+  test('barre flag', () => {
+    expect(voicingsFor('F')[0]?.barre).toBe(true);
+    expect(voicingsFor('Am')[0]?.barre).toBe(false);
+  });
+});
+
+describe('barreOf', () => {
+  test('only when the shape needs more than four fingers', () => {
+    expect(barreOf([1, 3, 3, 2, 1, 1])).toEqual({ fret: 1, from: 0, to: 5 });
+    expect(barreOf([null, 1, 3, 3, 3, 1])).toEqual({ fret: 1, from: 1, to: 5 });
+    expect(barreOf([null, null, 0, 2, 3, 2])).toBeNull();
+    expect(barreOf([3, 2, 0, 0, 0, 3])).toBeNull();
   });
 });
