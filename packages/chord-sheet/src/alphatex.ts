@@ -25,7 +25,7 @@ type Effects = {
 const DURATIONS: readonly TabDuration[] = [1, 2, 4, 8, 16, 32];
 /** Length of one note of an n-tuplet relative to a plain one. */
 const TUPLETS: Record<number, number> = { 3: 2 / 3, 5: 4 / 5, 6: 4 / 6 };
-const NOTE_RE = /^(\d+|x|-)\.(\d+)(?:\.(\d+))?$/;
+export const NOTE_RE = /^(\d+|x|-)\.(\d+)(?:\.(\d+))?$/;
 const REST_RE = /^r(?:\.(\d+))?$/;
 const BEAT_DURATION_RE = /^\.(\d+)$/;
 const NUMBER_RE = /^\d+$/;

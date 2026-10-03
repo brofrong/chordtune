@@ -1,17 +1,19 @@
-import { alphaTexNoteTokens } from './alphatex';
+import { alphaTexNoteTokens, NOTE_RE } from './alphatex';
 import type { TabBlock, TabNote } from './tab';
 
 const MAX_FRET = 24;
-const NOTE_RE = /^(\d+|x|-)\.(\d+)(?:\.(\d+))?$/;
 
 type Place = { string: number; fret: number };
+type Movable = { note: TabNote; index: number; pitch: number };
 
 /**
  * The block for a capo at `to` instead of `from`, sounding the same: each note keeps its pitch
- * and goes to its own string if a fret fits, else to the nearest string that has one (thicker
- * first), never sharing a string within a beat; a tie follows its note. Notes that fit nowhere
- * stay with a negative fret and `unreachable`. Hammer/slide marks between notes that end up on
- * different strings are dropped.
+ * and goes to its own string if a fret fits, else to another string, never sharing a string
+ * within a beat; a tie follows its note. A beat's movable notes (not dead, not a tie) are placed
+ * together by `bestAssignment`, which tries every assignment to the beat's free strings so one
+ * note's move can make room for another (see its doc comment for the order of preference). Notes
+ * that fit nowhere stay on their own string with a fret outside 0–24 and `unreachable`.
+ * Hammer/slide marks between notes that end up on different strings are dropped.
  */
 export function refretBlock(
   block: TabBlock,
@@ -24,28 +26,17 @@ export function refretBlock(
   const placedOn = new Map<number, Place>();
   let unreachable = 0;
 
-  const place = (note: TabNote, taken: Set<number>): TabNote => {
+  const placeFixed = (note: TabNote, taken: Set<number>): TabNote => {
     if (note.fret === 'x') {
       taken.add(note.string);
       return note;
     }
-    if (note.tie) {
-      const held = placedOn.get(note.string) ?? { string: note.string, fret: note.fret };
-      taken.add(held.string);
-      return { ...note, string: held.string, fret: held.fret };
-    }
-    const pitch = open(note.string) + from + note.fret;
-    const candidates = Array.from({ length: count }, (_, i) => i + 1).sort(
-      (a, b) => Math.abs(a - note.string) - Math.abs(b - note.string) || b - a,
-    );
-    for (const string of candidates) {
-      const fret = pitch - open(string) - to;
-      if (!taken.has(string) && fret >= 0 && fret <= MAX_FRET) {
-        taken.add(string);
-        placedOn.set(note.string, { string, fret });
-        return { ...note, string, fret };
-      }
-    }
+    const held = placedOn.get(note.string) ?? { string: note.string, fret: note.fret };
+    taken.add(held.string);
+    return { ...note, string: held.string, fret: held.fret };
+  };
+
+  const markUnreachable = (note: TabNote, pitch: number, taken: Set<number>): TabNote => {
     unreachable++;
     const fret = pitch - open(note.string) - to;
     taken.add(note.string);
@@ -57,14 +48,36 @@ export function refretBlock(
     ...bar,
     beats: bar.beats.map((beat) => {
       const taken = new Set<number>();
-      // Dead notes and ties have fixed strings: place them before the others.
-      const order = beat.notes
-        .map((note, index) => ({ note, index }))
-        .sort((a, b) => rank(a.note) - rank(b.note));
       const placed: TabNote[] = [...beat.notes];
-      for (const { note, index } of order) {
-        placed[index] = place(note, taken);
+
+      // Dead notes and ties have fixed strings: place them before the movable notes.
+      beat.notes.forEach((note, index) => {
+        if (note.fret === 'x' || note.tie) {
+          placed[index] = placeFixed(note, taken);
+        }
+      });
+
+      const movable: Movable[] = [];
+      beat.notes.forEach((note, index) => {
+        if (note.fret !== 'x' && !note.tie) {
+          movable.push({ note, index, pitch: open(note.string) + from + (note.fret as number) });
+        }
+      });
+      const freeStrings = Array.from({ length: count }, (_, i) => i + 1).filter(
+        (string) => !taken.has(string),
+      );
+      const assignment = bestAssignment(movable, freeStrings, to, open);
+      for (const { note, index, pitch } of movable) {
+        const choice = assignment.get(index);
+        if (choice) {
+          taken.add(choice.string);
+          placedOn.set(note.string, choice);
+          placed[index] = { ...note, string: choice.string, fret: choice.fret };
+        } else {
+          placed[index] = markUnreachable(note, pitch, taken);
+        }
       }
+
       return { ...beat, notes: placed };
     }),
   }));
@@ -72,7 +85,72 @@ export function refretBlock(
   return { block: { ...block, bars: dropBrokenLegato(block, bars) }, unreachable };
 }
 
-const rank = (note: TabNote) => (note.fret === 'x' ? 0 : note.tie ? 1 : 2);
+/**
+ * The best way to put a beat's movable notes on its free strings: as many notes placed as
+ * possible, then the smallest total |new string − old string|, then (by trying closer and
+ * thicker strings first in the search, so the first assignment found at the best score wins)
+ * thicker strings on ties. Notes left out (no string left with a fret in 0–24) are absent from
+ * the result; the caller marks them `unreachable` on their own string.
+ */
+function bestAssignment(
+  movable: readonly Movable[],
+  freeStrings: readonly number[],
+  to: number,
+  open: (string: number) => number,
+): Map<number, Place> {
+  const candidatesFor = (note: TabNote, pitch: number) =>
+    freeStrings
+      .map((string) => ({ string, fret: pitch - open(string) - to }))
+      .filter((place) => place.fret >= 0 && place.fret <= MAX_FRET)
+      .sort(
+        (a, b) =>
+          Math.abs(a.string - note.string) - Math.abs(b.string - note.string) ||
+          b.string - a.string,
+      );
+
+  const used = new Set<number>();
+  const assignment: (Place | null)[] = new Array(movable.length).fill(null);
+  let bestCount = -1;
+  let bestDistance = Infinity;
+  let bestAssignment: (Place | null)[] = [];
+
+  const recurse = (i: number, count: number, distance: number) => {
+    if (i === movable.length) {
+      if (count > bestCount || (count === bestCount && distance < bestDistance)) {
+        bestCount = count;
+        bestDistance = distance;
+        bestAssignment = [...assignment];
+      }
+      return;
+    }
+    const current = movable[i];
+    if (!current) {
+      return;
+    }
+    for (const place of candidatesFor(current.note, current.pitch)) {
+      if (used.has(place.string)) {
+        continue;
+      }
+      used.add(place.string);
+      assignment[i] = place;
+      recurse(i + 1, count + 1, distance + Math.abs(place.string - current.note.string));
+      used.delete(place.string);
+    }
+    assignment[i] = null;
+    recurse(i + 1, count, distance);
+  };
+
+  recurse(0, 0, 0);
+
+  const result = new Map<number, Place>();
+  bestAssignment.forEach((place, i) => {
+    const entry = movable[i];
+    if (place && entry) {
+      result.set(entry.index, place);
+    }
+  });
+  return result;
+}
 
 /** Written-order list of `[before, after]` notes, so effects can look at the next note. */
 function pairs(before: TabBlock['bars'], after: TabBlock['bars']) {

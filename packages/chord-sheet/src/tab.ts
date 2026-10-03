@@ -9,7 +9,7 @@ export type TabNote = {
   fret: number | 'x';
   tie: boolean;
   effects: NoteEffects;
-  /** Set when a capo leaves no fret for the note: `fret` is then below the capo. */
+  /** Set when a capo leaves no fret for the note: `fret` is then outside 0–24 with this capo. */
   unreachable?: true;
 };
 

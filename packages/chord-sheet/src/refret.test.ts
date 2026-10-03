@@ -54,6 +54,16 @@ describe('refretBlock', () => {
     expect(pitches(moved.block, 3)).toEqual([40, 42]);
   });
 
+  test('a chord searches assignments together: no note needs to go unreachable', () => {
+    const tab = block('(0.1 6.6 0.5)');
+    const moved = refretBlock(tab, STANDARD, 0, 1);
+    expect(moved.unreachable).toBe(0);
+    const strings = moved.block.bars[0]?.beats[0]?.notes.map((n) => n.string) ?? [];
+    expect(new Set(strings).size).toBe(3);
+    expect(notes(moved.block)).toEqual(['4.2+0.5+4.6']);
+    expect(pitches(moved.block, 1)).toEqual(pitches(tab, 0));
+  });
+
   test('a tie follows its note to the new string', () => {
     const moved = refretBlock(block('0.1 -.1'), STANDARD, 0, 2);
     expect(notes(moved.block)).toEqual(['3.2', '3.2']);
