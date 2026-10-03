@@ -1,5 +1,6 @@
 'use client';
 
+import { capoHints } from '@chordtune/audio';
 import {
   chordList,
   type ImportedSong,
@@ -7,6 +8,7 @@ import {
   type SongDoc,
   serialize,
   songTuning,
+  withCapo,
 } from '@chordtune/chord-sheet';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { X } from 'lucide-react';
@@ -64,6 +66,10 @@ export function SongForm() {
   const [metaOpen, setMetaOpen] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [ready, setReady] = useState(false);
+  const [pendingCapo, setPendingCapo] = useState<{
+    to: number;
+    result: ReturnType<typeof withCapo>;
+  } | null>(null);
 
   const replaceDoc = (next: SongDoc) => {
     setDoc(next);
@@ -136,6 +142,47 @@ export function SongForm() {
   const chords = useMemo(() => chordList(doc), [doc]);
   const bpm = fields.tempo ?? DEFAULT_BPM;
   const sound = useMemo(() => songSound(fields), [fields]);
+  const hints = useMemo(
+    () => (metaOpen ? capoHints(doc, sound.tuning.strings, fields.capo ?? 0) : null),
+    [metaOpen, doc, sound.tuning.strings, fields.capo],
+  );
+
+  const hasMusic = (song: SongDoc) =>
+    chordList(song).length > 0 ||
+    song.sections.some((section) => section.lines.some((line) => line.type === 'alphatex'));
+
+  const pickCapo = (next: number | null) => {
+    const from = fields.capo ?? 0;
+    const to = next ?? 0;
+    if (to === from) {
+      setPendingCapo(null);
+      return;
+    }
+    if (!hasMusic(doc)) {
+      update({ capo: to || null });
+      return;
+    }
+    setPendingCapo({ to, result: withCapo(doc, sound.tuning.strings, from, to) });
+  };
+
+  const recalculate = () => {
+    if (!pendingCapo) {
+      return;
+    }
+    replaceDoc(pendingCapo.result.doc);
+    if (Object.keys(fields.voicings).length > 0) {
+      toast(t('voicingsResetCapo'));
+    }
+    update({ capo: pendingCapo.to || null, voicings: {} });
+    setPendingCapo(null);
+  };
+
+  const keepWritten = () => {
+    if (pendingCapo) {
+      update({ capo: pendingCapo.to || null });
+    }
+    setPendingCapo(null);
+  };
 
   const onSaved = (saved: { id: string; artistSlug: string; songSlug: string }) => {
     if (!editId) {
@@ -289,9 +336,26 @@ export function SongForm() {
 
       <SongMetaSheet
         open={metaOpen}
-        onOpenChange={setMetaOpen}
+        onOpenChange={(open) => {
+          setMetaOpen(open);
+          if (!open) {
+            setPendingCapo(null);
+          }
+        }}
         fields={fields}
         onChange={update}
+        capoHints={hints}
+        pendingCapo={
+          pendingCapo
+            ? {
+                to: pendingCapo.to,
+                blocked: pendingCapo.result.unreachable + pendingCapo.result.stale,
+              }
+            : null
+        }
+        onCapoPick={pickCapo}
+        onRecalculate={recalculate}
+        onKeepWritten={keepWritten}
         artistId={artistId}
         onArtistMatch={setArtistId}
       />

@@ -1,9 +1,11 @@
 'use client';
 
+import type { CapoHint } from '@chordtune/audio';
 import { SONG_TUNING_IDS, songTuning } from '@chordtune/chord-sheet';
 import { ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -71,6 +73,11 @@ export function SongMetaSheet({
   onOpenChange,
   fields,
   onChange,
+  capoHints,
+  pendingCapo,
+  onCapoPick,
+  onRecalculate,
+  onKeepWritten,
   artistId,
   onArtistMatch,
 }: {
@@ -78,15 +85,22 @@ export function SongMetaSheet({
   onOpenChange: (open: boolean) => void;
   fields: SongFields;
   onChange: (patch: Partial<SongFields>) => void;
+  capoHints: CapoHint[] | null;
+  pendingCapo: { to: number; blocked: number } | null;
+  onCapoPick: (capo: number | null) => void;
+  onRecalculate: () => void;
+  onKeepWritten: () => void;
   artistId: string | null;
   onArtistMatch: (id: string | null) => void;
 }) {
   const t = useTranslations('editor');
   const tTuner = useTranslations('tuner');
-  const capoItems = CAPO_FRETS.map((fret) => ({
-    value: String(fret),
-    label: fret === 0 ? t('noCapo') : String(fret),
-  }));
+  const capoItems = CAPO_FRETS.map((fret) => {
+    const hint = capoHints?.find((item) => item.capo === fret);
+    const base = fret === 0 ? t('noCapo') : String(fret);
+    const tags = [hint?.star ? '★' : null, hint?.noBarre ? t('noBarre') : null].filter(Boolean);
+    return { value: String(fret), label: tags.length > 0 ? `${base} · ${tags.join(' · ')}` : base };
+  });
   const tuningItems = SONG_TUNING_IDS.map((id) => ({
     value: id,
     label: tTuner(`tunings.guitar.${id}`),
@@ -136,9 +150,9 @@ export function SongMetaSheet({
             <div className="flex flex-col gap-1.5">
               <Label>{t('capo')}</Label>
               <Select
-                value={String(fields.capo ?? 0)}
+                value={String(pendingCapo?.to ?? fields.capo ?? 0)}
                 items={capoItems}
-                onValueChange={(value) => onChange({ capo: Number(value) || null })}
+                onValueChange={(value) => onCapoPick(Number(value) || null)}
               >
                 <SelectTrigger className="h-10 w-full">
                   <SelectValue />
@@ -180,6 +194,24 @@ export function SongMetaSheet({
               />
             </div>
           </div>
+          {pendingCapo && (
+            <div className="flex flex-col gap-2 rounded-2xl border border-chord/40 bg-chord/5 p-3 text-sm">
+              <p>{t('recalcCapo', { fret: pendingCapo.to })}</p>
+              {pendingCapo.blocked > 0 && (
+                <p className="text-destructive text-xs">
+                  {t('recalcBlocked', { count: pendingCapo.blocked })}
+                </p>
+              )}
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" disabled={pendingCapo.blocked > 0} onClick={onRecalculate}>
+                  {t('recalc')}
+                </Button>
+                <Button size="sm" variant="outline" onClick={onKeepWritten}>
+                  {t('keepWritten')}
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="song-notes">{t('notes')}</Label>
             <Textarea
