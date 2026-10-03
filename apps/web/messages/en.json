@@ -189,6 +189,10 @@
     "removeLine": "Delete line",
     "editLine": "Edit line text",
     "lineTextPlaceholder": "Line text",
+    "addTab": "Tab",
+    "playTab": "Play tab",
+    "editTab": "Edit tab",
+    "sectionTempo": "Section tempo",
     "emptyVisual": "Empty so far. Add a section or start in text mode.",
     "visualHint": "Tap a letter to put a chord on it. Drag a chord to move it to another letter.",
     "palette": {
@@ -273,5 +277,31 @@
     "add": "Add a song",
     "browse": "Find a song",
     "loadFailed": "Could not load"
+  },
+  "tab": {
+    "title": "Tab",
+    "tempo": "Tempo",
+    "time": "Time",
+    "source": "alphaTex",
+    "placeholder": ":8 0.5 5.3 8.2 0.5 | …",
+    "play": "Play",
+    "cancel": "Cancel",
+    "done": "Done",
+    "lineError": "Line {line}: {message}",
+    "cheatsheet": "Cheat sheet",
+    "cheat": {
+      "note": "fret.string — 5th fret on the 3rd string",
+      "duration": "duration for all that follow (1 2 4 8 16 32)",
+      "beatDuration": "duration of this note only",
+      "rest": "rest",
+      "chord": "several notes at once",
+      "dead": "dead note; -.3 is a tie",
+      "effects": "dot, triplet, hammer, slide, palm mute",
+      "bend": "bend (quarter tones), vibrato",
+      "text": "text above the note",
+      "lyrics": "lyrics under the notes, _ skips one",
+      "repeat": "repeat, twice in total",
+      "meta": "tempo and time of the block"
+    }
   }
 }

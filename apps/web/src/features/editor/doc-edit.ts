@@ -41,3 +41,10 @@ export function insertLine(doc: SongDoc, section: number, at: number, line: Line
 export function removeLine(doc: SongDoc, section: number, line: number): SongDoc {
   return withSection(doc, section, (s) => ({ ...s, lines: s.lines.filter((_, i) => i !== line) }));
 }
+
+export function setLine(doc: SongDoc, section: number, line: number, next: Line): SongDoc {
+  return withSection(doc, section, (s) => ({
+    ...s,
+    lines: s.lines.map((l, i) => (i === line ? next : l)),
+  }));
+}

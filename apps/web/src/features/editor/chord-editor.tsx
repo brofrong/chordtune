@@ -13,7 +13,7 @@ import {
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
-import { playingAt, sectionPlayback } from '@/features/rhythm/playback';
+import { beatAt, playingAt, sectionPlayback, tabPlayback } from '@/features/rhythm/playback';
 import type { StrumPlayerControls } from '@/features/rhythm/use-strum-player';
 import { EditorDock } from './editor-dock';
 import { TextEditor } from './text-editor';
@@ -39,6 +39,7 @@ export function ChordEditor({
   onImport,
   rhythms,
   bpm,
+  capo,
   player,
   preview,
 }: {
@@ -49,6 +50,7 @@ export function ChordEditor({
   onImport: (song: ImportedSong) => void;
   rhythms: Rhythm[];
   bpm: number;
+  capo: number | null;
   player: StrumPlayerControls;
   /** The song page as readers will see it, for «Проверить». */
   preview: React.ReactNode;
@@ -89,10 +91,29 @@ export function ChordEditor({
     setMode(next);
   };
 
-  const playingSection = Number(player.playing?.match(/^section:(\d+)$/)?.[1] ?? Number.NaN);
+  const options = { bpm, capo };
+  const playingId = player.playing ?? '';
+  const sectionMatch = /^section:(\d+)$/.exec(playingId);
+  const tabMatch = /^tab:(\d+:\d+)$/.exec(playingId);
+  const playingSection = sectionMatch ? Number(sectionMatch[1]) : null;
+  const playingTab = tabMatch?.[1] ?? null;
+
+  const tabAt = (section: number, line: number) => {
+    const found = doc.sections[section]?.lines[line];
+    return found?.type === 'alphatex'
+      ? tabPlayback(found.block, { ...options, bpm: doc.sections[section]?.tempo ?? bpm })
+      : null;
+  };
+
   let active: ActiveChord = null;
-  if (!Number.isNaN(playingSection)) {
-    active = playingAt(sectionPlayback(doc, rhythms, playingSection, { bpm }), player.position);
+  if (playingSection !== null) {
+    active = playingAt(sectionPlayback(doc, rhythms, playingSection, options), player.position);
+  } else if (playingTab) {
+    const [section = 0, line = 0] = playingTab.split(':').map(Number);
+    const playback = tabAt(section, line);
+    active = playback
+      ? { section, line, item: null, beat: beatAt(playback, player.position) }
+      : null;
   }
 
   const missing = unknownRhythmKeys(doc, rhythms);
@@ -109,10 +130,20 @@ export function ChordEditor({
           onChange={onDocChange}
           rhythms={rhythms}
           active={active}
-          playingSection={Number.isNaN(playingSection) ? null : playingSection}
+          songBpm={bpm}
+          capo={capo}
+          player={player}
+          playingSection={playingSection}
           onPlaySection={(section) => {
-            const { notes } = sectionPlayback(doc, rhythms, section, { bpm });
+            const { notes } = sectionPlayback(doc, rhythms, section, options);
             player.toggle(`section:${section}`, notes);
+          }}
+          playingTab={playingTab}
+          onPlayTab={(section, line) => {
+            const playback = tabAt(section, line);
+            if (playback) {
+              player.toggle(`tab:${section}:${line}`, playback.notes);
+            }
           }}
         />
       )}

@@ -253,6 +253,7 @@ export function SongForm() {
         onImport={importSong}
         rhythms={fields.rhythms}
         bpm={bpm}
+        capo={fields.capo}
         player={player}
         preview={<SongView arrangement={previewArrangement} preview />}
       />

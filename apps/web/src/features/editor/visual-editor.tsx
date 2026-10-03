@@ -1,8 +1,10 @@
 'use client';
 
 import {
+  alphatexLine,
   chordList,
   type Item,
+  isTempo,
   joinLine,
   type Mark,
   type Rhythm,
@@ -11,7 +13,7 @@ import {
 } from '@chordtune/chord-sheet';
 import { Pencil, Play, Plus, Square, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,8 +25,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { PlayingAt } from '@/features/rhythm/playback';
+import type { StrumPlayerControls } from '@/features/rhythm/use-strum-player';
 import { TabView } from '@/features/song/line-view';
 import { MarkChip } from '@/features/song/mark-chip';
+import { TabEditorSheet } from '@/features/tab/tab-editor-sheet';
+import { TabStaff } from '@/features/tab/tab-staff';
 import { cn } from '@/lib/utils';
 import { ChordPalette } from './chord-palette';
 import {
@@ -32,6 +37,7 @@ import {
   insertLine,
   removeLine,
   removeSection,
+  setLine,
   setLineItems,
   updateSection,
 } from './doc-edit';
@@ -57,6 +63,11 @@ export function VisualEditor({
   active,
   playingSection,
   onPlaySection,
+  songBpm,
+  capo,
+  player,
+  playingTab,
+  onPlayTab,
 }: {
   doc: SongDoc;
   onChange: (doc: SongDoc) => void;
@@ -64,10 +75,17 @@ export function VisualEditor({
   active: ActiveChord;
   playingSection: number | null;
   onPlaySection: (section: number) => void;
+  songBpm: number;
+  capo: number | null;
+  player: StrumPlayerControls;
+  /** `"section:line"` of the tab block that is playing. */
+  playingTab: string | null;
+  onPlayTab: (section: number, line: number) => void;
 }) {
   const t = useTranslations('editor');
   const [target, setTarget] = useState<Target | null>(null);
   const [editingLine, setEditingLine] = useState<{ section: number; line: number } | null>(null);
+  const [editingTab, setEditingTab] = useState<{ section: number; line: number } | null>(null);
   const chords = useMemo(() => chordList(doc), [doc]);
   const rhythmKeys = rhythms.map((rhythm) => rhythm.key);
 
@@ -140,6 +158,13 @@ export function VisualEditor({
                 </SelectContent>
               </Select>
             )}
+            {section.label !== null && (
+              <SectionTempo
+                value={section.tempo}
+                songBpm={songBpm}
+                onChange={(tempo) => onChange(updateSection(doc, sectionIndex, { tempo }))}
+              />
+            )}
             <Button
               variant="ghost"
               size="icon-sm"
@@ -165,8 +190,46 @@ export function VisualEditor({
               return <TabView key={key} lines={line.lines} />;
             }
             if (line.type === 'alphatex') {
-              // TODO(task 9): render the alphaTex block.
-              return null;
+              return (
+                <div key={key} className="group flex items-start gap-1">
+                  <TabStaff
+                    block={line.block}
+                    activeBeat={
+                      active?.section === sectionIndex && active.line === lineIndex
+                        ? active.beat
+                        : null
+                    }
+                    className="min-w-0 flex-1"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    className="text-muted-foreground"
+                    aria-label={t('playTab')}
+                    onClick={() => onPlayTab(sectionIndex, lineIndex)}
+                  >
+                    {playingTab === key ? <Square /> : <Play />}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    className="text-muted-foreground"
+                    aria-label={t('editTab')}
+                    onClick={() => setEditingTab({ section: sectionIndex, line: lineIndex })}
+                  >
+                    <Pencil />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    className="text-muted-foreground"
+                    aria-label={t('removeLine')}
+                    onClick={() => onChange(removeLine(doc, sectionIndex, lineIndex))}
+                  >
+                    <Trash2 />
+                  </Button>
+                </div>
+              );
             }
             const editing = editingLine?.section === sectionIndex && editingLine.line === lineIndex;
             return (
@@ -224,19 +287,34 @@ export function VisualEditor({
             );
           })}
 
-          <Button
-            variant="ghost"
-            size="sm"
-            className="self-start text-muted-foreground"
-            onClick={() => {
-              const at = section.lines.length;
-              onChange(insertLine(doc, sectionIndex, at, { type: 'line', items: [] }));
-              setEditingLine({ section: sectionIndex, line: at });
-            }}
-          >
-            <Plus />
-            {t('addLine')}
-          </Button>
+          <div className="flex gap-1 self-start">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground"
+              onClick={() => {
+                const at = section.lines.length;
+                onChange(insertLine(doc, sectionIndex, at, { type: 'line', items: [] }));
+                setEditingLine({ section: sectionIndex, line: at });
+              }}
+            >
+              <Plus />
+              {t('addLine')}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground"
+              onClick={() => {
+                const at = section.lines.length;
+                onChange(insertLine(doc, sectionIndex, at, alphatexLine([])));
+                setEditingTab({ section: sectionIndex, line: at });
+              }}
+            >
+              <Plus />
+              {t('addTab')}
+            </Button>
+          </div>
         </section>
       ))}
 
@@ -274,6 +352,34 @@ export function VisualEditor({
             );
           }
           setTarget(null);
+        }}
+      />
+
+      <TabEditorSheet
+        source={(() => {
+          const line = editingTab
+            ? doc.sections[editingTab.section]?.lines[editingTab.line]
+            : undefined;
+          return line?.type === 'alphatex' ? line.source : null;
+        })()}
+        bpm={(editingTab ? doc.sections[editingTab.section]?.tempo : null) ?? songBpm}
+        capo={capo}
+        player={player}
+        onSave={(source) => {
+          if (editingTab) {
+            onChange(setLine(doc, editingTab.section, editingTab.line, alphatexLine(source)));
+          }
+          setEditingTab(null);
+        }}
+        onClose={() => {
+          const line = editingTab
+            ? doc.sections[editingTab.section]?.lines[editingTab.line]
+            : undefined;
+          // A block that was added and never written is dropped.
+          if (editingTab && line?.type === 'alphatex' && line.source.length === 0) {
+            onChange(removeLine(doc, editingTab.section, editingTab.line));
+          }
+          setEditingTab(null);
         }}
       />
     </div>
@@ -422,5 +528,54 @@ function LineEditor({
         );
       })}
     </div>
+  );
+}
+
+/** The section's own tempo; empty shows the song tempo and means «as the song». */
+function SectionTempo({
+  value,
+  songBpm,
+  onChange,
+}: {
+  value: number | null;
+  songBpm: number;
+  onChange: (tempo: number | null) => void;
+}) {
+  const t = useTranslations('editor');
+  const shown = value === null ? '' : String(value);
+  const [text, setText] = useState(shown);
+  useEffect(() => setText(shown), [shown]);
+
+  const commit = () => {
+    const tempo = Number(text);
+    if (!text) {
+      onChange(null);
+    } else if (isTempo(tempo)) {
+      onChange(tempo);
+    } else {
+      setText(shown);
+    }
+  };
+
+  return (
+    // biome-ignore lint/a11y/noLabelWithoutControl: Input already carries its own aria-label
+    <label className="flex items-center gap-1 text-muted-foreground text-xs">
+      <Input
+        type="number"
+        inputMode="numeric"
+        aria-label={t('sectionTempo')}
+        placeholder={String(songBpm)}
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            commit();
+          }
+        }}
+        className="h-8 w-16 px-2 text-center tabular-nums"
+      />
+      bpm
+    </label>
   );
 }
