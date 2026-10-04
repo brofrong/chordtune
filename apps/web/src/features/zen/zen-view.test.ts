@@ -39,28 +39,59 @@ describe('resolveZenMode', () => {
 });
 
 describe('ownsSpaceKey', () => {
-  const element = (tagName: string, attributes: Record<string, string> = {}, editable = false) => ({
+  type Stub = {
+    tagName: string;
+    isContentEditable: boolean;
+    getAttribute: (name: string) => string | null;
+    closest: (selectors: string) => Stub | null;
+  };
+  const element = (
+    tagName: string,
+    attributes: Record<string, string> = {},
+    editable = false,
+    layer: Stub | null = null,
+  ): Stub => ({
     tagName,
     isContentEditable: editable,
     getAttribute: (name: string) => attributes[name] ?? null,
+    closest: (selectors: string) => (selectors === '[data-slot="popover-content"]' ? layer : null),
   });
+  // Zen's root: everything but `outside` is inside it.
+  const outside = new Set<Stub>();
+  const zen = { contains: (target: Stub) => !outside.has(target) };
+  const behind = (stub: Stub) => {
+    outside.add(stub);
+    return stub;
+  };
 
   test('buttons, form fields, links and role=button rows activate on Space themselves', () => {
-    expect(ownsSpaceKey(element('BUTTON'))).toBe(true);
-    expect(ownsSpaceKey(element('INPUT'))).toBe(true);
-    expect(ownsSpaceKey(element('TEXTAREA'))).toBe(true);
-    expect(ownsSpaceKey(element('SELECT'))).toBe(true);
-    expect(ownsSpaceKey(element('A', { href: '/' }))).toBe(true);
-    expect(ownsSpaceKey(element('DIV', { role: 'button' }))).toBe(true);
-    expect(ownsSpaceKey(element('DIV', { role: 'radio' }))).toBe(true);
-    expect(ownsSpaceKey(element('DIV', {}, true))).toBe(true);
+    expect(ownsSpaceKey(element('BUTTON'), zen)).toBe(true);
+    expect(ownsSpaceKey(element('INPUT'), zen)).toBe(true);
+    expect(ownsSpaceKey(element('TEXTAREA'), zen)).toBe(true);
+    expect(ownsSpaceKey(element('SELECT'), zen)).toBe(true);
+    expect(ownsSpaceKey(element('A', { href: '/' }), zen)).toBe(true);
+    expect(ownsSpaceKey(element('DIV', { role: 'button' }), zen)).toBe(true);
+    expect(ownsSpaceKey(element('DIV', { role: 'radio' }), zen)).toBe(true);
+    expect(ownsSpaceKey(element('DIV', {}, true), zen)).toBe(true);
   });
 
   test('the page itself and plain elements leave Space to zen', () => {
-    expect(ownsSpaceKey(null)).toBe(false);
-    expect(ownsSpaceKey(element('BODY'))).toBe(false);
-    expect(ownsSpaceKey(element('DIV', { role: 'dialog' }))).toBe(false);
-    expect(ownsSpaceKey(element('A'))).toBe(false);
+    expect(ownsSpaceKey(null, zen)).toBe(false);
+    expect(ownsSpaceKey(element('BODY'), zen)).toBe(false);
+    expect(ownsSpaceKey(element('DIV', { role: 'dialog' }), zen)).toBe(false);
+    expect(ownsSpaceKey(element('A'), zen)).toBe(false);
+  });
+
+  test('a control on the page behind zen leaves Space to zen', () => {
+    // The dock's play button that opened zen keeps focus behind it.
+    expect(ownsSpaceKey(behind(element('BUTTON')), zen)).toBe(false);
+    expect(ownsSpaceKey(behind(element('DIV', { role: 'button' })), zen)).toBe(false);
+  });
+
+  test('a control in a popover zen opened (portalled out of its root) keeps Space', () => {
+    // The capo list renders in a popover layer under the body, outside zen's root.
+    const layer = behind(element('DIV'));
+    expect(ownsSpaceKey(behind(element('BUTTON', {}, false, layer)), zen)).toBe(true);
   });
 });
 

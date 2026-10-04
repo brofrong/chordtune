@@ -261,6 +261,19 @@ export function ZenMode({
   const togglePauseRef = useRef(togglePause);
   togglePauseRef.current = togglePause;
 
+  // Zen takes focus when it opens, so Space starts the song instead of pressing the dock's play
+  // button behind it again; that button (or whatever had focus) gets it back on close.
+  const root = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const previous = document.activeElement;
+    root.current?.focus({ preventScroll: true });
+    return () => {
+      if (previous instanceof HTMLElement && previous.isConnected) {
+        previous.focus({ preventScroll: true });
+      }
+    };
+  }, []);
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -272,9 +285,10 @@ export function ZenMode({
           onClose();
         }
       } else if (event.key === ' ') {
-        // Space on a focused button, chip or row presses that control, not start/pause.
+        // Space on a focused button, chip or row in zen presses that control, not start/pause.
         const target = event.target instanceof Element ? event.target : null;
-        if (event.defaultPrevented || ownsSpaceKey(target)) {
+        const zen = root.current;
+        if (event.defaultPrevented || (zen && ownsSpaceKey(target, zen))) {
           return;
         }
         event.preventDefault();
@@ -372,13 +386,15 @@ export function ZenMode({
 
   return (
     <motion.div
+      ref={root}
       role="dialog"
       aria-modal
       aria-label={title}
+      tabIndex={-1}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[60] flex flex-col bg-background"
+      className="fixed inset-0 z-[60] flex flex-col bg-background outline-none"
     >
       <div className="absolute inset-x-0 top-0 z-20 h-0.5 bg-surface-2">
         <div

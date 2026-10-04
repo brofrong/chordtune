@@ -22,7 +22,11 @@ export type KeyTarget = {
   tagName: string;
   isContentEditable?: boolean;
   getAttribute: (name: string) => string | null;
+  closest: (selectors: string) => unknown;
 };
+
+/** A popover layer (e.g. the capo list): zen opens these, but they are portalled to the body. */
+const POPOVER_LAYER = '[data-slot="popover-content"]';
 
 const SPACE_TAGS = new Set(['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA']);
 const SPACE_ROLES = new Set([
@@ -42,10 +46,15 @@ const SPACE_ROLES = new Set([
 
 /**
  * Whether Space on this focused element already does something of its own (presses a button,
- * types a space, picks a row), so zen's global Space-to-start/pause must leave it alone.
+ * types a space, picks a row), so zen's global Space-to-start/pause must leave it alone. Only
+ * controls in `zen` (its root, or a popover layer) count: one on the page behind zen — like the
+ * dock's play button that opened it — must not be pressed again by Space.
  */
-export function ownsSpaceKey(target: KeyTarget | null): boolean {
-  if (!target) {
+export function ownsSpaceKey<T extends KeyTarget>(
+  target: T | null,
+  zen: { contains(target: NoInfer<T>): boolean },
+): boolean {
+  if (!target || (!zen.contains(target) && !target.closest(POPOVER_LAYER))) {
     return false;
   }
   if (SPACE_TAGS.has(target.tagName) || target.isContentEditable) {
