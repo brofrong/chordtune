@@ -384,5 +384,12 @@
       "10": "Minor seventh",
       "11": "Major seventh"
     }
+  },
+  "update": {
+    "ready": "Update ready",
+    "restart": "Restart",
+    "nativeTitle": "A new version of the app is out",
+    "download": "Download",
+    "later": "Later"
   }
 }

@@ -4,6 +4,7 @@ import { AudioLines, Bookmark, Grid3x3, ListMusic } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
 
+import { AppUpdateBanner } from '@/components/app-update-banner';
 import { AccountButton } from '@/features/auth/account-button';
 import { Link, usePathname } from '@/i18n/navigation';
 import { type Locale, routing } from '@/i18n/routing';
@@ -100,6 +101,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </div>
       </nav>
+
+      <AppUpdateBanner />
     </div>
   );
 }
