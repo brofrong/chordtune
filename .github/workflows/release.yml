@@ -52,6 +52,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           # Adds the mobile bundle that installed apps take as a live update.
           build-args: |
             PUBLIC_URL=${{ vars.PUBLIC_URL }}
@@ -65,8 +67,6 @@ jobs:
             exit 0
           fi
           curl -fsS --retry 3 -X POST "$ARCANE_WEBHOOK_URL"
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   android:
     needs: checks
