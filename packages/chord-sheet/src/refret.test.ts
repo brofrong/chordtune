@@ -17,6 +17,10 @@ const pitches = (tab: TabBlock, capo: number) =>
       beat.notes.map((n) => (n.fret === 'x' ? 'x' : (STANDARD[6 - n.string] ?? 0) + n.fret + capo)),
     ),
   );
+const distinctStrings = (tab: TabBlock) =>
+  tab.bars.every((bar) =>
+    bar.beats.every((beat) => new Set(beat.notes.map((n) => n.string)).size === beat.notes.length),
+  );
 
 describe('refretBlock', () => {
   test('capo down: same strings, higher frets', () => {
@@ -123,6 +127,60 @@ describe('refretBlock', () => {
       }
     });
     expect(attackBeat.some((note) => note.unreachable)).toBe(true);
+  });
+
+  test('a note falling back unreachable to its own string keeps that string to itself', () => {
+    const tab = block('(0.6 0.5 0.4).4 (-.6 -.5 -.4).4');
+    const moved = refretBlock(tab, STANDARD, 0, 3);
+    // Capo 3: E2 (open low E) fits nowhere, so it stays on string 6. A2 fits only on string 6
+    // (fret 2), which E2 holds, so it falls back to its own string 5. D3 fits on 6 (fret 7) or
+    // 5 (fret 2), both held now, so it falls back to string 4 too: three unreachable attacks.
+    expect(notes(moved.block)).toEqual(['-3.6+-3.5+-3.4', '-3.6+-3.5+-3.4']);
+    expect(distinctStrings(moved.block)).toBe(true);
+    const [attackBeat, tieBeat] = moved.block.bars[0]?.beats ?? [];
+    attackBeat?.notes.forEach((note, i) => {
+      expect(tieBeat?.notes[i]).toMatchObject({
+        tie: true,
+        string: note.string,
+        fret: note.fret,
+        unreachable: true,
+      });
+    });
+    expect(moved.unreachable).toBe(3);
+    expect(pitches(moved.block, 3)).toEqual(pitches(tab, 0));
+  });
+
+  test('a note crowded off every string it fits on keeps its own string to itself', () => {
+    const tab = block('(3.6 0.5 0.4)');
+    const moved = refretBlock(tab, STANDARD, 0, 3);
+    // Capo 3: G2 fits only on string 6 (fret 0) and takes it, which leaves A2 (also only on 6)
+    // to fall back to its own string 5; D3 (on 6 or 5) then falls back to its own string 4.
+    expect(notes(moved.block)).toEqual(['0.6+-3.5+-3.4']);
+    expect(distinctStrings(moved.block)).toBe(true);
+    expect(moved.unreachable).toBe(2);
+    expect(pitches(moved.block, 3)).toEqual(pitches(tab, 0));
+  });
+
+  test('an unreachable note whose own string a tie holds goes to the closest free string', () => {
+    const tab = block('0.5.4 (-.5 0.6).4');
+    const moved = refretBlock(tab, STANDARD, 0, 3);
+    // Capo 3: A2 moves to string 6 (fret 2) and its tie follows it there, so the open low E —
+    // unreachable anywhere — cannot stay on string 6 and goes to string 5 instead.
+    expect(notes(moved.block)).toEqual(['2.6', '2.6+-8.5']);
+    expect(distinctStrings(moved.block)).toBe(true);
+    expect(moved.unreachable).toBe(1);
+    expect(pitches(moved.block, 3)).toEqual(pitches(tab, 0));
+  });
+
+  test('a note with a tie ahead avoids a string a dead note strikes before the tie ends', () => {
+    const tab = block('0.1 (-.1 x.2)');
+    const moved = refretBlock(tab, STANDARD, 0, 2);
+    // Capo 2: open high E would go to the B string (fret 3), but its tie lands in a beat with a
+    // dead note on the B string, so it goes to the G string (fret 7) instead.
+    expect(notes(moved.block)).toEqual(['7.3', '7.3+x.2']);
+    expect(moved.block.bars[0]?.beats[1]?.notes[0]?.tie).toBe(true);
+    expect(distinctStrings(moved.block)).toBe(true);
+    expect(pitches(moved.block, 2)).toEqual(pitches(tab, 0));
   });
 });
 

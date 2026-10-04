@@ -4,16 +4,18 @@ import type { TabBlock, TabNote } from './tab';
 const MAX_FRET = 24;
 
 type Place = { string: number; fret: number; unreachable?: true };
-type Movable = { note: TabNote; index: number; pitch: number };
+/** `avoid`: strings a dead note strikes after this beat, up to and including this note's tie. */
+type Movable = { note: TabNote; index: number; pitch: number; avoid: ReadonlySet<number> };
 
 /**
- * For every source string, whether the note right after a given note (by position) on that same
- * string is a tie — i.e. the given note's string must stay reserved (not handed to another note)
- * until that tie is placed. Dead (`x`) notes are excluded: they never move, so there is nothing to
- * reserve. Keyed by `${bar}.${beat}.${noteIndex}`.
+ * For every note whose next note (by position) on the same string is a tie, the index (in
+ * written order over the whole block) of the beat holding that tie — the given note's string must
+ * stay reserved (not handed to another note) until that tie is placed. Dead (`x`) notes are
+ * excluded: they never move, so there is nothing to reserve. Keyed by `${bar}.${beat}.${noteIndex}`.
  */
-function nextIsTieByPosition(block: TabBlock): Map<string, boolean> {
-  const byString = new Map<number, { b: number; k: number; n: number; tie: boolean }[]>();
+function tieBeatByPosition(block: TabBlock): Map<string, number> {
+  const byString = new Map<number, { key: string; beat: number; tie: boolean }[]>();
+  let beatIndex = 0;
   block.bars.forEach((bar, b) => {
     bar.beats.forEach((beat, k) => {
       beat.notes.forEach((note, n) => {
@@ -21,16 +23,19 @@ function nextIsTieByPosition(block: TabBlock): Map<string, boolean> {
           return;
         }
         const list = byString.get(note.string) ?? [];
-        list.push({ b, k, n, tie: note.tie });
+        list.push({ key: `${b}.${k}.${n}`, beat: beatIndex, tie: note.tie });
         byString.set(note.string, list);
       });
+      beatIndex++;
     });
   });
-  const result = new Map<string, boolean>();
+  const result = new Map<string, number>();
   for (const occurrences of byString.values()) {
     occurrences.forEach((occurrence, i) => {
       const next = occurrences[i + 1];
-      result.set(`${occurrence.b}.${occurrence.k}.${occurrence.n}`, next ? next.tie : false);
+      if (next?.tie) {
+        result.set(occurrence.key, next.beat);
+      }
     });
   }
   return result;
@@ -41,12 +46,14 @@ function nextIsTieByPosition(block: TabBlock): Map<string, boolean> {
  * and goes to its own string if a fret fits, else to another string, never sharing a string
  * within a beat; a tie follows its note. A string holding a note for a tie that comes later is
  * reserved — excluded from other notes' free strings — in every beat between the note and its
- * tie, so a later note cannot steal it and leave the tie pointing at the wrong fret. A beat's
+ * tie, so a later note cannot steal it and leave the tie pointing at the wrong fret; for the same
+ * reason such a note never goes to a string a dead note strikes before its tie ends. A beat's
  * movable notes (not dead, not a tie) are placed together by `bestAssignment`, which tries every
  * assignment to the beat's free strings so one note's move can make room for another (see its doc
- * comment for the order of preference). Notes that fit nowhere stay on their own string with a
- * fret outside 0–24 and `unreachable`. Hammer/slide marks between notes that end up on different
- * strings are dropped.
+ * comment for the order of preference). Notes that fit on no free string get a fret outside 0–24
+ * and `unreachable` on their own string (on the closest free one if a tie or a held note is on
+ * it), which no other note of the beat may then take. Hammer/slide marks between notes that end
+ * up on different strings are dropped.
  */
 export function refretBlock(
   block: TabBlock,
@@ -57,9 +64,13 @@ export function refretBlock(
   const count = strings.length;
   const open = (string: number) => strings[count - string] ?? 0;
   const placedOn = new Map<number, Place>();
-  const nextIsTie = nextIsTieByPosition(block);
+  const tieBeat = tieBeatByPosition(block);
+  const deadStrings = block.bars.flatMap((bar) =>
+    bar.beats.map((beat) => new Set(beat.notes.filter((n) => n.fret === 'x').map((n) => n.string))),
+  );
   const heldStrings = new Set<number>();
   let unreachable = 0;
+  let beatIndex = -1;
 
   const placeFixed = (note: TabNote, taken: Set<number>): TabNote => {
     if (note.fret === 'x') {
@@ -76,17 +87,19 @@ export function refretBlock(
     };
   };
 
-  const markUnreachable = (note: TabNote, pitch: number, taken: Set<number>): TabNote => {
-    unreachable++;
-    const fret = pitch - open(note.string) - to;
-    taken.add(note.string);
-    placedOn.set(note.string, { string: note.string, fret, unreachable: true });
-    return { ...note, fret, unreachable: true };
+  const settle = (note: TabNote, place: Place, taken: Set<number>): TabNote => {
+    taken.add(place.string);
+    placedOn.set(note.string, place);
+    if (place.unreachable) {
+      unreachable++;
+    }
+    return { ...note, ...place };
   };
 
   const bars = block.bars.map((bar, b) => ({
     ...bar,
     beats: bar.beats.map((beat, k) => {
+      beatIndex++;
       const taken = new Set<number>();
       const placed: TabNote[] = [...beat.notes];
 
@@ -98,28 +111,17 @@ export function refretBlock(
       });
 
       const allStrings = Array.from({ length: count }, (_, i) => i + 1);
-      const movableAll: Movable[] = [];
+      const movable: Movable[] = [];
       beat.notes.forEach((note, index) => {
         if (note.fret !== 'x' && !note.tie) {
-          movableAll.push({ note, index, pitch: open(note.string) + from + (note.fret as number) });
+          // A note with a tie ahead keeps its string until then: a dead note struck on that
+          // string in the meantime (the tie's own beat included) would share it with the tie.
+          const until = tieBeat.get(`${b}.${k}.${index}`) ?? beatIndex;
+          const avoid = new Set(deadStrings.slice(beatIndex + 1, until + 1).flatMap((s) => [...s]));
+          const pitch = open(note.string) + from + (note.fret as number);
+          movable.push({ note, index, pitch, avoid });
         }
       });
-
-      // A note with no valid fret on any string (not just the free ones) is unreachable no
-      // matter what the rest of the beat does: settle it on its own string and reserve that
-      // string before searching, so the search never gives it away to another note.
-      const movable: Movable[] = [];
-      for (const entry of movableAll) {
-        const reachable = allStrings.some((string) => {
-          const fret = entry.pitch - open(string) - to;
-          return fret >= 0 && fret <= MAX_FRET;
-        });
-        if (reachable) {
-          movable.push(entry);
-        } else {
-          placed[entry.index] = markUnreachable(entry.note, entry.pitch, taken);
-        }
-      }
 
       // Strings still ringing for an earlier note whose tie has not been placed yet: off limits
       // to everyone else until the tie claims them.
@@ -133,14 +135,15 @@ export function refretBlock(
       );
       const assignment = bestAssignment(movable, freeStrings, to, open);
       for (const { note, index, pitch } of movable) {
-        const choice = assignment.get(index);
-        if (choice) {
-          taken.add(choice.string);
-          placedOn.set(note.string, choice);
-          placed[index] = { ...note, string: choice.string, fret: choice.fret };
-        } else {
-          placed[index] = markUnreachable(note, pitch, taken);
-        }
+        placed[index] = settle(
+          note,
+          assignment.get(index) ?? {
+            string: note.string,
+            fret: pitch - open(note.string) - to,
+            unreachable: true,
+          },
+          taken,
+        );
       }
 
       // A note followed later by a tie on its own source string stays held until that tie is
@@ -151,7 +154,7 @@ export function refretBlock(
         }
         if (note.tie) {
           heldStrings.delete(note.string);
-        } else if (nextIsTie.get(`${b}.${k}.${index}`)) {
+        } else if (tieBeat.has(`${b}.${k}.${index}`)) {
           heldStrings.add(note.string);
         } else {
           heldStrings.delete(note.string);
@@ -166,11 +169,14 @@ export function refretBlock(
 }
 
 /**
- * The best way to put a beat's movable notes on its free strings: as many notes placed as
- * possible, then the smallest total |new string − old string|, then — on a tie in both — the
- * thickest strings overall (the higher the sum of the assigned string numbers, the thicker).
- * Notes left out (no string left with a fret in 0–24) are absent from the result; the caller
- * marks them `unreachable` on their own string.
+ * The best way to put a beat's movable notes on its free strings (minus each note's `avoid`). A
+ * note with a fret in 0–24 on none of them falls back `unreachable` to its own string — or, when
+ * that string is not free (a tie or a held note is on it, or the note must avoid it), to the
+ * closest free string — and occupies it like any other note. Preferred: as few notes as possible left with no string at all, then as many reachable
+ * notes as possible, then the smallest total |new string − old string|, then — on a tie in all
+ * — the thickest reachable strings overall (the higher the sum of their string numbers, the
+ * thicker). Notes left with no string (only when the beat has no free string left for them) are
+ * absent from the result; the caller leaves them `unreachable` on their own string.
  */
 function bestAssignment(
   movable: readonly Movable[],
@@ -178,30 +184,41 @@ function bestAssignment(
   to: number,
   open: (string: number) => number,
 ): Map<number, Place> {
-  const candidatesFor = (note: TabNote, pitch: number) =>
-    freeStrings
+  const fits = (fret: number) => fret >= 0 && fret <= MAX_FRET;
+  const candidatesFor = ({ note, pitch, avoid }: Movable): Place[] => {
+    const usable = freeStrings.filter((string) => !avoid.has(string));
+    const places = usable
       .map((string) => ({ string, fret: pitch - open(string) - to }))
-      .filter((place) => place.fret >= 0 && place.fret <= MAX_FRET)
       .sort(
         (a, b) =>
           Math.abs(a.string - note.string) - Math.abs(b.string - note.string) ||
           b.string - a.string,
       );
+    const ownStringFree = usable.includes(note.string);
+    const fallbacks = places
+      .filter((place) => !fits(place.fret) && (!ownStringFree || place.string === note.string))
+      .map((place) => ({ ...place, unreachable: true as const }));
+    return [...places.filter((place) => fits(place.fret)), ...fallbacks];
+  };
 
   const used = new Set<number>();
   const assignment: (Place | null)[] = new Array(movable.length).fill(null);
+  let bestLeft = Infinity;
   let bestCount = -1;
   let bestDistance = Infinity;
   let bestThickness = -Infinity;
   let bestAssignment: (Place | null)[] = [];
 
-  const recurse = (i: number, count: number, distance: number, thickness: number) => {
+  const recurse = (i: number, left: number, count: number, distance: number, thickness: number) => {
     if (i === movable.length) {
       const better =
-        count > bestCount ||
-        (count === bestCount && distance < bestDistance) ||
-        (count === bestCount && distance === bestDistance && thickness > bestThickness);
+        left < bestLeft ||
+        (left === bestLeft &&
+          (count > bestCount ||
+            (count === bestCount && distance < bestDistance) ||
+            (count === bestCount && distance === bestDistance && thickness > bestThickness)));
       if (better) {
+        bestLeft = left;
         bestCount = count;
         bestDistance = distance;
         bestThickness = thickness;
@@ -213,7 +230,7 @@ function bestAssignment(
     if (!current) {
       return;
     }
-    for (const place of candidatesFor(current.note, current.pitch)) {
+    for (const place of candidatesFor(current)) {
       if (used.has(place.string)) {
         continue;
       }
@@ -221,17 +238,18 @@ function bestAssignment(
       assignment[i] = place;
       recurse(
         i + 1,
-        count + 1,
+        left,
+        place.unreachable ? count : count + 1,
         distance + Math.abs(place.string - current.note.string),
-        thickness + place.string,
+        place.unreachable ? thickness : thickness + place.string,
       );
       used.delete(place.string);
     }
     assignment[i] = null;
-    recurse(i + 1, count, distance, thickness);
+    recurse(i + 1, left + 1, count, distance, thickness);
   };
 
-  recurse(0, 0, 0, 0);
+  recurse(0, 0, 0, 0, 0);
 
   const result = new Map<number, Place>();
   bestAssignment.forEach((place, i) => {
