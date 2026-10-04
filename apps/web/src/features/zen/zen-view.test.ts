@@ -4,7 +4,7 @@ import { describe, expect, test } from 'bun:test';
 import { parse } from '@chordtune/chord-sheet';
 
 import { zenLines, zenPosition } from './zen-timing';
-import { resolveZenMode, rowEmphasis, sectionStrip, seekTime } from './zen-view';
+import { clampNudge, resolveZenMode, rowEmphasis, sectionStrip, seekTime } from './zen-view';
 
 const doc = (source: string) => parse(source).doc;
 // 60 BPM, no rhythms: one chord = one 4/4 bar = 4 s.
@@ -64,5 +64,28 @@ describe('seekTime', () => {
   test('an untimed line starts at the next timed line; past the end there is nothing', () => {
     expect(seekTime(LINES, 0, 1)).toBe(8);
     expect(seekTime(LINES, 1, 5)).toBeNull();
+  });
+});
+
+describe('clampNudge', () => {
+  test('within bounds, the nudge passes through unchanged', () => {
+    expect(clampNudge(0, 100, 800, 2000)).toBe(100);
+  });
+
+  test('a drag down is capped so a sliver of a row stays on screen at the top', () => {
+    expect(clampNudge(0, 5000, 800, 2000)).toBe(760);
+    expect(clampNudge(-500, 5000, 800, 2000)).toBe(1260);
+  });
+
+  test('a drag up is capped so a sliver of a row stays on screen at the bottom', () => {
+    expect(clampNudge(0, -5000, 800, 2000)).toBe(-1960);
+  });
+
+  test('content shorter than the viewport is clamped the same way', () => {
+    expect(clampNudge(0, 1000, 800, 50)).toBe(760);
+  });
+
+  test('a viewport too small to leave room for a sliver on both ends is not clamped', () => {
+    expect(clampNudge(0, 1000, 30, 10)).toBe(1000);
   });
 });

@@ -15,6 +15,27 @@ export function resolveZenMode(
   );
 }
 
+/** The smallest sliver of a row the paused drag must always leave on screen. */
+const MIN_VISIBLE_PX = 40;
+
+/**
+ * Limits a hand-drag `nudge` on the paused text: `offset` is where the playback glide already
+ * put the content, so `offset + nudge` is what is actually on screen. Clamps that sum so at
+ * least `MIN_VISIBLE_PX` of a row stays inside the `height`-tall viewport, given the scrollable
+ * content is `length` px tall, then returns the nudge alone (the caller adds `offset` back when
+ * it renders). A viewport too small to leave `MIN_VISIBLE_PX` of room at both ends has no valid
+ * clamp window, so the nudge passes through unclamped in that (practically unreachable) case.
+ */
+export function clampNudge(offset: number, nudge: number, height: number, length: number): number {
+  const visible = offset + nudge;
+  const max = height - MIN_VISIBLE_PX;
+  const min = MIN_VISIBLE_PX - length;
+  if (min > max) {
+    return nudge;
+  }
+  return Math.min(max, Math.max(min, visible)) - offset;
+}
+
 export type RowEmphasis = 'current' | 'next' | 'after' | 'later' | 'past';
 
 /** How bright a row is, by its distance from the current row in the order rows are shown. */

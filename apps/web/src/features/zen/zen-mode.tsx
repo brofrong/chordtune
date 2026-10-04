@@ -26,7 +26,7 @@ import { advanceClock } from './zen-clock';
 import { ZenPanel } from './zen-panel';
 import { ZenStrip } from './zen-strip';
 import { zenLines, zenOffset, zenPosition, zenRowGlide } from './zen-timing';
-import { type RowEmphasis, rowEmphasis, sectionStrip, seekTime } from './zen-view';
+import { clampNudge, type RowEmphasis, rowEmphasis, sectionStrip, seekTime } from './zen-view';
 
 const COUNT_FROM = 3;
 const COUNT_MS = 700;
@@ -174,13 +174,13 @@ export function ZenMode({
     null,
   );
   const content = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ y: number; from: number; moved: boolean } | null>(null);
+  const drag = useRef<{ y: number; from: number; moved: boolean; captured: boolean } | null>(null);
   const dragged = useRef(false);
 
-  const clampNudge = (value: number) => {
+  const clamp = (value: number) => {
     const height = viewport.current?.clientHeight ?? 0;
     const length = content.current?.scrollHeight ?? 0;
-    return Math.min(height, Math.max(-length, value));
+    return clampNudge(offset, value, height, length);
   };
 
   // Not a useCallback: it now reads startAt state, so it must stay fresh on every render.
@@ -194,6 +194,7 @@ export function ZenMode({
     }
     setStartAt(null);
     setNudge(0);
+    drag.current = null;
     setCount(COUNT_FROM);
     setPhase('count');
   };
@@ -204,15 +205,26 @@ export function ZenMode({
     setTime(0);
     setStartAt(null);
     setNudge(0);
+    drag.current = null;
   };
 
-  /** A tap on a paused line (its first chord) or one of its chords (`item`); an untimed line
-   * resolves to the next timed one. Highlighted via `startAt` until the next start/resume. */
+  /**
+   * A tap on a paused line (its first chord) or one of its chords (`item`). An untimed line has
+   * no `ZenLine` of its own, so `seekTime` resolves it to the next timed line; the ring (and the
+   * highlighted chord, if any) goes on that resolved line, not the tapped one, so it always
+   * matches where playback will actually start. Cleared by the next start/resume.
+   */
   const pick = (section: number, line: number, item: number | null = null) => {
     const time = seekTime(lines, section, line, item);
-    if (time !== null) {
-      setStartAt({ time, key: `${section}:${line}`, item });
+    if (time === null) {
+      return;
     }
+    const resolved = lines.find(
+      (zen) => zen.section > section || (zen.section === section && zen.line >= line),
+    );
+    const onTappedLine = resolved?.section === section && resolved.line === line;
+    const key = resolved ? `${resolved.section}:${resolved.line}` : `${section}:${line}`;
+    setStartAt({ time, key, item: onTappedLine ? item : null });
   };
 
   const restart = useCallback(() => {
@@ -352,14 +364,21 @@ export function ZenMode({
 
       <div
         ref={viewport}
-        className={cn('-mt-20 relative flex-1 overflow-hidden', paused && 'touch-none')}
-        onWheel={(event) => paused && setNudge((value) => clampNudge(value - event.deltaY))}
+        className={cn('-mt-20 relative flex-1 overflow-hidden', paused && 'touch-none select-none')}
+        onWheel={(event) => paused && setNudge((value) => clamp(value - event.deltaY))}
         onPointerDown={(event) => {
-          if (paused) {
-            drag.current = { y: event.clientY, from: nudge, moved: false };
+          // A non-primary mouse button (right-click, middle-click) does not start a drag.
+          if (paused && (event.pointerType !== 'mouse' || event.button === 0)) {
+            drag.current = { y: event.clientY, from: nudge, moved: false, captured: false };
           }
         }}
         onPointerMove={(event) => {
+          if (!paused) {
+            // Resuming/starting can leave the pointer still down; stop reacting to its moves
+            // immediately instead of waiting for a pointerup that may land outside the viewport.
+            drag.current = null;
+            return;
+          }
           const current = drag.current;
           if (!current) {
             return;
@@ -367,16 +386,28 @@ export function ZenMode({
           const dy = event.clientY - current.y;
           if (Math.abs(dy) > DRAG_THRESHOLD_PX) {
             current.moved = true;
+            if (!current.captured) {
+              // Captured only once the drag is real, so a plain tap on a row/chord still
+              // dispatches its click to that element rather than being retargeted here.
+              event.currentTarget.setPointerCapture(event.pointerId);
+              current.captured = true;
+            }
           }
           if (current.moved) {
-            setNudge(clampNudge(current.from + dy));
+            setNudge(clamp(current.from + dy));
           }
         }}
-        onPointerUp={() => {
+        onPointerUp={(event) => {
           dragged.current = drag.current?.moved ?? false;
+          if (drag.current?.captured) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+          }
           drag.current = null;
         }}
-        onPointerCancel={() => {
+        onPointerCancel={(event) => {
+          if (drag.current?.captured) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+          }
           drag.current = null;
         }}
         onClickCapture={(event) => {
