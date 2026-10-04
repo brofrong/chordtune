@@ -5,10 +5,10 @@ import { type MotionValue, useMotionValue, useSpring } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 
 import type { FrameStore } from './frame-store';
-import { computeReading, IN_TUNE_CENTS, type TuneZone, tuneZone } from './reading';
+import { computeReading, type TuneZone, tuneZone } from './reading';
+import { TunedTracker } from './tuned-tracker';
 
 const STALE_AFTER_MS = 900;
-const TUNED_AFTER_MS = 600;
 
 export type ReadingView = {
   noteName: string | null;
@@ -74,8 +74,7 @@ export function useTunerReading(
 
   useEffect(() => {
     let lastVoicedAt = 0;
-    let inTuneSince: number | null = null;
-    let inTuneIndex: number | null = null;
+    const tracker = new TunedTracker();
     let staleTimer: ReturnType<typeof setTimeout> | null = null;
 
     const publish = (next: ReadingView) => {
@@ -97,7 +96,7 @@ export function useTunerReading(
       const reading = computeReading(frame, tuning, lockedIndex, a4);
 
       if (reading == null) {
-        inTuneSince = null;
+        tracker.feed(null, 0, now);
         if (now - lastVoicedAt > STALE_AFTER_MS) {
           markStale();
         }
@@ -113,16 +112,11 @@ export function useTunerReading(
       cents.set(reading.cents);
       frequency.set(reading.frequency);
 
-      const inTune = Math.abs(reading.cents) <= IN_TUNE_CENTS && reading.targetIndex != null;
-      if (inTune && inTuneIndex === reading.targetIndex) {
-        inTuneSince ??= now;
-        const index = reading.targetIndex;
-        if (index != null && now - inTuneSince >= TUNED_AFTER_MS) {
-          setTuned((current) => (current.has(index) ? current : new Set(current).add(index)));
-        }
-      } else {
-        inTuneSince = inTune ? now : null;
-        inTuneIndex = reading.targetIndex;
+      const tunedIndex = tracker.feed(reading.targetIndex, reading.cents, now);
+      if (tunedIndex != null) {
+        setTuned((current) =>
+          current.has(tunedIndex) ? current : new Set(current).add(tunedIndex),
+        );
       }
 
       const zone = tuneZone(reading.cents);

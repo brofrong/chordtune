@@ -493,7 +493,7 @@ export function ZenMode({
         )}
         <div
           ref={content}
-          className="absolute inset-x-0 top-0 px-6 will-change-transform"
+          className="absolute inset-x-0 top-0 mx-auto max-w-3xl px-6 will-change-transform"
           style={{ transform: `translateY(${offset + nudge}px)` }}
         >
           {doc.sections.map((section, sectionIndex) => (
@@ -502,7 +502,7 @@ export function ZenMode({
               {section.label !== null && (
                 <p
                   className={cn(
-                    'pt-5 pb-1 font-semibold text-muted-foreground text-xs uppercase tracking-[0.1em] transition-opacity duration-500',
+                    'pt-5 pb-1 font-semibold text-muted-foreground text-xs uppercase tracking-[0.1em] transition-opacity duration-500 md:text-center',
                     current && sectionIndex < current.section ? 'opacity-20' : 'opacity-70',
                   )}
                 >
@@ -525,7 +525,7 @@ export function ZenMode({
                       }
                     }}
                     className={cn(
-                      'origin-left py-2 text-xl transition-[opacity,transform] duration-500',
+                      'origin-left py-2 text-xl transition-[opacity,transform] duration-500 md:origin-center',
                       EMPHASIS[emphasis],
                       isCurrent && line.type === 'line' && 'scale-[1.04]',
                       startAt?.key === key && 'rounded-xl ring-2 ring-chord/60',
@@ -562,6 +562,7 @@ export function ZenMode({
                               : null
                         }
                         marks={mode === 'strip' ? 'dots' : 'chips'}
+                        className="md:justify-center md:text-center"
                         onChord={
                           paused
                             ? (_chord, _anchor, item) => pick(sectionIndex, lineIndex, item)

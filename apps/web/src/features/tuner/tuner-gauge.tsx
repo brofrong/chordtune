@@ -14,10 +14,14 @@ const CY = 168;
 const RADIUS = 146;
 const SWEEP_DEG = 62;
 
-function polar(cents: number, radius: number) {
+/** Rounds to 0.01 of a viewBox unit: Math.sin/cos can differ in the last bit between the server
+ * and the browser, and full-precision attributes would then fail hydration. */
+const round = (value: number) => Math.round(value * 100) / 100;
+
+export function polar(cents: number, radius: number) {
   const clamped = Math.max(-GAUGE_RANGE_CENTS, Math.min(GAUGE_RANGE_CENTS, cents));
   const angle = ((clamped / GAUGE_RANGE_CENTS) * SWEEP_DEG * Math.PI) / 180;
-  return { x: CX + radius * Math.sin(angle), y: CY - radius * Math.cos(angle) };
+  return { x: round(CX + radius * Math.sin(angle)), y: round(CY - radius * Math.cos(angle)) };
 }
 
 function arcPath(fromCents: number, toCents: number, radius: number) {

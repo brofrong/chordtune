@@ -33,6 +33,7 @@ export function LineView({
   activeItem,
   onChord,
   marks = 'chips',
+  className,
 }: {
   items: readonly Item[];
   /** Index of the item being played, to highlight its chord. */
@@ -41,13 +42,15 @@ export function LineView({
   onChord?: (chord: string, anchor: HTMLElement, item: number) => void;
   /** `dots`: the zen strip view — chords become dots under the words, other marks are hidden. */
   marks?: 'chips' | 'dots';
+  /** Extra classes on the line's root, e.g. to center it. */
+  className?: string;
 }) {
   const dots = marks === 'dots';
   const shown = (item: Item) => item.type !== 'text' && (!dots || item.type === 'chord');
   const hasMarks = items.some(shown);
   if (!hasMarks) {
     const text = items.map((item) => (item.type === 'text' ? item.text : '')).join('');
-    return <p className="min-h-6 whitespace-pre-wrap leading-6">{text}</p>;
+    return <p className={cn('min-h-6 whitespace-pre-wrap leading-6', className)}>{text}</p>;
   }
   const hasText = items.some((item) => item.type === 'text' && item.text.trim());
   const tap = (chord: string, index: number) => (event: React.MouseEvent<HTMLElement>) => {
@@ -56,7 +59,7 @@ export function LineView({
   };
 
   return (
-    <div className="flex flex-wrap items-end">
+    <div className={cn('flex flex-wrap items-end', className)}>
       {segments(items).map((segment, index) => {
         const words = hasText && (
           <span className={cn('whitespace-pre-wrap leading-6', !segment.text && 'min-w-2')}>

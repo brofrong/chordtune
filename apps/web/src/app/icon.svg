@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"><title>ChordTune</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="-10%" r="120%">
+      <stop offset="0" stop-color="#1b2140"/><stop offset="0.6" stop-color="#0b0d17"/>
+    </radialGradient>
+    <linearGradient id="lime" gradientUnits="userSpaceOnUse" x1="0" y1="124" x2="0" y2="388">
+      <stop offset="0" stop-color="#d9f99d"/><stop offset="1" stop-color="#a3e635"/>
+    </linearGradient>
+    <filter id="glow" filterUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <feGaussianBlur stdDeviation="9" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+    <polygon points="186,146 186,366 374,256" fill="#fff" stroke="#fff" stroke-width="44" stroke-linejoin="round"/>
+  </mask>
+  <filter id="cyanGlow" filterUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+    <feGaussianBlur stdDeviation="5" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  </defs><rect width="512" height="512" fill="url(#bg)"/><polygon points="186,146 186,366 374,256" fill="url(#lime)" stroke="url(#lime)" stroke-width="44" stroke-linejoin="round" filter="url(#glow)"/>
+  <g mask="url(#m)" fill="none" stroke-linecap="round">
+    <line x1="120" y1="150" x2="420" y2="150" stroke="#0b0d17" stroke-opacity="0.7" stroke-width="4"/><line x1="120" y1="190" x2="420" y2="190" stroke="#0b0d17" stroke-opacity="0.7" stroke-width="4.8"/><line x1="120" y1="272" x2="420" y2="272" stroke="#0b0d17" stroke-opacity="0.7" stroke-width="6.4"/><line x1="120" y1="314" x2="420" y2="314" stroke="#0b0d17" stroke-opacity="0.7" stroke-width="7.2"/><line x1="120" y1="356" x2="420" y2="356" stroke="#0b0d17" stroke-opacity="0.7" stroke-width="8"/>
+    <path d="M116 230 L176.0 230.0 L179.1 230.3 L182.1 231.0 L185.2 232.2 L188.3 233.6 L191.3 235.0 L194.4 236.2 L197.5 236.9 L200.5 237.0 L203.6 236.4 L206.7 235.0 L209.7 232.8 L212.8 230.0 L215.9 226.7 L218.9 223.3 L222.0 220.0 L225.1 217.1 L228.1 215.0 L231.2 213.8 L234.3 213.8 L237.3 215.0 L240.4 217.4 L243.5 220.9 L246.5 225.2 L249.6 230.0 L252.7 235.0 L255.7 239.8 L258.8 244.0 L261.9 247.2 L264.9 249.3 L268.0 250.0 L271.1 249.3 L274.1 247.2 L277.2 244.0 L280.3 239.8 L283.3 235.0 L286.4 230.0 L289.5 225.2 L292.5 220.9 L295.6 217.4 L298.7 215.0 L301.7 213.8 L304.8 213.8 L307.9 215.0 L310.9 217.1 L314.0 220.0 L317.1 223.3 L320.1 226.7 L323.2 230.0 L326.3 232.8 L329.3 235.0 L332.4 236.4 L335.5 237.0 L338.5 236.9 L341.6 236.2 L344.7 235.0 L347.7 233.6 L350.8 232.2 L353.9 231.0 L356.9 230.3 L360.0 230.0 L420 230" stroke="#67e8f9" stroke-width="10" filter="url(#cyanGlow)"/>
+  </g></svg>

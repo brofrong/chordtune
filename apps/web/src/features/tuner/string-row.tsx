@@ -58,13 +58,16 @@ export function StringRow({
                 }
               }}
               className={cn(
-                'relative flex size-12 items-baseline justify-center rounded-full border pt-3 font-semibold text-lg transition-colors',
+                'relative flex size-12 items-center justify-center rounded-full border font-semibold text-lg transition-colors',
                 active && zone ? ZONE_RING[zone] : 'border-border text-foreground',
                 locked && 'bg-muted ring-2 ring-primary/60 ring-offset-2 ring-offset-background',
               )}
             >
-              {name}
-              <span className="font-normal text-[10px] text-muted-foreground">{octave}</span>
+              {/* Trimmed to the capitals so the note itself, not its line box, sits in the middle. */}
+              <span className="block leading-none [text-box:trim-both_cap_alphabetic]">
+                {name}
+                <span className="font-normal text-[10px] text-muted-foreground">{octave}</span>
+              </span>
               {isTuned && (
                 <motion.span
                   initial={{ scale: 0 }}
