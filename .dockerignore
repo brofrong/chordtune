@@ -1,0 +1,11 @@
+**/node_modules
+**/.next
+**/.turbo
+**/out
+apps/web/android
+apps/web/ios
+.git
+.env
+.env.*
+.superpowers
+docs

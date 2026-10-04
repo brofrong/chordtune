@@ -1,5 +1,8 @@
+import { join } from 'node:path';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
+
+import { INTERNAL_API_URL, resolveApiUrl } from './src/lib/api';
 
 try {
   process.loadEnvFile('../../.env');
@@ -8,6 +11,15 @@ try {
 }
 
 const buildTarget = process.env.BUILD_TARGET === 'capacitor' ? 'capacitor' : 'web';
+
+// Fail the build, not the installed app, when the Capacitor API address is missing or malformed.
+if (buildTarget === 'capacitor') {
+  resolveApiUrl({
+    target: 'capacitor',
+    browserOrigin: null,
+    publicApiUrl: process.env.NEXT_PUBLIC_API_URL,
+  });
+}
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
@@ -25,7 +37,17 @@ const nextConfig: NextConfig = {
         trailingSlash: true,
         images: { unoptimized: true },
       }
-    : {}),
+    : {
+        // The Docker image runs the standalone server; tracing from the repository root picks up
+        // the workspace packages.
+        output: 'standalone',
+        outputFileTracingRoot: join(import.meta.dirname, '../..'),
+        // The browser talks to its own origin and Next forwards API calls to the API next to it.
+        rewrites: async () => [
+          { source: '/trpc/:path*', destination: `${INTERNAL_API_URL}/trpc/:path*` },
+          { source: '/api/auth/:path*', destination: `${INTERNAL_API_URL}/api/auth/:path*` },
+        ],
+      }),
 };
 
 export default createNextIntlPlugin('./src/i18n/request.ts')(nextConfig);

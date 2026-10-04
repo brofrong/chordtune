@@ -139,6 +139,13 @@ export const arrangementPlay = pgTable(
   (table) => [primaryKey({ columns: [table.userId, table.arrangementId] })],
 );
 
+/** Server settings kept in the database rather than the environment, e.g. the auth secret. */
+export const appConfig = pgTable('app_config', {
+  key: text('key').primaryKey(),
+  value: jsonb('value').notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 export const tables = { user, session, account, verification };
 
 const appRelations = defineRelations(

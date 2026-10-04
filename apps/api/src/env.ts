@@ -2,7 +2,6 @@ import { z } from 'zod';
 
 const schema = z.object({
   DATABASE_URL: z.url(),
-  BETTER_AUTH_SECRET: z.string().min(32),
   BETTER_AUTH_URL: z.url(),
   API_PORT: z.coerce.number().int().default(4000),
   MEILI_URL: z.url().default('http://localhost:7700'),

@@ -3,8 +3,8 @@ import { join, resolve } from 'node:path';
 import { importObsidian } from '@chordtune/chord-sheet';
 import { and, eq, sql } from 'drizzle-orm';
 
-import { auth } from '../auth';
 import { db } from '../db';
+import { migrateDatabase } from '../db/migrate';
 import { artist, song } from '../db/schema';
 import { noopSearch } from '../search';
 import { search } from '../search/client';
@@ -20,6 +20,8 @@ async function demoUserId(): Promise<string> {
   if (existing) {
     return existing.id;
   }
+  // Loaded lazily: `auth` reads its secret from a table that only exists after migrating.
+  const { auth } = await import('../auth');
   const { user: created } = await auth.api.signUpEmail({
     body: { email: DEMO_EMAIL, password: DEMO_PASSWORD, name: 'Demo' },
   });
@@ -39,6 +41,8 @@ async function songExists(artistName: string, title: string): Promise<boolean> {
     );
   return Boolean(row);
 }
+
+await migrateDatabase();
 
 const dir = resolve(process.argv[2] ?? DEFAULT_DIR);
 const authorId = await demoUserId();
