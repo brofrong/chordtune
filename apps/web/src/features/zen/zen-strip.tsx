@@ -2,7 +2,7 @@
 
 import { chordKey } from '@chordtune/chord-sheet';
 import { useTranslations } from 'next-intl';
-import { useId, useState } from 'react';
+import { memo, useId, useState } from 'react';
 
 import { ChordDiagram } from '@/features/chords/chord-diagram';
 import { chordVariants } from '@/features/chords/chord-variants';
@@ -20,8 +20,17 @@ export function stripChordRoles(strip: StripState): { chord: string; role: Strip
   }));
 }
 
-/** The section's chords in a fixed row: the sounding one filled, the next one outlined. */
-export function ZenStrip({ strip, sound }: { strip: StripState; sound: SongSound }) {
+/**
+ * The section's chords in a fixed row: the sounding one filled, the next one outlined. Memo'd:
+ * zen re-renders every frame, the strip only when its chords or the sound change.
+ */
+export const ZenStrip = memo(function ZenStrip({
+  strip,
+  sound,
+}: {
+  strip: StripState;
+  sound: SongSound;
+}) {
   const t = useTranslations('zen');
   const [shapes, setShapes] = useState(false);
   const shapesHintId = useId();
@@ -74,4 +83,4 @@ export function ZenStrip({ strip, sound }: { strip: StripState; sound: SongSound
       </span>
     </button>
   );
-}
+});

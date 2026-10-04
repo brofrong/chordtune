@@ -91,7 +91,9 @@ export function LineView({
                         key={itemIndex}
                         type="button"
                         aria-label={item.chord}
-                        className="-m-1.5 p-1.5"
+                        // The padding makes an 18px button; the pseudo-element widens what a
+                        // finger can hit to 26px without moving the dot or the words.
+                        className="-m-1.5 relative p-1.5 before:absolute before:-inset-1 before:content-['']"
                         onClick={tap(item.chord, itemIndex)}
                       >
                         {dot}

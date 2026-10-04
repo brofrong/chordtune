@@ -11,6 +11,7 @@ import {
   type SongDoc,
   timeline,
   withCapo,
+  type ZenModeId,
 } from '@chordtune/chord-sheet';
 import { Play, Square } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
@@ -109,6 +110,10 @@ export function SongView({
   };
 
   const [zenOpen, setZenOpen] = useState(false);
+  // The editor preview never reads or writes the listener's saved settings (they are keyed by the
+  // arrangement, and every unsaved song shares one key): its view toggle lives only while zen is
+  // open, so the «Zen по умолчанию» field is what each preview starts from.
+  const [previewZenMode, setPreviewZenMode] = useState<ZenModeId | null>(null);
 
   const playing = useMemo(() => {
     const opts = { bpm, speed, ...viewSound };
@@ -135,7 +140,11 @@ export function SongView({
       ? (view.sections[active.section]?.label ?? rhythmHint)
       : `${rhythmHint} · ${bpm} BPM${speedHint}`;
   const canPlay = useMemo(() => timeline(view, rhythms).length > 0, [view, rhythms]);
-  const zenMode = resolveZenMode(settings.zenMode, arrangement.zenMode, view);
+  const zenMode = resolveZenMode(
+    preview ? previewZenMode : settings.zenMode,
+    arrangement.zenMode,
+    view,
+  );
 
   const playSection = (section: number) => {
     const { notes } = sectionPlayback(view, rhythms, section, options);
@@ -305,6 +314,7 @@ export function SongView({
         canPlay={canPlay}
         onPlay={() => {
           player.stop();
+          setPreviewZenMode(null);
           setZenOpen(true);
         }}
       />
@@ -317,16 +327,23 @@ export function SongView({
             speed={speed}
             onSpeedChange={setSpeed}
             mode={zenMode}
-            onModeChange={(next) => updateSettings({ zenMode: next })}
+            onModeChange={(next) =>
+              preview ? setPreviewZenMode(next) : updateSettings({ zenMode: next })
+            }
             sound={viewSound}
             capoControl={
-              <CapoPicker
-                value={capo}
-                authorCapo={authorCapo}
-                followsAuthor={settings.capo === null}
-                hints={() => capoHints(doc, sound.tuning.strings, authorCapo)}
-                onChange={(next) => updateSettings({ capo: next })}
-              />
+              // The preview pins the author's capo, like the page header above. The list opens
+              // above zen (z-[60]) and below the toast (z-[70]).
+              preview ? undefined : (
+                <CapoPicker
+                  value={capo}
+                  authorCapo={authorCapo}
+                  followsAuthor={settings.capo === null}
+                  hints={() => capoHints(doc, sound.tuning.strings, authorCapo)}
+                  onChange={(next) => updateSettings({ capo: next })}
+                  layerClassName="z-[65]"
+                />
+              )
             }
             title={arrangement.song.title}
             artist={arrangement.artist.name}

@@ -26,7 +26,14 @@ import { advanceClock } from './zen-clock';
 import { ZenPanel } from './zen-panel';
 import { ZenStrip } from './zen-strip';
 import { zenLines, zenOffset, zenPosition, zenRowGlide } from './zen-timing';
-import { clampNudge, type RowEmphasis, rowEmphasis, sectionStrip, seekTime } from './zen-view';
+import {
+  clampNudge,
+  ownsSpaceKey,
+  type RowEmphasis,
+  rowEmphasis,
+  sectionStrip,
+  seekTime,
+} from './zen-view';
 
 const COUNT_FROM = 3;
 const COUNT_MS = 700;
@@ -174,12 +181,16 @@ export function ZenMode({
     null,
   );
   const content = useRef<HTMLDivElement>(null);
+  // The empty run-out below the last row: its top is where the rows end.
+  const runOut = useRef<HTMLDivElement>(null);
   const drag = useRef<{ y: number; from: number; moved: boolean; captured: boolean } | null>(null);
   const dragged = useRef(false);
 
   const clamp = (value: number) => {
     const height = viewport.current?.clientHeight ?? 0;
-    const length = content.current?.scrollHeight ?? 0;
+    // Up to the bottom of the last row, not the content's full height: that includes the
+    // run-out, and a drag clamped to it could leave nothing but empty run-out on screen.
+    const length = runOut.current?.offsetTop ?? 0;
     return clampNudge(offset, value, height, length);
   };
 
@@ -195,6 +206,7 @@ export function ZenMode({
     setStartAt(null);
     setNudge(0);
     drag.current = null;
+    dragged.current = false;
     setCount(COUNT_FROM);
     setPhase('count');
   };
@@ -206,6 +218,8 @@ export function ZenMode({
     setStartAt(null);
     setNudge(0);
     drag.current = null;
+    // Back at the top of the song, the panel offers «Начать» again, not «Продолжить».
+    setPhase('ready');
   };
 
   /**
@@ -250,8 +264,19 @@ export function ZenMode({
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onClose();
+        // An open popover (the capo list) closes first; zen only on the next Escape.
+        if (
+          !event.defaultPrevented &&
+          !document.querySelector('[data-slot="popover-content"][data-open]')
+        ) {
+          onClose();
+        }
       } else if (event.key === ' ') {
+        // Space on a focused button, chip or row presses that control, not start/pause.
+        const target = event.target instanceof Element ? event.target : null;
+        if (event.defaultPrevented || ownsSpaceKey(target)) {
+          return;
+        }
         event.preventDefault();
         togglePauseRef.current();
       }
@@ -269,6 +294,20 @@ export function ZenMode({
   const viewport = useRef<HTMLDivElement>(null);
   const rows = useRef(new Map<string, HTMLElement>());
   const [offset, setOffset] = useState(0);
+  // Bumped whenever the viewport or the text changes size while the clock may be standing still
+  // (a view switch re-lays the chord rows and adds/removes the strip, the strip's shapes open,
+  // the tall panel gives way to the short play footer), so the effect below re-places the line.
+  const [layout, setLayout] = useState(0);
+  useEffect(() => {
+    const observer = new ResizeObserver(() => setLayout((n) => n + 1));
+    for (const element of [viewport.current, content.current]) {
+      if (element) {
+        observer.observe(element);
+      }
+    }
+    return () => observer.disconnect();
+  }, []);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `mode` and `layout` change the rows' measured positions
   useLayoutEffect(() => {
     const height = viewport.current?.clientHeight ?? 0;
     const element = (key?: string) => (key ? rows.current.get(key) : undefined);
@@ -298,18 +337,23 @@ export function ZenMode({
     }
 
     setOffset(height * ANCHOR - (from + (to - from) * zenOffset(progress)));
-  }, [current, next, currentLine, activeTabBeat, position.progress]);
+  }, [current, next, currentLine, activeTabBeat, position.progress, mode, layout]);
 
   // Every line of the document, in the order it is shown, so each one's brightness can be set
   // by its distance from the row currently playing.
-  const rowKeys = useMemo(
-    () => doc.sections.flatMap((section, s) => section.lines.map((_, l) => `${s}:${l}`)),
+  const rowIndex = useMemo(
+    () =>
+      new Map(
+        doc.sections
+          .flatMap((section, s) => section.lines.map((_, l) => `${s}:${l}`))
+          .map((key, index) => [key, index]),
+      ),
     [doc],
   );
-  const currentRow = current ? rowKeys.indexOf(`${current.section}:${current.line}`) : -1;
+  const currentRow = current ? (rowIndex.get(`${current.section}:${current.line}`) ?? -1) : -1;
 
   // `position` is a fresh object every frame: memo the strip on the values that actually
-  // change it, so it is not rebuilt (and ZenStrip not re-rendered) on every tick.
+  // change it, so it is not rebuilt on every tick (and the memo'd ZenStrip skips those renders).
   const { index: playingIndex, chord: playingChord } = position;
   const strip = useMemo(
     () =>
@@ -367,6 +411,9 @@ export function ZenMode({
         className={cn('-mt-20 relative flex-1 overflow-hidden', paused && 'touch-none select-none')}
         onWheel={(event) => paused && setNudge((value) => clamp(value - event.deltaY))}
         onPointerDown={(event) => {
+          // A touch drag that ends without a click never reaches onClickCapture to clear this,
+          // so each new press starts clean — otherwise it would swallow the next tap.
+          dragged.current = false;
           // A non-primary mouse button (right-click, middle-click) does not start a drag.
           if (paused && (event.pointerType !== 'mouse' || event.button === 0)) {
             drag.current = { y: event.clientY, from: nudge, moved: false, captured: false };
@@ -448,7 +495,7 @@ export function ZenMode({
               )}
               {section.lines.map((line, lineIndex) => {
                 const key = `${sectionIndex}:${lineIndex}`;
-                const emphasis = rowEmphasis(rowKeys.indexOf(key), currentRow);
+                const emphasis = rowEmphasis(rowIndex.get(key) ?? -1, currentRow);
                 const isCurrent = emphasis === 'current';
                 return (
                   // biome-ignore lint/a11y/noStaticElementInteractions: a row holds chord buttons, so it cannot be a <button>
@@ -473,7 +520,11 @@ export function ZenMode({
                     onKeyDown={
                       paused
                         ? (event) => {
-                            if (event.key === 'Enter') {
+                            if (event.target !== event.currentTarget) {
+                              return;
+                            }
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
                               pick(sectionIndex, lineIndex);
                             }
                           }
@@ -507,7 +558,7 @@ export function ZenMode({
               })}
             </Fragment>
           ))}
-          <div className="h-[70vh]" />
+          <div ref={runOut} className="h-[70vh]" />
         </div>
       </div>
 

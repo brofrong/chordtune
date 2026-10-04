@@ -17,6 +17,7 @@ export function CapoPicker({
   followsAuthor,
   hints,
   onChange,
+  layerClassName,
 }: {
   value: number;
   authorCapo: number;
@@ -25,6 +26,8 @@ export function CapoPicker({
   /** Computed when the list opens: it runs the voicing search for every fret. */
   hints: () => CapoHint[];
   onChange: (capo: number | null) => void;
+  /** The list's stacking layer, when the picker sits on something above the page (zen). */
+  layerClassName?: string;
 }) {
   const t = useTranslations('song');
   const label = value === 0 ? t('capoNone') : t('capo', { fret: value });
@@ -39,7 +42,11 @@ export function CapoPicker({
         {label}
         <ChevronDown aria-hidden className="size-3.5" />
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-64 gap-0.5 p-1.5">
+      <PopoverContent
+        align="start"
+        className="w-64 gap-0.5 p-1.5"
+        positionerClassName={layerClassName}
+      >
         <CapoList
           value={value}
           authorCapo={authorCapo}

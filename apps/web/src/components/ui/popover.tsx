@@ -19,12 +19,16 @@ function PopoverContent({
   side = 'bottom',
   sideOffset = 4,
   anchor,
+  positionerClassName,
   ...props
 }: PopoverPrimitive.Popup.Props &
   Pick<
     PopoverPrimitive.Positioner.Props,
     'align' | 'alignOffset' | 'side' | 'sideOffset' | 'anchor'
-  >) {
+  > & {
+    /** Extra classes on the portalled positioner, e.g. a higher `z-*` over a full-screen layer. */
+    positionerClassName?: string;
+  }) {
   return (
     <PopoverPrimitive.Portal>
       <PopoverPrimitive.Positioner
@@ -33,7 +37,7 @@ function PopoverContent({
         side={side}
         sideOffset={sideOffset}
         anchor={anchor}
-        className="isolate z-50"
+        className={cn('isolate z-50', positionerClassName)}
       >
         <PopoverPrimitive.Popup
           data-slot="popover-content"

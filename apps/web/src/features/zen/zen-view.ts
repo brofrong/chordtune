@@ -4,15 +4,57 @@ import type { ZenLine, ZenPosition } from './zen-timing';
 
 export const AUTO_STRIP_MAX_CHORDS = 4;
 
-/** The listener's choice, else the author's, else the strip for songs of at most four chords. */
+/**
+ * The listener's choice, else the author's, else the strip for songs of one to four chords — a
+ * song with no chords at all (tabs only) has no strip to show.
+ */
 export function resolveZenMode(
   listener: ZenModeId | null,
   author: ZenModeId | null,
   doc: SongDoc,
 ): ZenModeId {
-  return (
-    listener ?? author ?? (chordList(doc).length <= AUTO_STRIP_MAX_CHORDS ? 'strip' : 'inline')
-  );
+  const chords = chordList(doc).length;
+  return listener ?? author ?? (chords > 0 && chords <= AUTO_STRIP_MAX_CHORDS ? 'strip' : 'inline');
+}
+
+/** What `ownsSpaceKey` needs of a key event's target (an `Element`, or a stand-in in tests). */
+export type KeyTarget = {
+  tagName: string;
+  isContentEditable?: boolean;
+  getAttribute: (name: string) => string | null;
+};
+
+const SPACE_TAGS = new Set(['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA']);
+const SPACE_ROLES = new Set([
+  'button',
+  'checkbox',
+  'link',
+  'menuitem',
+  'menuitemcheckbox',
+  'menuitemradio',
+  'option',
+  'radio',
+  'slider',
+  'switch',
+  'tab',
+  'textbox',
+]);
+
+/**
+ * Whether Space on this focused element already does something of its own (presses a button,
+ * types a space, picks a row), so zen's global Space-to-start/pause must leave it alone.
+ */
+export function ownsSpaceKey(target: KeyTarget | null): boolean {
+  if (!target) {
+    return false;
+  }
+  if (SPACE_TAGS.has(target.tagName) || target.isContentEditable) {
+    return true;
+  }
+  if (target.tagName === 'A' && target.getAttribute('href') !== null) {
+    return true;
+  }
+  return SPACE_ROLES.has(target.getAttribute('role') ?? '');
 }
 
 /** The smallest sliver of a row the paused drag must always leave on screen. */

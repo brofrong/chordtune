@@ -4,7 +4,14 @@ import { describe, expect, test } from 'bun:test';
 import { parse } from '@chordtune/chord-sheet';
 
 import { zenLines, zenPosition } from './zen-timing';
-import { clampNudge, resolveZenMode, rowEmphasis, sectionStrip, seekTime } from './zen-view';
+import {
+  clampNudge,
+  ownsSpaceKey,
+  resolveZenMode,
+  rowEmphasis,
+  sectionStrip,
+  seekTime,
+} from './zen-view';
 
 const doc = (source: string) => parse(source).doc;
 // 60 BPM, no rhythms: one chord = one 4/4 bar = 4 s.
@@ -22,6 +29,38 @@ describe('resolveZenMode', () => {
     expect(resolveZenMode(null, 'inline', four)).toBe('inline');
     expect(resolveZenMode(null, null, four)).toBe('strip');
     expect(resolveZenMode(null, null, five)).toBe('inline');
+  });
+
+  test('a song without chords is never auto-resolved to the strip', () => {
+    const tabOnly = doc('{start_of_tab}\ne|--0--|\n{end_of_tab}');
+    expect(resolveZenMode(null, null, tabOnly)).toBe('inline');
+    expect(resolveZenMode(null, 'strip', tabOnly)).toBe('strip');
+  });
+});
+
+describe('ownsSpaceKey', () => {
+  const element = (tagName: string, attributes: Record<string, string> = {}, editable = false) => ({
+    tagName,
+    isContentEditable: editable,
+    getAttribute: (name: string) => attributes[name] ?? null,
+  });
+
+  test('buttons, form fields, links and role=button rows activate on Space themselves', () => {
+    expect(ownsSpaceKey(element('BUTTON'))).toBe(true);
+    expect(ownsSpaceKey(element('INPUT'))).toBe(true);
+    expect(ownsSpaceKey(element('TEXTAREA'))).toBe(true);
+    expect(ownsSpaceKey(element('SELECT'))).toBe(true);
+    expect(ownsSpaceKey(element('A', { href: '/' }))).toBe(true);
+    expect(ownsSpaceKey(element('DIV', { role: 'button' }))).toBe(true);
+    expect(ownsSpaceKey(element('DIV', { role: 'radio' }))).toBe(true);
+    expect(ownsSpaceKey(element('DIV', {}, true))).toBe(true);
+  });
+
+  test('the page itself and plain elements leave Space to zen', () => {
+    expect(ownsSpaceKey(null)).toBe(false);
+    expect(ownsSpaceKey(element('BODY'))).toBe(false);
+    expect(ownsSpaceKey(element('DIV', { role: 'dialog' }))).toBe(false);
+    expect(ownsSpaceKey(element('A'))).toBe(false);
   });
 });
 
