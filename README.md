@@ -46,12 +46,15 @@ One image runs both the API and the web app; only port 3000 is exposed and Next 
 `X-Forwarded-For`, so auth rate limiting sees client addresses.
 
 ```sh
-docker build -t chordtune .
+docker build --build-arg PUBLIC_URL=https://your.domain -t chordtune .
 docker run -p 3000:3000 \
   -e DATABASE_URL=postgres://… -e BETTER_AUTH_URL=https://your.domain \
   -e WEB_ORIGINS=https://your.domain,capacitor://localhost,https://localhost \
   -e MEILI_URL=http://… -e MEILI_KEY=… chordtune
 ```
+
+With `PUBLIC_URL` the image also carries the mobile bundle of its commit at
+`/mobile/update.json` and `/mobile/<version>.zip`; without it there are no live updates.
 
 ## Deploy
 
@@ -75,3 +78,9 @@ A pushed `v*` tag runs `.github/workflows/release.yml`: checks, then the Docker 
 `ghcr.io/brofrong/chordtune:<version>` and a signed APK on the GitHub Release. One-time setup:
 `scripts/android-keystore.sh` creates the release key and prints the `gh secret set` commands, and
 the `PUBLIC_URL` repository variable is the address the Android app talks to.
+
+Installed apps follow the server: once it runs the new image, they download its mobile bundle on
+their next start or return to the foreground, offer a restart and otherwise switch when sent to
+the background. A bundle that fails to start is rolled back and not tried again. When the native
+layer changed (Capacitor plugins, `capacitor.config.ts`, `AndroidManifest.xml`), apps get no
+bundle and offer the new APK instead.
