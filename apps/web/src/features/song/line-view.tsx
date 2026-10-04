@@ -91,9 +91,11 @@ export function LineView({
                         key={itemIndex}
                         type="button"
                         aria-label={item.chord}
-                        // The padding makes an 18px button; the pseudo-element widens what a
-                        // finger can hit to 26px without moving the dot or the words.
-                        className="-m-1.5 relative p-1.5 before:absolute before:-inset-1 before:content-['']"
+                        // The padding makes an 18px-tall button only half the gap wider than the
+                        // dot on each side, so neighbours' hit areas meet without overlapping; the
+                        // pseudo-element makes what a finger can hit 26px tall without moving the
+                        // dot or the words.
+                        className="-mx-0.75 -my-1.5 relative px-0.75 py-1.5 before:absolute before:-inset-y-1 before:inset-x-0 before:content-['']"
                         onClick={tap(item.chord, itemIndex)}
                       >
                         {dot}
