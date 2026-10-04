@@ -396,7 +396,7 @@ export function ZenMode({
         <footer className="relative z-10 flex items-center gap-3 bg-linear-to-t from-background from-55% to-transparent px-4 pt-8 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <Button
             size="icon"
-            aria-label={t('pause')}
+            aria-label={phase === 'play' ? t('pause') : t('resume')}
             className="size-11 rounded-2xl shadow-glow"
             disabled={phase === 'count' || phase === 'done'}
             onClick={togglePause}

@@ -290,7 +290,10 @@
     "viewInline": "Above the words",
     "viewStrip": "Strip",
     "pickStart": "Scroll and tap a line or a chord to start there",
-    "showShapes": "Show shapes"
+    "showShapes": "Show shapes",
+    "stripLabel": "Chords: {chords}",
+    "stripCurrent": "{chord} sounding",
+    "stripNext": "{chord} next"
   },
   "library": {
     "title": "Library",

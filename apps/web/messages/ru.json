@@ -290,7 +290,10 @@
     "viewInline": "Над словами",
     "viewStrip": "Полоса",
     "pickStart": "Листай текст и тапни строку или аккорд — начнём оттуда",
-    "showShapes": "Показать аппликатуры"
+    "showShapes": "Показать аппликатуры",
+    "stripLabel": "Аккорды: {chords}",
+    "stripCurrent": "{chord} звучит",
+    "stripNext": "{chord} следующий"
   },
   "library": {
     "title": "Моё",
