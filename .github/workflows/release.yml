@@ -55,6 +55,16 @@ jobs:
           # Adds the mobile bundle that installed apps take as a live update.
           build-args: |
             PUBLIC_URL=${{ vars.PUBLIC_URL }}
+      # Arcane pulls the new :latest image and restarts the project; installed apps then follow.
+      - name: Deploy
+        env:
+          ARCANE_WEBHOOK_URL: ${{ secrets.ARCANE_WEBHOOK_URL }}
+        run: |
+          if [ -z "$ARCANE_WEBHOOK_URL" ]; then
+            echo "::notice::ARCANE_WEBHOOK_URL is not set; deploy the image by hand"
+            exit 0
+          fi
+          curl -fsS --retry 3 -X POST "$ARCANE_WEBHOOK_URL"
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

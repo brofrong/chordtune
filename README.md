@@ -79,6 +79,10 @@ A pushed `v*` tag runs `.github/workflows/release.yml`: checks, then the Docker 
 `scripts/android-keystore.sh` creates the release key and prints the `gh secret set` commands, and
 the `PUBLIC_URL` repository variable is the address the Android app talks to.
 
+With the `ARCANE_WEBHOOK_URL` secret set to an Arcane "redeploy project" webhook, the `docker` job
+then tells Arcane to pull the new image and restart the `deploy/` project, which must run
+`CHORDTUNE_VERSION=latest`.
+
 Installed apps follow the server: once it runs the new image, they download its mobile bundle on
 their next start or return to the foreground, offer a restart and otherwise switch when sent to
 the background. A bundle that fails to start is rolled back and not tried again. When the native
