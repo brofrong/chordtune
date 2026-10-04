@@ -4,14 +4,17 @@ import type { TabBlock, TabNote } from './tab';
 const MAX_FRET = 24;
 
 type Place = { string: number; fret: number; unreachable?: true };
-/** `avoid`: strings a dead note strikes after this beat, up to and including this note's tie. */
+/**
+ * `avoid`: strings a dead note strikes after this beat, up to and including this note's last tie.
+ */
 type Movable = { note: TabNote; index: number; pitch: number; avoid: ReadonlySet<number> };
 
 /**
- * For every note whose next note (by position) on the same string is a tie, the index (in
- * written order over the whole block) of the beat holding that tie — the given note's string must
- * stay reserved (not handed to another note) until that tie is placed. Dead (`x`) notes are
- * excluded: they never move, so there is nothing to reserve. Keyed by `${bar}.${beat}.${noteIndex}`.
+ * For every note (a tie included) whose next note (by position) on the same string is a tie, the
+ * index (in written order over the whole block) of the beat holding the last tie of that chain of
+ * ties — the given note's string must stay reserved (not handed to another note) until that tie
+ * is placed. Dead (`x`) notes are excluded: they never move, so there is nothing to reserve. Keyed
+ * by `${bar}.${beat}.${noteIndex}`.
  */
 function tieBeatByPosition(block: TabBlock): Map<string, number> {
   const byString = new Map<number, { key: string; beat: number; tie: boolean }[]>();
@@ -31,12 +34,14 @@ function tieBeatByPosition(block: TabBlock): Map<string, number> {
   });
   const result = new Map<string, number>();
   for (const occurrences of byString.values()) {
-    occurrences.forEach((occurrence, i) => {
+    // Backwards, so a tie's own entry (where its chain ends) is known before the note before it.
+    for (let i = occurrences.length - 2; i >= 0; i--) {
+      const occurrence = occurrences[i];
       const next = occurrences[i + 1];
-      if (next?.tie) {
-        result.set(occurrence.key, next.beat);
+      if (occurrence && next?.tie) {
+        result.set(occurrence.key, result.get(next.key) ?? next.beat);
       }
-    });
+    }
   }
   return result;
 }
@@ -46,8 +51,8 @@ function tieBeatByPosition(block: TabBlock): Map<string, number> {
  * and goes to its own string if a fret fits, else to another string, never sharing a string
  * within a beat; a tie follows its note. A string holding a note for a tie that comes later is
  * reserved — excluded from other notes' free strings — in every beat between the note and its
- * tie, so a later note cannot steal it and leave the tie pointing at the wrong fret; for the same
- * reason such a note never goes to a string a dead note strikes before its tie ends. A beat's
+ * last tie, so a later note cannot steal it and leave a tie pointing at the wrong fret; for the
+ * same reason such a note never goes to a string a dead note strikes before its last tie. A beat's
  * movable notes (not dead, not a tie) are placed together by `bestAssignment`, which tries every
  * assignment to the beat's free strings so one note's move can make room for another (see its doc
  * comment for the order of preference). Notes that fit on no free string get a fret outside 0–24
@@ -114,8 +119,8 @@ export function refretBlock(
       const movable: Movable[] = [];
       beat.notes.forEach((note, index) => {
         if (note.fret !== 'x' && !note.tie) {
-          // A note with a tie ahead keeps its string until then: a dead note struck on that
-          // string in the meantime (the tie's own beat included) would share it with the tie.
+          // A note with ties ahead keeps its string until the last of them: a dead note struck
+          // on that string meanwhile (the last tie's beat included) would share it with a tie.
           const until = tieBeat.get(`${b}.${k}.${index}`) ?? beatIndex;
           const avoid = new Set(deadStrings.slice(beatIndex + 1, until + 1).flatMap((s) => [...s]));
           const pitch = open(note.string) + from + (note.fret as number);
@@ -146,15 +151,14 @@ export function refretBlock(
         );
       }
 
-      // A note followed later by a tie on its own source string stays held until that tie is
-      // placed; a tie placed just now releases its string for anyone to use from the next beat on.
+      // A note (or a tie) followed later by a tie on its own source string stays held until that
+      // tie is placed; the last tie of a chain placed just now releases its string for anyone to
+      // use from the next beat on.
       beat.notes.forEach((note, index) => {
         if (note.fret === 'x') {
           return;
         }
-        if (note.tie) {
-          heldStrings.delete(note.string);
-        } else if (tieBeat.has(`${b}.${k}.${index}`)) {
+        if (tieBeat.has(`${b}.${k}.${index}`)) {
           heldStrings.add(note.string);
         } else {
           heldStrings.delete(note.string);

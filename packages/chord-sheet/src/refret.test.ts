@@ -182,6 +182,27 @@ describe('refretBlock', () => {
     expect(distinctStrings(moved.block)).toBe(true);
     expect(pitches(moved.block, 2)).toEqual(pitches(tab, 0));
   });
+
+  test('a tie followed by another tie keeps its string held', () => {
+    const tab = block('0.1 -.1 7.2 -.1');
+    const moved = refretBlock(tab, STANDARD, 0, 5);
+    // Capo 5: E4 goes to the B string (fret 0) and still rings there through both ties, so F#4
+    // cannot take the B string (fret 2) and goes to the G string (fret 6).
+    expect(notes(moved.block)).toEqual(['0.2', '0.2', '6.3', '0.2']);
+    expect(distinctStrings(moved.block)).toBe(true);
+    expect(moved.unreachable).toBe(0);
+    expect(pitches(moved.block, 5)).toEqual(pitches(tab, 0));
+  });
+
+  test('a note with a chain of ties avoids a string a dead note strikes before the last tie', () => {
+    const tab = block('0.1 -.1 r (-.1 x.2)');
+    const moved = refretBlock(tab, STANDARD, 0, 5);
+    // Capo 5: open high E would go to the B string (fret 0), but its last tie lands in a beat with
+    // a dead note on the B string, so it goes to the G string (fret 4) instead.
+    expect(notes(moved.block)).toEqual(['4.3', '4.3', '', '4.3+x.2']);
+    expect(distinctStrings(moved.block)).toBe(true);
+    expect(pitches(moved.block, 5)).toEqual(pitches(tab, 0));
+  });
 });
 
 describe('rewriteAlphaTex', () => {
@@ -215,6 +236,26 @@ describe('rewriteAlphaTex', () => {
     const flatten = (tab: TabBlock) =>
       tab.bars.flatMap((bar) => bar.beats.flatMap((beat) => beat.notes));
     expect(reparsed && flatten(reparsed)).toEqual(flatten(after));
+  });
+
+  test('a chain of ties re-parses to the same notes', () => {
+    const flatten = (tab: TabBlock) =>
+      tab.bars.flatMap((bar) => bar.beats.flatMap((beat) => beat.notes));
+    for (const source of [['0.1 -.1 7.2 -.1'], ['0.1 -.1 r (-.1 x.2)']]) {
+      const before = parseAlphaTex(source).block;
+      const after = refretBlock(before, STANDARD, 0, 5).block;
+      const rewritten = rewriteAlphaTex(source, before, after);
+      expect(rewritten).not.toBeNull();
+      const reparsed = rewritten ? parseAlphaTex(rewritten).block : null;
+      expect(reparsed && flatten(reparsed)).toEqual(flatten(after));
+      // Every tie keeps the string and fret of the note it holds.
+      const ties = flatten(after).filter((note) => note.tie);
+      const attack = flatten(after)[0];
+      expect(ties.length).toBe(2);
+      for (const tie of ties) {
+        expect([tie.string, tie.fret]).toEqual([attack?.string ?? 0, attack?.fret ?? 0]);
+      }
+    }
   });
 
   test('a dropped hammer-on/slide mark is removed from the rewritten source', () => {
