@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 type Inputs = { capacitorConfig: string; androidManifest: string; plugins: Record<string, string> };
 
@@ -21,8 +21,10 @@ export function fingerprintOf({ capacitorConfig, androidManifest, plugins }: Inp
 
 /** The fingerprint of the web app in `webDir`, with plugin versions as installed. */
 export function nativeFingerprint(webDir: string): string {
-  const pkg = JSON.parse(readFileSync(join(webDir, 'package.json'), 'utf8'));
-  const require = createRequire(join(webDir, 'package.json'));
+  // `createRequire` needs an absolute path.
+  const packageJson = join(resolve(webDir), 'package.json');
+  const pkg = JSON.parse(readFileSync(packageJson, 'utf8'));
+  const require = createRequire(packageJson);
   const plugins = Object.fromEntries(
     Object.keys(pkg.dependencies ?? {})
       .filter((name) => /^@(capacitor|capgo)\//.test(name))

@@ -3,6 +3,8 @@
 **/.turbo
 **/out
 apps/web/android
+# The native fingerprint of the mobile bundle reads it.
+!apps/web/android/app/src/main/AndroidManifest.xml
 apps/web/ios
 .git
 .env

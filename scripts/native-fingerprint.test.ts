@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 
 import { fingerprintOf, nativeFingerprint } from './native-fingerprint';
 
@@ -42,5 +42,12 @@ describe('fingerprintOf', () => {
 describe('nativeFingerprint', () => {
   test('reads the web app in this repository', () => {
     expect(nativeFingerprint(join(import.meta.dir, '../apps/web'))).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  test('accepts a path relative to the working directory', () => {
+    const absolute = nativeFingerprint(join(import.meta.dir, '../apps/web'));
+    expect(nativeFingerprint(relative(process.cwd(), join(import.meta.dir, '../apps/web')))).toBe(
+      absolute,
+    );
   });
 });

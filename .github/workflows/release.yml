@@ -52,6 +52,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Adds the mobile bundle that installed apps take as a live update.
+          build-args: |
+            PUBLIC_URL=${{ vars.PUBLIC_URL }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

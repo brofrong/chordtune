@@ -1,7 +1,9 @@
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
 
+import { nativeFingerprint } from '../../scripts/native-fingerprint';
 import { INTERNAL_API_URL, resolveApiUrl } from './src/lib/api';
 
 try {
@@ -29,6 +31,15 @@ const nextConfig: NextConfig = {
   transpilePackages: ['@chordtune/audio', '@chordtune/chord-sheet'],
   env: {
     NEXT_PUBLIC_BUILD_TARGET: buildTarget,
+    // What a live update is compared against: the bundle's own version and native layer.
+    ...(buildTarget === 'capacitor'
+      ? {
+          NEXT_PUBLIC_APP_VERSION: JSON.parse(
+            readFileSync(join(import.meta.dirname, '../../package.json'), 'utf8'),
+          ).version,
+          NEXT_PUBLIC_NATIVE_FINGERPRINT: nativeFingerprint(import.meta.dirname),
+        }
+      : {}),
   },
   ...(buildTarget === 'capacitor'
     ? {
@@ -46,6 +57,14 @@ const nextConfig: NextConfig = {
         rewrites: async () => [
           { source: '/trpc/:path*', destination: `${INTERNAL_API_URL}/trpc/:path*` },
           { source: '/api/auth/:path*', destination: `${INTERNAL_API_URL}/api/auth/:path*` },
+        ],
+        // Installed apps fetch the live update manifest from their own origin
+        // (`https://localhost`); it is public and sent without credentials.
+        headers: async () => [
+          {
+            source: '/mobile/:path*',
+            headers: [{ key: 'Access-Control-Allow-Origin', value: '*' }],
+          },
         ],
       }),
 };
