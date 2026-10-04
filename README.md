@@ -53,6 +53,18 @@ docker run -p 3000:3000 \
   -e MEILI_URL=http://… -e MEILI_KEY=… chordtune
 ```
 
+## Deploy
+
+`deploy/` runs the published image with Postgres and Meilisearch. The app listens on
+`127.0.0.1:3000` for a reverse proxy on the host, which serves the domain over HTTPS and sets
+`X-Forwarded-For` to the client address. Copy the directory to the server and:
+
+```sh
+cp .env.example .env          # domain, image version, passwords
+docker compose up -d
+docker compose exec app sh -c 'cd /app/apps/api && bun src/scripts/reindex.ts'   # rebuild search from Postgres
+```
+
 ## Release
 
 ```sh
