@@ -26,11 +26,13 @@ import { advanceClock } from './zen-clock';
 import { ZenPanel } from './zen-panel';
 import { ZenStrip } from './zen-strip';
 import { zenLines, zenOffset, zenPosition, zenRowGlide } from './zen-timing';
-import { type RowEmphasis, rowEmphasis, sectionStrip } from './zen-view';
+import { type RowEmphasis, rowEmphasis, sectionStrip, seekTime } from './zen-view';
 
 const COUNT_FROM = 3;
 const COUNT_MS = 700;
 const ANCHOR = 0.34;
+/** Below this many pixels of pointer movement, a drag on the paused text is still a tap. */
+const DRAG_THRESHOLD_PX = 6;
 
 type Phase = 'ready' | 'count' | 'play' | 'pause' | 'done';
 
@@ -164,15 +166,53 @@ export function ZenMode({
     return () => document.removeEventListener('visibilitychange', onVisibility);
   }, []);
 
-  const start = useCallback(() => {
+  // While paused: the listener can drag/scroll the text and tap a line or chord to pick where
+  // the next start/resume plays from. `paused` covers both the ready panel and an in-song pause.
+  const paused = phase === 'ready' || phase === 'pause';
+  const [nudge, setNudge] = useState(0);
+  const [startAt, setStartAt] = useState<{ time: number; key: string; item: number | null } | null>(
+    null,
+  );
+  const content = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ y: number; from: number; moved: boolean } | null>(null);
+  const dragged = useRef(false);
+
+  const clampNudge = (value: number) => {
+    const height = viewport.current?.clientHeight ?? 0;
+    const length = content.current?.scrollHeight ?? 0;
+    return Math.min(height, Math.max(-length, value));
+  };
+
+  // Not a useCallback: it now reads startAt state, so it must stay fresh on every render.
+  // togglePause (reassigned to togglePauseRef below on every render) closes over this, so the
+  // keyboard handler that calls togglePauseRef.current() always reaches the latest version.
+  const start = () => {
+    if (startAt) {
+      timeRef.current = startAt.time;
+      finished.current = false;
+      setTime(startAt.time);
+    }
+    setStartAt(null);
+    setNudge(0);
     setCount(COUNT_FROM);
     setPhase('count');
-  }, []);
+  };
 
   const fromStart = () => {
     timeRef.current = 0;
     finished.current = false;
     setTime(0);
+    setStartAt(null);
+    setNudge(0);
+  };
+
+  /** A tap on a paused line (its first chord) or one of its chords (`item`); an untimed line
+   * resolves to the next timed one. Highlighted via `startAt` until the next start/resume. */
+  const pick = (section: number, line: number, item: number | null = null) => {
+    const time = seekTime(lines, section, line, item);
+    if (time !== null) {
+      setStartAt({ time, key: `${section}:${line}`, item });
+    }
   };
 
   const restart = useCallback(() => {
@@ -310,7 +350,44 @@ export function ZenMode({
 
       {mode === 'strip' && <ZenStrip strip={strip} sound={sound} />}
 
-      <div ref={viewport} className="-mt-20 relative flex-1 overflow-hidden">
+      <div
+        ref={viewport}
+        className={cn('-mt-20 relative flex-1 overflow-hidden', paused && 'touch-none')}
+        onWheel={(event) => paused && setNudge((value) => clampNudge(value - event.deltaY))}
+        onPointerDown={(event) => {
+          if (paused) {
+            drag.current = { y: event.clientY, from: nudge, moved: false };
+          }
+        }}
+        onPointerMove={(event) => {
+          const current = drag.current;
+          if (!current) {
+            return;
+          }
+          const dy = event.clientY - current.y;
+          if (Math.abs(dy) > DRAG_THRESHOLD_PX) {
+            current.moved = true;
+          }
+          if (current.moved) {
+            setNudge(clampNudge(current.from + dy));
+          }
+        }}
+        onPointerUp={() => {
+          dragged.current = drag.current?.moved ?? false;
+          drag.current = null;
+        }}
+        onPointerCancel={() => {
+          drag.current = null;
+        }}
+        onClickCapture={(event) => {
+          // A drag that ends over a line or a chord is not a tap.
+          if (dragged.current) {
+            dragged.current = false;
+            event.stopPropagation();
+            event.preventDefault();
+          }
+        }}
+      >
         {phase === 'play' && (
           <button
             type="button"
@@ -321,8 +398,9 @@ export function ZenMode({
           />
         )}
         <div
+          ref={content}
           className="absolute inset-x-0 top-0 px-6 will-change-transform"
-          style={{ transform: `translateY(${offset}px)` }}
+          style={{ transform: `translateY(${offset + nudge}px)` }}
         >
           {doc.sections.map((section, sectionIndex) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: sections are positional
@@ -342,6 +420,7 @@ export function ZenMode({
                 const emphasis = rowEmphasis(rowKeys.indexOf(key), currentRow);
                 const isCurrent = emphasis === 'current';
                 return (
+                  // biome-ignore lint/a11y/noStaticElementInteractions: a row holds chord buttons, so it cannot be a <button>
                   <div
                     key={key}
                     ref={(element) => {
@@ -355,7 +434,20 @@ export function ZenMode({
                       'origin-left py-2 text-xl transition-[opacity,transform] duration-500',
                       EMPHASIS[emphasis],
                       isCurrent && line.type === 'line' && 'scale-[1.04]',
+                      startAt?.key === key && 'rounded-xl ring-2 ring-chord/60',
                     )}
+                    role={paused ? 'button' : undefined}
+                    tabIndex={paused ? 0 : undefined}
+                    onClick={paused ? () => pick(sectionIndex, lineIndex) : undefined}
+                    onKeyDown={
+                      paused
+                        ? (event) => {
+                            if (event.key === 'Enter') {
+                              pick(sectionIndex, lineIndex);
+                            }
+                          }
+                        : undefined
+                    }
                   >
                     {line.type === 'tab' ? (
                       <TabView lines={line.lines} />
@@ -365,9 +457,18 @@ export function ZenMode({
                       <LineView
                         items={line.items}
                         activeItem={
-                          isCurrent ? (current?.chordItems[position.chord] ?? null) : null
+                          paused && startAt?.key === key
+                            ? startAt.item
+                            : isCurrent
+                              ? (current?.chordItems[position.chord] ?? null)
+                              : null
                         }
                         marks={mode === 'strip' ? 'dots' : 'chips'}
+                        onChord={
+                          paused
+                            ? (_chord, _anchor, item) => pick(sectionIndex, lineIndex, item)
+                            : undefined
+                        }
                       />
                     )}
                   </div>
