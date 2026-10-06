@@ -8,6 +8,7 @@ import { syncArtist } from '../search/documents';
 import type { ArrangementListItem } from './arrangements';
 import {
   type ArtistSources,
+  type DeezerCandidate,
   WIKI_LANGS,
   type Wiki,
   type WikiLang,
@@ -156,4 +157,14 @@ export async function relinkArtist(
     })
     .where(eq(artist.id, id));
   await syncArtist(db, search, id);
+}
+
+/** For linking existing artists without asking anyone: only an exact name counts. */
+export function pickDeezerMatch(name: string, candidates: DeezerCandidate[]) {
+  const wanted = name.trim().toLowerCase();
+  const exact = candidates.filter((candidate) => candidate.name.toLowerCase() === wanted);
+  return exact.reduce<DeezerCandidate | null>(
+    (best, candidate) => (!best || candidate.fans > best.fans ? candidate : best),
+    null,
+  );
 }

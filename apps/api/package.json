@@ -16,6 +16,7 @@
     "auth:generate": "bun --env-file=../../.env x auth@latest generate --config src/auth.ts --output src/db/auth-schema.ts",
     "test": "bun test",
     "search:reindex": "bun --env-file=../../.env src/scripts/reindex.ts",
+    "artists:link": "bun --env-file=../../.env src/scripts/link-artists.ts",
     "db:seed": "bun --env-file=../../.env src/scripts/seed.ts"
   },
   "dependencies": {

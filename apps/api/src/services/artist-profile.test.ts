@@ -10,6 +10,7 @@ import {
   artistPage,
   deezerCandidates,
   enrichArtist,
+  pickDeezerMatch,
   pickWiki,
   relinkArtist,
 } from './artist-profile';
@@ -248,5 +249,28 @@ describe('relinkArtist', () => {
       wikidataId: null,
     }).catch((e: unknown) => e);
     expect((error as TRPCError).code).toBe('NOT_FOUND');
+  });
+});
+
+describe('pickDeezerMatch', () => {
+  const candidate = (deezerId: number, name: string, fans: number) => ({
+    deezerId,
+    name,
+    fans,
+    pictureSmallUrl: null,
+  });
+
+  test('the exact name, case-insensitively, with the most fans', () => {
+    expect(
+      pickDeezerMatch('кино', [
+        candidate(1, 'группа Кино', 900),
+        candidate(2, 'Кино', 10),
+        candidate(3, 'КИНО', 300),
+      ])?.deezerId,
+    ).toBe(3);
+  });
+
+  test('no exact name, no match', () => {
+    expect(pickDeezerMatch('Кино', [candidate(1, 'Черное кино', 5)])).toBeNull();
   });
 });
