@@ -161,6 +161,7 @@
     "back": "Back",
     "loading": "Loading…",
     "notFound": "Artist not found",
+    "noNetwork": "No connection — the artist page cannot load",
     "songCount": "{count, plural, one {# song} other {# songs}}",
     "songs": "Songs on ChordTune",
     "empty": "No published songs yet",
