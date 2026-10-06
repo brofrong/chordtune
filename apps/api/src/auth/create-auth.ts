@@ -68,12 +68,17 @@ export function createAuth({
         // before-hook pipeline — so it never sees the `bearer` plugin's header→cookie
         // translation and returns no session for bearer-authenticated callers. Re-enter the
         // pipeline with `dispatchAuthEndpoint` instead, as its own doc comment recommends.
+        // `getSession()`'s own handler resolves to `null` (doesn't throw) when there's simply no
+        // session — that's the only "no session" case we treat as such. Anything it throws
+        // (a real failure, not "unauthenticated") must propagate and block the action: this is a
+        // security guard, so a transient error here has to fail closed, not be read as "no
+        // session, go ahead".
         const session = (await dispatchAuthEndpoint(getSession(), {
           headers: ctx.headers,
           context: ctx.context,
           method: 'GET',
           asResponse: false,
-        }).catch(() => null)) as { user: { id: string } } | null;
+        })) as { user: { id: string } } | null;
         if (session && (await signInMethodCount(db, session.user.id)) <= 1) {
           throw new APIError('BAD_REQUEST', {
             message: 'This is the last way to sign in',

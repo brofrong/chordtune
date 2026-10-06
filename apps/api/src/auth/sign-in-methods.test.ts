@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 
 import { account, user } from '../db/schema';
 import { createTestAuth } from '../test/auth';
-import { signInMethodCount } from './sign-in-methods';
+import { LAST_SIGN_IN_METHOD, signInMethodCount } from './sign-in-methods';
 
 describe('signInMethodCount', () => {
   test('counts providers, passkeys and a real verified email; not old passwords', async () => {
@@ -38,5 +38,15 @@ describe('last sign-in method', () => {
       .insert(account)
       .values([{ id: 'v', userId, accountId: 'v1', providerId: 'vk', updatedAt: new Date() }]);
     await expect(t.auth.api.unlinkAccount({ body: { accountId: 'v' }, headers })).rejects.toThrow();
+  });
+
+  test("an unauthenticated caller hits Better Auth's own auth check, not our guard", async () => {
+    const t = await createTestAuth();
+    // No headers at all: our hook's nested `getSession` dispatch resolves to `null` (no session),
+    // so it must no-op rather than throw — the request still fails, but via `freshSessionMiddleware`
+    // (no session), not our `LAST_SIGN_IN_METHOD` guard.
+    await expect(t.auth.api.unlinkAccount({ body: { accountId: 'y' } })).rejects.not.toMatchObject({
+      body: { code: LAST_SIGN_IN_METHOD },
+    });
   });
 });

@@ -91,7 +91,12 @@ export const passkey = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
     aaguid: text('aaguid'),
   },
-  (table) => [index('passkey_userId_idx').on(table.userId)],
+  (table) => [
+    index('passkey_userId_idx').on(table.userId),
+    // Every authentication attempt looks a passkey up by its credential id — the plugin's own
+    // schema flags this field `index: true` too (node_modules/@better-auth/passkey/dist/index.mjs).
+    index('passkey_credentialID_idx').on(table.credentialID),
+  ],
 );
 
 export const authRelations = defineRelationsPart(
