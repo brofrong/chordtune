@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { and, asc, desc, eq, inArray, ne, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
 
 import type { Database } from '../db';
 import { arrangement, artist, song } from '../db/schema';
@@ -27,10 +27,12 @@ export async function enrichArtist(db: Database, sources: ArtistSources, artistI
     }
     const wikidataId = await sources.findWikidata({ deezerId: row.deezerId, name: row.name });
     const wiki = wikidataId ? await sources.getWiki(wikidataId) : null;
+    // An admin relink may land while the lookup above is in flight; `enrichedAt` is no longer
+    // null then, so this stale result does not overwrite it.
     await db
       .update(artist)
       .set({ wikidataId, wiki, enrichedAt: new Date() })
-      .where(eq(artist.id, artistId));
+      .where(and(eq(artist.id, artistId), isNull(artist.enrichedAt)));
   } catch (error) {
     console.error(`Enriching artist ${artistId} failed`, error);
   }

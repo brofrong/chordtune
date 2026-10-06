@@ -75,6 +75,28 @@ describe('enrichArtist', () => {
     const [after] = await db.select().from(artist);
     expect(after?.enrichedAt).toBeNull();
   });
+
+  test('an admin relink that lands while enriching is not overwritten', async () => {
+    const row = await insertArtist();
+    const relinkedWiki: Wiki = {
+      ru: { title: 'Relinked', description: 'from the admin', extract: '…' },
+    };
+    const sources: ArtistSources = {
+      ...noArtistSources,
+      findWikidata: async () => {
+        // An admin relink lands while this (now stale) lookup is still in flight.
+        await db
+          .update(artist)
+          .set({ wikidataId: 'Q999', wiki: relinkedWiki, enrichedAt: new Date() })
+          .where(eq(artist.id, row.id));
+        return 'Q650555';
+      },
+      getWiki: async () => WIKI,
+    };
+    await enrichArtist(db, sources, row.id);
+    const [after] = await db.select().from(artist);
+    expect(after).toMatchObject({ wikidataId: 'Q999', wiki: relinkedWiki });
+  });
 });
 
 async function addSong(authorId: string, title: string, counts: { views: number; likes: number }) {
