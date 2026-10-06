@@ -78,6 +78,7 @@ describe('library', () => {
       id: mine,
       artist: 'LUMEN',
       artistSlug: 'lumen',
+      artistPictureSmallUrl: null,
       title: 'Гореть',
       songSlug: 'goret',
       views: 1,

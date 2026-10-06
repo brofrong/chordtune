@@ -26,6 +26,7 @@ function toListItem(view: ArrangementView): ArrangementListItem {
     id: view.id,
     artist: view.artist.name,
     artistSlug: view.artist.slug,
+    artistPictureSmallUrl: view.artist.pictureSmallUrl,
     title: view.song.title,
     songSlug: view.song.slug,
     views: view.stats.views,
