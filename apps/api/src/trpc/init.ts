@@ -4,10 +4,11 @@ import superjson from 'superjson';
 import { auth, type Session } from '../auth';
 import { db } from '../db';
 import { search } from '../search/client';
+import { artistSources } from '../services/artist-sources-client';
 
 export async function createContext({ req }: { req: Request }) {
   const session: Session | null = await auth.api.getSession({ headers: req.headers });
-  return { db, search, session };
+  return { db, search, artistSources, session };
 }
 
 export type Context = Awaited<ReturnType<typeof createContext>>;

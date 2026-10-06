@@ -5,6 +5,7 @@ import type { Database } from '../db';
 import { artist, song } from '../db/schema';
 import { noopSearch } from '../search';
 import { createTestDb, createUser } from '../test/db';
+import { type ArtistSources, type DeezerArtist, noArtistSources } from './artist-sources';
 import { type ArrangementInput, arrangementInput, saveArrangement } from './save-arrangement';
 
 const base: ArrangementInput = {
@@ -194,5 +195,126 @@ describe('arrangementInput', () => {
     const many = Object.fromEntries(keys.slice(0, 65).map((key) => [key, [0, 0, 0, 0, 0, 0]]));
     expect(parse({ voicings: many })).toBe(false);
     expect(parse({ voicings: Object.fromEntries(Object.entries(many).slice(0, 64)) })).toBe(true);
+  });
+});
+
+const KINO: DeezerArtist = {
+  deezerId: 4505880,
+  name: 'Кино',
+  pictureUrl: 'https://cdn-images.dzcdn.net/images/artist/ec4/1000x1000-000000-80-0-0.jpg',
+  pictureSmallUrl: 'https://cdn-images.dzcdn.net/images/artist/ec4/250x250-000000-80-0-0.jpg',
+};
+
+function deezer(artists: DeezerArtist[], { down = false } = {}): ArtistSources {
+  return {
+    ...noArtistSources,
+    getDeezerArtist: async (deezerId) => {
+      if (down) throw new Error('Deezer is down');
+      return artists.find((item) => item.deezerId === deezerId) ?? null;
+    },
+  };
+}
+
+describe('saveArrangement with a Deezer pick', () => {
+  test('creates the artist with Deezer’s name and pictures', async () => {
+    const saved = await saveArrangement(
+      db,
+      noopSearch,
+      { authorId, input: { ...base, artist: { deezerId: 4505880, name: 'кино!!' } } },
+      deezer([KINO]),
+    );
+    const [row] = await db.select().from(artist);
+    expect(row).toMatchObject({
+      name: 'Кино',
+      deezerId: 4505880,
+      pictureUrl: KINO.pictureUrl,
+      pictureSmallUrl: KINO.pictureSmallUrl,
+      enrichedAt: null,
+    });
+    expect(saved).toMatchObject({ artistId: row?.id, artistEnriched: false });
+  });
+
+  test('picking the same Deezer artist again gives the same artist', async () => {
+    const sources = deezer([KINO]);
+    const input = { ...base, artist: { deezerId: 4505880, name: 'Кино' } };
+    await saveArrangement(db, noopSearch, { authorId, input }, sources);
+    await saveArrangement(
+      db,
+      noopSearch,
+      { authorId, input: { ...input, song: { title: 'Звезда' } } },
+      sources,
+    );
+    expect(await db.$count(artist)).toBe(1);
+  });
+
+  test('links an artist of ours with the same name that has no Deezer artist yet', async () => {
+    await saveArrangement(db, noopSearch, {
+      authorId,
+      input: { ...base, artist: { name: 'кино' } },
+    });
+    await saveArrangement(
+      db,
+      noopSearch,
+      { authorId, input: { ...base, artist: { deezerId: 4505880, name: 'Кино' } } },
+      deezer([KINO]),
+    );
+    const rows = await db.select().from(artist);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      name: 'кино',
+      deezerId: 4505880,
+      pictureSmallUrl: KINO.pictureSmallUrl,
+    });
+  });
+
+  test('a namesake already linked to another Deezer artist is reused, not duplicated', async () => {
+    const other = { ...KINO, deezerId: 103841652 };
+    await saveArrangement(
+      db,
+      noopSearch,
+      { authorId, input: { ...base, artist: { deezerId: 103841652, name: 'Кино' } } },
+      deezer([other]),
+    );
+    await saveArrangement(
+      db,
+      noopSearch,
+      { authorId, input: { ...base, artist: { deezerId: 4505880, name: 'Кино' } } },
+      deezer([KINO]),
+    );
+    const rows = await db.select().from(artist);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.deezerId).toBe(103841652);
+  });
+
+  test('falls back to the typed name when Deezer is down or does not know the id', async () => {
+    await saveArrangement(
+      db,
+      noopSearch,
+      { authorId, input: { ...base, artist: { deezerId: 4505880, name: 'Кино' } } },
+      deezer([], { down: true }),
+    );
+    await saveArrangement(
+      db,
+      noopSearch,
+      { authorId, input: { ...base, artist: { deezerId: 1, name: 'Сплин' } } },
+      deezer([]),
+    );
+    const rows = await db.select().from(artist).orderBy(artist.name);
+    expect(rows.map((row) => [row.name, row.deezerId])).toEqual([
+      ['Кино', null],
+      ['Сплин', null],
+    ]);
+  });
+
+  test('the input accepts a Deezer pick and keeps it apart from a plain name', () => {
+    expect(
+      arrangementInput.parse({ ...base, artist: { deezerId: 4505880, name: 'Кино' } }).artist,
+    ).toEqual({
+      deezerId: 4505880,
+      name: 'Кино',
+    });
+    expect(arrangementInput.parse({ ...base, artist: { name: 'Кино' } }).artist).toEqual({
+      name: 'Кино',
+    });
   });
 });

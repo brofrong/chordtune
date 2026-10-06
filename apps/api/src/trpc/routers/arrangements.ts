@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { syncArrangement } from '../../search/documents';
 import { createThrottle } from '../../search/throttle';
 import { findView, toView, WITH_DETAILS } from '../../services/arrangements';
+import { enrichArtist } from '../../services/artist-profile';
 import { arrangementInput, saveArrangement } from '../../services/save-arrangement';
 import { addPlays, recordView, setLike, setSave } from '../../services/social';
 import { type Context, protectedProcedure, publicProcedure, router } from '../init';
@@ -14,6 +15,17 @@ const searchSync = createThrottle(30_000);
 /** Likes and saves change search ranking fields; re-index at most every 30 s per song. */
 function scheduleSearchSync(ctx: Pick<Context, 'db' | 'search'>, id: string) {
   searchSync(id, () => void syncArrangement(ctx.db, ctx.search, id));
+}
+
+/** A new artist gets its Wikipedia summary in the background; the author does not wait for it. */
+function afterSave(
+  ctx: Pick<Context, 'db' | 'artistSources'>,
+  saved: Awaited<ReturnType<typeof saveArrangement>>,
+) {
+  if (!saved.artistEnriched) {
+    void enrichArtist(ctx.db, ctx.artistSources, saved.artistId);
+  }
+  return { id: saved.id, artistSlug: saved.artistSlug, songSlug: saved.songSlug };
 }
 
 async function withSync<T>(ctx: Pick<Context, 'db' | 'search'>, id: string, action: Promise<T>) {
@@ -49,18 +61,30 @@ export const arrangementsRouter = router({
 
   create: protectedProcedure
     .input(arrangementInput)
-    .mutation(({ ctx, input }) =>
-      saveArrangement(ctx.db, ctx.search, { authorId: ctx.session.user.id, input }),
+    .mutation(async ({ ctx, input }) =>
+      afterSave(
+        ctx,
+        await saveArrangement(
+          ctx.db,
+          ctx.search,
+          { authorId: ctx.session.user.id, input },
+          ctx.artistSources,
+        ),
+      ),
     ),
 
   update: protectedProcedure
     .input(arrangementInput.extend({ id: z.string() }))
-    .mutation(({ ctx, input: { id, ...input } }) =>
-      saveArrangement(ctx.db, ctx.search, {
-        authorId: ctx.session.user.id,
-        arrangementId: id,
-        input,
-      }),
+    .mutation(async ({ ctx, input: { id, ...input } }) =>
+      afterSave(
+        ctx,
+        await saveArrangement(
+          ctx.db,
+          ctx.search,
+          { authorId: ctx.session.user.id, arrangementId: id, input },
+          ctx.artistSources,
+        ),
+      ),
     ),
 
   /** Anonymous viewers are counted by a device key, signed-in ones by their user id. */

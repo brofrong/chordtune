@@ -19,6 +19,7 @@ import { arrangement, artist, song } from '../db/schema';
 import { slugify } from '../lib/translit';
 import type { SearchIndex } from '../search';
 import { syncArrangement } from '../search/documents';
+import { type ArtistSources, type DeezerArtist, noArtistSources } from './artist-sources';
 
 export const MAX_CONTENT_LENGTH = 50_000;
 export const MAX_RHYTHMS = 16;
@@ -28,6 +29,7 @@ const SONG_STRINGS = 6;
 export const arrangementInput = z.object({
   artist: z.union([
     z.object({ id: z.string() }),
+    z.object({ deezerId: z.number().int().positive(), name: z.string().trim().min(1).max(120) }),
     z.object({ name: z.string().trim().min(1).max(120) }),
   ]),
   song: z.union([
@@ -73,7 +75,11 @@ async function freeSlug(name: string, taken: (slug: string) => Promise<boolean>)
   }
 }
 
-async function resolveArtist(tx: Transaction, input: ArrangementInput['artist']) {
+async function resolveArtist(
+  tx: Transaction,
+  input: ArrangementInput['artist'],
+  deezer: DeezerArtist | null,
+) {
   if ('id' in input) {
     const found = await tx.query.artist.findFirst({ where: { id: input.id } });
     if (!found) {
@@ -81,17 +87,41 @@ async function resolveArtist(tx: Transaction, input: ArrangementInput['artist'])
     }
     return found;
   }
+  if (deezer) {
+    const [linked] = await tx.select().from(artist).where(eq(artist.deezerId, deezer.deezerId));
+    if (linked) {
+      return linked;
+    }
+  }
+  const name = deezer?.name ?? input.name;
+  const pictures = deezer && {
+    deezerId: deezer.deezerId,
+    pictureUrl: deezer.pictureUrl,
+    pictureSmallUrl: deezer.pictureSmallUrl,
+  };
   const [existing] = await tx
     .select()
     .from(artist)
-    .where(eq(sql`lower(${artist.name})`, input.name.toLowerCase()));
+    .where(eq(sql`lower(${artist.name})`, name.toLowerCase()));
   if (existing) {
-    return existing;
+    // Names are unique, so a namesake linked to another Deezer artist stays as it is.
+    if (!pictures || existing.deezerId !== null) {
+      return existing;
+    }
+    const [linked] = await tx
+      .update(artist)
+      .set(pictures)
+      .where(eq(artist.id, existing.id))
+      .returning();
+    return linked ?? existing;
   }
-  const slug = await freeSlug(input.name, async (candidate) =>
+  const slug = await freeSlug(name, async (candidate) =>
     Boolean(await tx.$count(artist, eq(artist.slug, candidate))),
   );
-  const [created] = await tx.insert(artist).values({ name: input.name, slug }).returning();
+  const [created] = await tx
+    .insert(artist)
+    .values({ name, slug, ...pictures })
+    .returning();
   if (!created) {
     throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
   }
@@ -133,12 +163,15 @@ async function resolveSong(tx: Transaction, artistId: string, input: Arrangement
 
 /**
  * Creates or updates an arrangement, creating the artist and the song when they are new
- * (matched case-insensitively). Blocking parse errors reject the save; warnings do not.
+ * (matched case-insensitively). An artist picked from Deezer is checked with Deezer and gets its
+ * pictures; when Deezer fails, the typed name is used. Blocking parse errors reject the save;
+ * warnings do not.
  */
 export async function saveArrangement(
   db: Database,
   search: SearchIndex,
   params: { authorId: string; input: ArrangementInput; arrangementId?: string },
+  sources: ArtistSources = noArtistSources,
 ) {
   const { authorId, input, arrangementId } = params;
   const { doc, diagnostics } = parse(input.content);
@@ -152,8 +185,17 @@ export async function saveArrangement(
     });
   }
 
+  // Outside the transaction: an outside request must not hold a connection and its locks.
+  const deezer =
+    'deezerId' in input.artist
+      ? await sources.getDeezerArtist(input.artist.deezerId).catch((error: unknown) => {
+          console.error('Deezer lookup failed; creating the artist by name', error);
+          return null;
+        })
+      : null;
+
   const saved = await db.transaction(async (tx) => {
-    const artistRow = await resolveArtist(tx, input.artist);
+    const artistRow = await resolveArtist(tx, input.artist, deezer);
     const songRow = await resolveSong(tx, artistRow.id, input.song);
     const chords = chordList(doc);
     const values = {
@@ -195,7 +237,13 @@ export async function saveArrangement(
     if (!id) {
       throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
     }
-    return { id, artistSlug: artistRow.slug, songSlug: songRow.slug };
+    return {
+      id,
+      artistSlug: artistRow.slug,
+      songSlug: songRow.slug,
+      artistId: artistRow.id,
+      artistEnriched: artistRow.enrichedAt !== null,
+    };
   });
 
   await syncArrangement(db, search, saved.id);
