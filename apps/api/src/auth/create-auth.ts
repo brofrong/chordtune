@@ -1,7 +1,7 @@
 import { drizzleAdapter } from '@better-auth/drizzle-adapter/relations-v2';
 import { betterAuth } from 'better-auth';
 import { APIError } from 'better-auth/api';
-import { bearer, emailOTP } from 'better-auth/plugins';
+import { bearer, emailOTP, username } from 'better-auth/plugins';
 
 import type { Database } from '../db';
 import { tables } from '../db/schema';
@@ -10,6 +10,7 @@ import { markMailFailed } from '../mail/failures';
 import { otpMessage, pickLocale } from '../mail/otp-message';
 import type { AuthConfig } from './config';
 import { isPlaceholderEmail } from './placeholder-email';
+import { isValidUsername, uniqueUsername, usernameBase, usernameHints } from './username';
 
 export type AuthDeps = {
   db: Database;
@@ -41,6 +42,19 @@ export function createAuth({
     logger,
     database: drizzleAdapter(db, { provider: 'pg', schema: tables }),
     trustedOrigins,
+    databaseHooks: {
+      user: {
+        create: {
+          // Every user gets a username at creation; `username` may arrive as a hint (Telegram).
+          before: async (data) => ({
+            data: {
+              ...data,
+              username: await uniqueUsername(db, usernameBase(usernameHints(data))),
+            },
+          }),
+        },
+      },
+    },
     plugins: [
       emailOTP({
         otpLength: 6,
@@ -75,6 +89,13 @@ export function createAuth({
             }
           }
         },
+      }),
+      username({
+        minUsernameLength: 3,
+        maxUsernameLength: 30,
+        // The name on the site is `user.name`; a second display field would only confuse.
+        displayUsername: false,
+        usernameValidator: isValidUsername,
       }),
       // Capacitor WebViews run on capacitor:// or https://localhost, where third-party cookies to the
       // API are unreliable, so every build authenticates with a bearer token.
