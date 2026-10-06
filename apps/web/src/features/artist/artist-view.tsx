@@ -54,6 +54,7 @@ export function ArtistView({ artist }: { artist: ArtistPage }) {
             <button
               type="button"
               onClick={() => setExpanded(!expanded)}
+              aria-expanded={expanded}
               className="transition-colors hover:text-foreground"
             >
               {expanded ? t('less') : t('more')}
