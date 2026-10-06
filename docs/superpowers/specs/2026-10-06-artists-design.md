@@ -38,7 +38,7 @@ One Drizzle migration adds them.
 
 `apps/api/src/services/artist-sources.ts` talks to the outside world. Parsing is kept in pure
 functions tested on recorded responses; requests go through an injected `fetch` with a
-`ChordTune/<version> (<BETTER_AUTH_URL>)` User-Agent, which Wikimedia requires, and a timeout.
+`ChordTune (<BETTER_AUTH_URL>)` User-Agent, which Wikimedia requires, and a timeout.
 
 - `searchDeezer(q)`: `api.deezer.com/search/artist`, up to 5 candidates
   `{ deezerId, name, pictureSmallUrl, fans }`. Results are cached in memory for 10 minutes per
@@ -79,13 +79,12 @@ For `{ deezerId, name }`:
 
 ## Editor
 
-`ArtistField` keeps its free-text input; its suggestions become three groups:
+`ArtistField` keeps its free-text input; its suggestions come in three runs, in this order:
 
-1. "On ChordTune": our artists, as today, with the small picture (or the initials cover) and the
-   song count;
-2. "From Deezer": `artists.searchDeezer({ q })` candidates with picture and fan count, from two
+1. our artists, as today, with the small picture (or the initials cover) and the song count;
+2. `artists.searchDeezer({ q })` candidates, labelled "Deezer" with picture and fan count, from two
    typed characters, debounced, without the Deezer ids we already have;
-3. "Create «X» without a photo".
+3. "New artist «X» without a photo".
 
 Picking a Deezer candidate fills the input with its name and remembers its id; editing the text
 afterwards drops it. The form sends `{ deezerId, name }` for a remembered pick and `{ name }`
