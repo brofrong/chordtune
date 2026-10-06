@@ -23,7 +23,7 @@ import { ArtistField, type DeezerPick } from './artist-field';
 import { SongTitleField } from './song-title-field';
 import type { Draft } from './use-draft';
 
-export type SongFields = Omit<Draft, 'content'>;
+export type SongFields = Omit<Draft, 'content' | 'deezerPick'>;
 
 export const MIN_TEMPO = 30;
 export const MAX_TEMPO = 300;

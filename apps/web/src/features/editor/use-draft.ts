@@ -9,6 +9,8 @@ import {
   type ZenModeId,
 } from '@chordtune/chord-sheet';
 
+import type { DeezerPick } from './artist-field';
+
 export type Draft = {
   artist: string;
   title: string;
@@ -22,6 +24,8 @@ export type Draft = {
   /** Song source in the internal `${Chord}` format. */
   content: string;
   rhythms: Rhythm[];
+  /** The Deezer artist picked in the editor, if any; kept so a sign-in redirect does not lose it. */
+  deezerPick: DeezerPick | null;
 };
 
 const DRAFT_KEY = 'chordtune.draft.new';
@@ -38,10 +42,24 @@ export const EMPTY_DRAFT: Draft = {
   notes: '',
   content: '',
   rhythms: [],
+  deezerPick: null,
 };
 
 const text = (value: unknown) => (typeof value === 'string' ? value : '');
 const numberOrNull = (value: unknown) => (typeof value === 'number' ? value : null);
+
+function deezerPick(value: unknown): DeezerPick | null {
+  if (
+    value &&
+    typeof value === 'object' &&
+    typeof (value as Record<string, unknown>).deezerId === 'number' &&
+    typeof (value as Record<string, unknown>).name === 'string'
+  ) {
+    const { deezerId, name } = value as { deezerId: number; name: string };
+    return { deezerId, name };
+  }
+  return null;
+}
 
 /** The unsaved «new song» form; anything malformed falls back to empty fields. */
 export function loadDraft(): Draft | null {
@@ -63,6 +81,7 @@ export function loadDraft(): Draft | null {
       notes: text(data.notes),
       content: text(data.content),
       rhythms: Array.isArray(data.rhythms) ? data.rhythms.filter(isRhythm) : [],
+      deezerPick: deezerPick(data.deezerPick),
     };
   } catch {
     return null;

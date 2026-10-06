@@ -6,7 +6,9 @@ import { arrangementLike, arrangementSave } from '../db/schema';
 import { viewerState } from './social';
 
 export const WITH_DETAILS = {
-  song: { with: { artist: true } },
+  song: {
+    with: { artist: { columns: { id: true, name: true, slug: true, pictureSmallUrl: true } } },
+  },
   author: { columns: { id: true, name: true } },
 } as const;
 

@@ -40,7 +40,7 @@ import {
 } from './song-meta';
 import { clearDraft, EMPTY_DRAFT, loadDraft, saveDraft } from './use-draft';
 
-const { content: _emptyContent, ...EMPTY_FIELDS } = EMPTY_DRAFT;
+const { content: _emptyContent, deezerPick: _emptyDeezerPick, ...EMPTY_FIELDS } = EMPTY_DRAFT;
 const SAVED_PAUSE_MS = 700;
 
 /**
@@ -113,8 +113,9 @@ export function SongForm() {
     } else {
       const draft = loadDraft();
       if (draft) {
-        const { content, ...rest } = draft;
+        const { content, deezerPick: draftDeezerPick, ...rest } = draft;
         setFields(rest);
+        setDeezerPick(draftDeezerPick);
         replaceDoc(parse(content).doc);
       }
     }
@@ -126,9 +127,12 @@ export function SongForm() {
     if (!ready || editId) {
       return;
     }
-    const timer = setTimeout(() => saveDraft({ ...fields, content: serialize(doc) }), 400);
+    const timer = setTimeout(
+      () => saveDraft({ ...fields, deezerPick, content: serialize(doc) }),
+      400,
+    );
     return () => clearTimeout(timer);
-  }, [fields, doc, ready, editId]);
+  }, [fields, doc, deezerPick, ready, editId]);
 
   const update = (patch: Partial<SongFields>) => {
     // Tunings that share shapes (half-step-down/d-standard with standard, drop-c with drop-d)
@@ -294,13 +298,7 @@ export function SongForm() {
       id: '',
       name: fields.artist.trim(),
       slug: '',
-      deezerId: null,
-      pictureUrl: null,
       pictureSmallUrl: null,
-      wikidataId: null,
-      wiki: null,
-      enrichedAt: null,
-      createdAt: new Date(0),
     },
     stats: { views: 0, likes: 0, saves: 0 },
     me: null,
