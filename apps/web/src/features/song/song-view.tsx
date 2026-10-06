@@ -39,9 +39,11 @@ import { useStrumPlayer } from '@/features/rhythm/use-strum-player';
 import { TabStaff } from '@/features/tab/tab-staff';
 import { ZenMode } from '@/features/zen/zen-mode';
 import { resolveZenMode } from '@/features/zen/zen-view';
+import { Link } from '@/i18n/navigation';
 import type { ArrangementView } from '@/lib/trpc';
 import { CapoPicker } from './capo-picker';
 import { LineView, TabView } from './line-view';
+import { artistHref } from './links';
 import { SongActions } from './song-actions';
 import { SongDock } from './song-dock';
 import { SongHeader } from './song-header';
@@ -163,7 +165,16 @@ export function SongView({
     >
       {!preview && <SongHeader arrangement={arrangement} />}
       <header className="-mt-2 flex flex-col gap-1">
-        <p className="text-muted-foreground">{arrangement.artist.name}</p>
+        {preview || !arrangement.artist.slug ? (
+          <p className="text-muted-foreground">{arrangement.artist.name}</p>
+        ) : (
+          <Link
+            href={artistHref(arrangement.artist)}
+            className="w-fit text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {arrangement.artist.name}
+          </Link>
+        )}
         <h1 className="font-bold font-display text-3xl tracking-tight">{arrangement.song.title}</h1>
         {!preview && (
           <div className="mt-2">
