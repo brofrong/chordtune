@@ -6,7 +6,13 @@ import type { Database } from '../db';
 import { arrangement, artist } from '../db/schema';
 import { noopSearch } from '../search';
 import { createTestDb, createUser } from '../test/db';
-import { artistPage, deezerCandidates, enrichArtist, pickWiki } from './artist-profile';
+import {
+  artistPage,
+  deezerCandidates,
+  enrichArtist,
+  pickWiki,
+  relinkArtist,
+} from './artist-profile';
 import { type ArtistSources, noArtistSources, type Wiki } from './artist-sources';
 import { saveArrangement } from './save-arrangement';
 
@@ -167,5 +173,80 @@ describe('deezerCandidates', () => {
   test('keeps them for an admin relinking', async () => {
     await insertArtist({ deezerId: 4505880 });
     expect(await deezerCandidates(db, sources, 'кино', { includeLinked: true })).toHaveLength(2);
+  });
+});
+
+describe('relinkArtist', () => {
+  const sources: ArtistSources = {
+    ...noArtistSources,
+    getDeezerArtist: async (deezerId) =>
+      deezerId === 4505880
+        ? {
+            deezerId,
+            name: 'Кино',
+            pictureUrl: 'https://x/1000.jpg',
+            pictureSmallUrl: 'https://x/250.jpg',
+          }
+        : null,
+    getWiki: async () => WIKI,
+  };
+
+  test('stores the new links and fetches both sources again', async () => {
+    const row = await insertArtist({ wikidataId: 'Q1', wiki: {} });
+    await relinkArtist(db, noopSearch, sources, {
+      id: row.id,
+      deezerId: 4505880,
+      wikidataId: 'Q650555',
+    });
+    const [after] = await db.select().from(artist);
+    expect(after).toMatchObject({
+      name: 'Кино',
+      slug: 'kino',
+      deezerId: 4505880,
+      pictureUrl: 'https://x/1000.jpg',
+      pictureSmallUrl: 'https://x/250.jpg',
+      wikidataId: 'Q650555',
+      wiki: WIKI,
+    });
+  });
+
+  test('null clears a link', async () => {
+    const row = await insertArtist({
+      deezerId: 4505880,
+      pictureUrl: 'https://x/1000.jpg',
+      wikidataId: 'Q650555',
+      wiki: WIKI,
+    });
+    await relinkArtist(db, noopSearch, sources, { id: row.id, deezerId: null, wikidataId: null });
+    const [after] = await db.select().from(artist);
+    expect(after).toMatchObject({
+      deezerId: null,
+      pictureUrl: null,
+      pictureSmallUrl: null,
+      wikidataId: null,
+      wiki: null,
+    });
+  });
+
+  test('a Deezer artist linked to another artist of ours is a CONFLICT naming it', async () => {
+    await insertArtist({ name: 'Kino', slug: 'kino-2', deezerId: 4505880 });
+    const row = await insertArtist();
+    const error = await relinkArtist(db, noopSearch, sources, {
+      id: row.id,
+      deezerId: 4505880,
+      wikidataId: null,
+    }).catch((e: unknown) => e);
+    expect((error as TRPCError).code).toBe('CONFLICT');
+    expect((error as TRPCError).message).toContain('Kino');
+  });
+
+  test('an id Deezer does not know is NOT_FOUND', async () => {
+    const row = await insertArtist();
+    const error = await relinkArtist(db, noopSearch, sources, {
+      id: row.id,
+      deezerId: 1,
+      wikidataId: null,
+    }).catch((e: unknown) => e);
+    expect((error as TRPCError).code).toBe('NOT_FOUND');
   });
 });

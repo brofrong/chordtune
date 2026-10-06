@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { parseEmails } from './services/admin';
+
 const optional = () =>
   z
     .string()
@@ -12,6 +14,8 @@ const schema = z.object({
   API_PORT: z.coerce.number().int().default(4000),
   MEILI_URL: z.url().default('http://localhost:7700'),
   MEILI_KEY: z.string().optional(),
+  /** Who may fix artist links, by account email. */
+  ADMIN_EMAILS: z.string().default('').transform(parseEmails),
   WEB_ORIGINS: z
     .string()
     .default('http://localhost:3000')

@@ -1,9 +1,11 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-import { artistPage, deezerCandidates } from '../../services/artist-profile';
+import { env } from '../../env';
+import { isAdmin } from '../../services/admin';
+import { artistPage, deezerCandidates, relinkArtist } from '../../services/artist-profile';
 import { WIKI_LANGS } from '../../services/artist-sources';
-import { publicProcedure, router } from '../init';
+import { adminProcedure, publicProcedure, router } from '../init';
 import { fromSearch } from './shared';
 
 export const artistsRouter = router({
@@ -35,4 +37,31 @@ export const artistsRouter = router({
   bySlug: publicProcedure
     .input(z.object({ slug: z.string().max(200), locale: z.enum(WIKI_LANGS) }))
     .query(({ ctx, input }) => artistPage(ctx.db, input.slug, input.locale)),
+
+  /** Whether to offer «Change link»: the web page itself is rendered without the user's session. */
+  canEdit: publicProcedure.query(({ ctx }) => isAdmin(ctx.session?.user.email, env.ADMIN_EMAILS)),
+
+  searchWikidata: adminProcedure
+    .input(z.object({ q: z.string().max(100) }))
+    .query(async ({ ctx, input }) => {
+      try {
+        return await ctx.artistSources.searchWikidata(input.q);
+      } catch (error) {
+        console.error('Wikidata search failed', error);
+        throw new TRPCError({ code: 'SERVICE_UNAVAILABLE', message: 'wikidata-unavailable' });
+      }
+    }),
+
+  relink: adminProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        deezerId: z.number().int().positive().nullable(),
+        wikidataId: z
+          .string()
+          .regex(/^Q\d+$/)
+          .nullable(),
+      }),
+    )
+    .mutation(({ ctx, input }) => relinkArtist(ctx.db, ctx.search, ctx.artistSources, input)),
 });

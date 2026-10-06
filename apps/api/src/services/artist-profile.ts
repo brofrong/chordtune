@@ -1,8 +1,10 @@
 import { TRPCError } from '@trpc/server';
-import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, ne, sql } from 'drizzle-orm';
 
 import type { Database } from '../db';
 import { arrangement, artist, song } from '../db/schema';
+import type { SearchIndex } from '../search';
+import { syncArtist } from '../search/documents';
 import type { ArrangementListItem } from './arrangements';
 import {
   type ArtistSources,
@@ -114,4 +116,44 @@ export async function deezerCandidates(
     );
   const taken = new Set(linked.map((row) => row.deezerId));
   return candidates.filter((candidate) => !taken.has(candidate.deezerId));
+}
+
+/** An admin's fix of an artist's links; both sources are fetched again right away. */
+export async function relinkArtist(
+  db: Database,
+  search: SearchIndex,
+  sources: ArtistSources,
+  { id, deezerId, wikidataId }: { id: string; deezerId: number | null; wikidataId: string | null },
+) {
+  const row = await db.query.artist.findFirst({ where: { id } });
+  if (!row) {
+    throw new TRPCError({ code: 'NOT_FOUND', message: 'Artist not found' });
+  }
+  if (deezerId !== null) {
+    const [other] = await db
+      .select({ name: artist.name })
+      .from(artist)
+      .where(and(eq(artist.deezerId, deezerId), ne(artist.id, id)));
+    if (other) {
+      throw new TRPCError({ code: 'CONFLICT', message: `Already linked to ${other.name}` });
+    }
+  }
+  const deezer = deezerId === null ? null : await sources.getDeezerArtist(deezerId);
+  if (deezerId !== null && !deezer) {
+    throw new TRPCError({ code: 'NOT_FOUND', message: 'Deezer artist not found' });
+  }
+  const wiki = wikidataId ? await sources.getWiki(wikidataId) : null;
+  // The name and slug stay, so links to the artist keep working.
+  await db
+    .update(artist)
+    .set({
+      deezerId,
+      pictureUrl: deezer?.pictureUrl ?? null,
+      pictureSmallUrl: deezer?.pictureSmallUrl ?? null,
+      wikidataId,
+      wiki,
+      enrichedAt: new Date(),
+    })
+    .where(eq(artist.id, id));
+  await syncArtist(db, search, id);
 }

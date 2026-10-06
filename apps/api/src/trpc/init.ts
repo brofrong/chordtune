@@ -3,7 +3,9 @@ import superjson from 'superjson';
 
 import { auth, type Session } from '../auth';
 import { db } from '../db';
+import { env } from '../env';
 import { search } from '../search/client';
+import { isAdmin } from '../services/admin';
 import { artistSources } from '../services/artist-sources-client';
 
 export async function createContext({ req }: { req: Request }) {
@@ -23,4 +25,11 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
     throw new TRPCError({ code: 'UNAUTHORIZED' });
   }
   return next({ ctx: { ...ctx, session: ctx.session } });
+});
+
+export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (!isAdmin(ctx.session.user.email, env.ADMIN_EMAILS)) {
+    throw new TRPCError({ code: 'FORBIDDEN' });
+  }
+  return next();
 });

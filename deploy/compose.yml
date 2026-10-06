@@ -16,6 +16,7 @@ services:
       WEB_ORIGINS: https://${DOMAIN},capacitor://localhost,https://localhost
       MEILI_URL: http://meilisearch:7700
       MEILI_KEY: ${MEILI_MASTER_KEY:?}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
     depends_on:
       postgres:
         condition: service_healthy
