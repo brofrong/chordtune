@@ -48,6 +48,35 @@ describe('new users', () => {
     const [row] = await t.db.select().from(user).where(eq(user.id, userId));
     expect(row?.username).toBe('ivan_petrov');
   });
+
+  // Regression: `usernameGenerator` must run before the `username` plugin's own `create.before`
+  // hook, which validates whatever raw hint it finds verbatim and throws on anything that isn't
+  // already clean and free (see the why-comment on `usernameGenerator` in `./username.ts`). A raw
+  // hint such as a Telegram display name ("Vasya TG!") is exactly the case `usernameHints` exists
+  // to clean up, so it must survive, not throw.
+  test('a raw username hint (e.g. from Telegram) is cleaned up, not rejected', async () => {
+    const t = await createTestAuth();
+    const ctx = await t.auth.$context;
+    const created = await ctx.internalAdapter.createUser(
+      { email: 'tg-1@users.invalid', name: 'Вася', username: 'Vasya TG!' } as never,
+      { method: 'email-otp' },
+    );
+    expect(created.username).toBe('vasya_tg');
+  });
+
+  test('a raw hint colliding with an existing username is deduped, not rejected', async () => {
+    const t = await createTestAuth();
+    const ctx = await t.auth.$context;
+    await ctx.internalAdapter.createUser(
+      { email: 'tg-1@users.invalid', name: 'Вася', username: 'Vasya TG!' } as never,
+      { method: 'email-otp' },
+    );
+    const second = await ctx.internalAdapter.createUser(
+      { email: 'tg-2@users.invalid', name: 'Вася', username: 'Vasya TG!' } as never,
+      { method: 'email-otp' },
+    );
+    expect(second.username).toBe('vasya_tg2');
+  });
 });
 
 describe('backfillUsernames', () => {

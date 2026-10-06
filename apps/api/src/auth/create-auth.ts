@@ -10,7 +10,7 @@ import { markMailFailed } from '../mail/failures';
 import { otpMessage, pickLocale } from '../mail/otp-message';
 import type { AuthConfig } from './config';
 import { isPlaceholderEmail } from './placeholder-email';
-import { isValidUsername, uniqueUsername, usernameBase, usernameHints } from './username';
+import { isValidUsername, usernameGenerator } from './username';
 
 export type AuthDeps = {
   db: Database;
@@ -42,19 +42,6 @@ export function createAuth({
     logger,
     database: drizzleAdapter(db, { provider: 'pg', schema: tables }),
     trustedOrigins,
-    databaseHooks: {
-      user: {
-        create: {
-          // Every user gets a username at creation; `username` may arrive as a hint (Telegram).
-          before: async (data) => ({
-            data: {
-              ...data,
-              username: await uniqueUsername(db, usernameBase(usernameHints(data))),
-            },
-          }),
-        },
-      },
-    },
     plugins: [
       emailOTP({
         otpLength: 6,
@@ -90,6 +77,9 @@ export function createAuth({
           }
         },
       }),
+      // Must come before `username(...)`: its own `create.before` hook needs to see an already
+      // clean, unique username, not a raw hint (see the why-comment on `usernameGenerator`).
+      usernameGenerator(db),
       username({
         minUsernameLength: 3,
         maxUsernameLength: 30,

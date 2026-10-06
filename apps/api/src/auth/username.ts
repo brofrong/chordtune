@@ -1,3 +1,4 @@
+import type { BetterAuthPlugin } from 'better-auth';
 import { eq, isNull, like, or } from 'drizzle-orm';
 
 import type { Database } from '../db';
@@ -95,6 +96,41 @@ export async function uniqueUsername(db: Database, base: string): Promise<string
 export function usernameHints(data: { email: string; name: string; username?: string | null }) {
   const local = isPlaceholderEmail(data.email) ? null : data.email.split('@')[0];
   return [data.username, local, data.name].filter((value): value is string => Boolean(value));
+}
+
+/**
+ * Assigns a clean, unique username to every new user.
+ *
+ * Better Auth runs plugin-contributed `databaseHooks` (built from each plugin's `init()`, in
+ * `plugins` array order) before the root-level `databaseHooks` option — see
+ * `better-auth/dist/context/helpers.mjs` (`runPluginInit`, which pushes plugin hooks first and
+ * `options.databaseHooks` last) and `better-auth/dist/db/with-hooks.mjs` (`createWithHooks`,
+ * which runs them in that order). The `username` plugin's own `create.before` hook validates and
+ * uniqueness-checks whatever raw `username` hint already sits on the data (e.g. a Telegram
+ * display name), and throws if it isn't already a clean, free value. So this has to be a plugin
+ * registered *before* `username(...)` in the `plugins` array, not a root-level `databaseHooks`
+ * entry (which would run after and arrive too late to clean the hint first).
+ */
+export function usernameGenerator(db: Database): BetterAuthPlugin {
+  return {
+    id: 'username-generator',
+    init: () => ({
+      options: {
+        databaseHooks: {
+          user: {
+            create: {
+              before: async (data) => ({
+                data: {
+                  ...data,
+                  username: await uniqueUsername(db, usernameBase(usernameHints(data))),
+                },
+              }),
+            },
+          },
+        },
+      },
+    }),
+  };
 }
 
 /** Gives a username to users created before usernames existed. Safe to run on every start. */
