@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 
 import { Label } from '@/components/ui/label';
+import { useSession } from '@/features/auth/use-session';
 import { ArtistCover } from '@/features/songs/song-card';
 import { formatCount } from '@/lib/format';
 import { useTRPC } from '@/lib/trpc';
@@ -43,6 +44,7 @@ export function ArtistField({
 }) {
   const t = useTranslations('editor');
   const trpc = useTRPC();
+  const session = useSession();
   const typed = value.trim();
   const q = useDebouncedValue(typed, 150);
   const deezerQ = useDebouncedValue(typed, 300);
@@ -52,9 +54,11 @@ export function ArtistField({
     retry: false,
     placeholderData: keepPreviousData,
   });
+  // Deezer's quota is per server IP, so the endpoint requires sign-in; signed-out users just see
+  // no Deezer group instead of an error.
   const deezer = useQuery({
     ...trpc.artists.searchDeezer.queryOptions({ q: deezerQ }),
-    enabled: deezerQ.length >= 2,
+    enabled: deezerQ.length >= 2 && Boolean(session.data),
     retry: false,
     placeholderData: keepPreviousData,
   });

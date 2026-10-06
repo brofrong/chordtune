@@ -28,7 +28,7 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
 });
 
 export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (!isAdmin(ctx.session.user.email, env.ADMIN_EMAILS)) {
+  if (!isAdmin(ctx.session.user, env.ADMIN_EMAILS)) {
     throw new TRPCError({ code: 'FORBIDDEN' });
   }
   return next();
