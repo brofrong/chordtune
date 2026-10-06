@@ -1,7 +1,7 @@
 import { drizzleAdapter } from '@better-auth/drizzle-adapter/relations-v2';
 import { betterAuth } from 'better-auth';
 import { APIError } from 'better-auth/api';
-import { bearer, emailOTP, username } from 'better-auth/plugins';
+import { bearer, emailOTP, genericOAuth, username } from 'better-auth/plugins';
 
 import type { Database } from '../db';
 import { tables } from '../db/schema';
@@ -10,6 +10,7 @@ import { markMailFailed } from '../mail/failures';
 import { otpMessage, pickLocale } from '../mail/otp-message';
 import type { AuthConfig } from './config';
 import { isPlaceholderEmail } from './placeholder-email';
+import { genericProviders, socialProviders, TRUSTED_PROVIDERS } from './providers';
 import { isValidUsername, usernameGenerator } from './username';
 
 export type AuthDeps = {
@@ -42,6 +43,19 @@ export function createAuth({
     logger,
     database: drizzleAdapter(db, { provider: 'pg', schema: tables }),
     trustedOrigins,
+    socialProviders: socialProviders(config),
+    account: {
+      accountLinking: {
+        enabled: true,
+        trustedProviders: [...TRUSTED_PROVIDERS],
+        // Linking from the profile is done while signed in, so a different email there is fine —
+        // Telegram and VK accounts often have none.
+        allowDifferentEmails: true,
+        // We guard the last sign-in method ourselves (Task 7): Better Auth counts only provider
+        // accounts and would refuse to unlink a provider from a user who also signs in by email.
+        allowUnlinkingAll: true,
+      },
+    },
     plugins: [
       emailOTP({
         otpLength: 6,
@@ -87,6 +101,7 @@ export function createAuth({
         displayUsername: false,
         usernameValidator: isValidUsername,
       }),
+      ...(config.yandex ? [genericOAuth({ config: genericProviders(config) })] : []),
       // Capacitor WebViews run on capacitor:// or https://localhost, where third-party cookies to the
       // API are unreliable, so every build authenticates with a bearer token.
       bearer(),
