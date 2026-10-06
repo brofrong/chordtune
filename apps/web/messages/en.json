@@ -157,6 +157,17 @@
     "unreachable": "{count, plural, one {# note} other {# notes}} can't be played {fret, plural, =0 {without a capo} other {with a capo on fret {fret}}}",
     "asciiTabCapo": "{fret, plural, =0 {Tab for playing without a capo} other {Tab for a capo on fret {fret}}}"
   },
+  "artist": {
+    "back": "Back",
+    "loading": "Loading…",
+    "notFound": "Artist not found",
+    "songCount": "{count, plural, one {# song} other {# songs}}",
+    "songs": "Songs on ChordTune",
+    "empty": "No published songs yet",
+    "more": "More",
+    "less": "Less",
+    "source": "Source: Wikipedia · CC BY-SA"
+  },
   "editor": {
     "newTitle": "New song",
     "back": "Back",

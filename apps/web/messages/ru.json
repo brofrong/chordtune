@@ -157,6 +157,17 @@
     "unreachable": "{count, plural, one {# ноту} few {# ноты} many {# нот} other {# ноты}} не сыграть {fret, plural, =0 {без каподастра} other {с каподастром на {fret}-м ладу}}",
     "asciiTabCapo": "{fret, plural, =0 {Таб для игры без каподастра} other {Таб для каподастра на {fret}-м ладу}}"
   },
+  "artist": {
+    "back": "Назад",
+    "loading": "Загружаю…",
+    "notFound": "Исполнитель не найден",
+    "songCount": "{count, plural, one {# песня} few {# песни} many {# песен} other {# песни}}",
+    "songs": "Песни на ChordTune",
+    "empty": "Пока нет опубликованных разборов",
+    "more": "Ещё",
+    "less": "Свернуть",
+    "source": "Источник: Википедия · CC BY-SA"
+  },
   "editor": {
     "newTitle": "Новая песня",
     "back": "Назад",
