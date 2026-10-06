@@ -47,6 +47,19 @@ describe('authConfig', () => {
   });
 });
 
+describe('AuthMethods shape', () => {
+  // The tRPC `auth.methods` router is a one-liner, `authMethods(authConfig(env))`, computed once
+  // at module load — it needs real env to import, so this is the stand-in for testing it directly.
+  test('is exactly what the tRPC `auth.methods` router returns for a bare config', () => {
+    expect(authMethods(authConfig(base))).toEqual({
+      email: true,
+      providers: [],
+      telegramBot: null,
+      passkey: { web: true, ios: false, android: false },
+    });
+  });
+});
+
 describe('androidOrigin', () => {
   test('accepts colon-separated and plain hex', () => {
     const plain = 'ff'.repeat(32);

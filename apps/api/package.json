@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.7.6",
+    "@better-auth/passkey": "1.7.6",
     "@chordtune/chord-sheet": "workspace:*",
     "@hono/trpc-server": "^0.4.2",
     "@trpc/server": "^11.19.0",

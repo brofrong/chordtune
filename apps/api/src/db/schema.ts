@@ -14,7 +14,7 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import type { Wiki } from '../services/artist-sources';
-import { account, authRelations, session, user, verification } from './auth-schema';
+import { account, authRelations, passkey, session, user, verification } from './auth-schema';
 
 export * from './auth-schema';
 
@@ -158,7 +158,7 @@ export const appConfig = pgTable('app_config', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-export const tables = { user, session, account, verification };
+export const tables = { user, session, account, verification, passkey };
 
 const appRelations = defineRelations(
   {

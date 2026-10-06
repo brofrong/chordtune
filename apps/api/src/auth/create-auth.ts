@@ -1,7 +1,8 @@
 import { drizzleAdapter } from '@better-auth/drizzle-adapter/relations-v2';
+import { passkey } from '@better-auth/passkey';
 import { betterAuth } from 'better-auth';
-import { APIError } from 'better-auth/api';
-import { bearer, emailOTP, genericOAuth, username } from 'better-auth/plugins';
+import { APIError, createAuthMiddleware, dispatchAuthEndpoint, getSession } from 'better-auth/api';
+import { bearer, emailOTP, genericOAuth, oneTimeToken, username } from 'better-auth/plugins';
 
 import type { Database } from '../db';
 import { tables } from '../db/schema';
@@ -11,6 +12,7 @@ import { otpMessage, pickLocale } from '../mail/otp-message';
 import type { AuthConfig } from './config';
 import { isPlaceholderEmail } from './placeholder-email';
 import { genericProviders, socialProviders, TRUSTED_PROVIDERS } from './providers';
+import { LAST_SIGN_IN_METHOD, signInMethodCount } from './sign-in-methods';
 import { telegram } from './telegram-plugin';
 import { isValidUsername, usernameGenerator } from './username';
 
@@ -56,6 +58,29 @@ export function createAuth({
         // accounts and would refuse to unlink a provider from a user who also signs in by email.
         allowUnlinkingAll: true,
       },
+    },
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== '/unlink-account' && ctx.path !== '/passkey/delete-passkey') {
+          return;
+        }
+        // `getSessionFromCtx` calls `getSession()` as a plain function, which skips the
+        // before-hook pipeline — so it never sees the `bearer` plugin's header→cookie
+        // translation and returns no session for bearer-authenticated callers. Re-enter the
+        // pipeline with `dispatchAuthEndpoint` instead, as its own doc comment recommends.
+        const session = (await dispatchAuthEndpoint(getSession(), {
+          headers: ctx.headers,
+          context: ctx.context,
+          method: 'GET',
+          asResponse: false,
+        }).catch(() => null)) as { user: { id: string } } | null;
+        if (session && (await signInMethodCount(db, session.user.id)) <= 1) {
+          throw new APIError('BAD_REQUEST', {
+            message: 'This is the last way to sign in',
+            code: LAST_SIGN_IN_METHOD,
+          });
+        }
+      }),
     },
     plugins: [
       emailOTP({
@@ -104,6 +129,9 @@ export function createAuth({
       }),
       ...(config.yandex ? [genericOAuth({ config: genericProviders(config) })] : []),
       ...(config.telegram ? [telegram({ botToken: config.telegram.botToken })] : []),
+      // The system browser signs in on the web and hands the app a one-time token by deep link.
+      oneTimeToken({ expiresIn: 3 }),
+      passkey({ rpID: config.passkey.rpID, rpName: 'ChordTune', origin: config.passkey.origins }),
       // Capacitor WebViews run on capacitor:// or https://localhost, where third-party cookies to the
       // API are unreliable, so every build authenticates with a bearer token.
       bearer(),
