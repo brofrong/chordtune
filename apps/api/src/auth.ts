@@ -1,22 +1,18 @@
-import { drizzleAdapter } from '@better-auth/drizzle-adapter/relations-v2';
-import { betterAuth } from 'better-auth';
-import { bearer } from 'better-auth/plugins';
-
+import { authConfig } from './auth/config';
+import { createAuth } from './auth/create-auth';
 import { authSecret } from './config-store';
 import { db } from './db';
-import { tables } from './db/schema';
 import { env } from './env';
+import { createMailer } from './mail';
 
-export const auth = betterAuth({
-  baseURL: env.BETTER_AUTH_URL,
+export const auth = createAuth({
+  db,
   // Generated on first start and kept in the database, so deployments need no secret in env.
   secret: await authSecret(db),
-  database: drizzleAdapter(db, { provider: 'pg', schema: tables }),
+  baseURL: env.BETTER_AUTH_URL,
   trustedOrigins: env.WEB_ORIGINS,
-  emailAndPassword: { enabled: true },
-  // Capacitor WebViews run on capacitor:// or https://localhost, where third-party cookies to the
-  // API are unreliable, so native builds authenticate with a bearer token instead.
-  plugins: [bearer()],
+  config: authConfig(env),
+  mailer: createMailer({ smtpUrl: env.SMTP_URL, from: env.MAIL_FROM }),
 });
 
 export type Session = typeof auth.$Infer.Session;
