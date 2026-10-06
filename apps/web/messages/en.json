@@ -176,7 +176,7 @@
     "saving": "Saving…",
     "artist": "Artist",
     "artistPlaceholder": "e.g. Radiohead",
-    "createArtist": "New artist “{name}”",
+    "createArtist": "New artist “{name}” without a photo",
     "songCount": "{count, plural, one {# song} other {# songs}}",
     "title": "Title",
     "titlePlaceholder": "Song title",

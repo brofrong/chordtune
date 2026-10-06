@@ -1,47 +1,88 @@
 'use client';
 
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { Plus } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 
 import { Label } from '@/components/ui/label';
+import { ArtistCover } from '@/features/songs/song-card';
+import { formatCount } from '@/lib/format';
 import { useTRPC } from '@/lib/trpc';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { SuggestField } from './suggest-field';
 
-type Option = { id: string | null; name: string; songCount: number };
+export type DeezerPick = { deezerId: number; name: string };
 
-/** Artist name with suggestions; reports the id of an existing artist with exactly this name. */
+type Option =
+  | { kind: 'ours'; id: string; name: string; songCount: number; picture: string | null }
+  | { kind: 'deezer'; deezerId: number; name: string; fans: number; picture: string | null }
+  | { kind: 'new'; name: string };
+
+const optionKey = (option: Option) =>
+  option.kind === 'ours'
+    ? option.id
+    : option.kind === 'deezer'
+      ? `deezer:${option.deezerId}`
+      : `new:${option.name}`;
+
+/**
+ * Artist name with suggestions: our artists, then Deezer's, then a new one by name. Reports the id
+ * of our artist with exactly this name, and a Deezer artist when one is picked.
+ */
 export function ArtistField({
   value,
   onValueChange,
   onMatch,
+  onDeezerPick,
 }: {
   value: string;
   onValueChange: (value: string) => void;
   onMatch: (artistId: string | null) => void;
+  onDeezerPick: (pick: DeezerPick | null) => void;
 }) {
   const t = useTranslations('editor');
   const trpc = useTRPC();
   const typed = value.trim();
   const q = useDebouncedValue(typed, 150);
+  const deezerQ = useDebouncedValue(typed, 300);
   const search = useQuery({
     ...trpc.artists.search.queryOptions({ q }),
     enabled: q.length > 0,
     retry: false,
     placeholderData: keepPreviousData,
   });
-  const results: Option[] = typed ? (search.data ?? []) : [];
-  const exact = results.find((artist) => artist.name.toLowerCase() === typed.toLowerCase());
+  const deezer = useQuery({
+    ...trpc.artists.searchDeezer.queryOptions({ q: deezerQ }),
+    enabled: deezerQ.length >= 2,
+    retry: false,
+    placeholderData: keepPreviousData,
+  });
+  const ours = typed ? (search.data ?? []) : [];
+  const exact = ours.find((artist) => artist.name.toLowerCase() === typed.toLowerCase());
 
   useEffect(() => onMatch(exact?.id ?? null), [exact?.id, onMatch]);
 
-  const items: Option[] =
-    typed && !exact ? [...results, { id: null, name: typed, songCount: 0 }] : results;
+  const items: Option[] = [
+    ...ours.map((artist) => ({
+      kind: 'ours' as const,
+      id: artist.id,
+      name: artist.name,
+      songCount: artist.songCount,
+      picture: artist.pictureSmallUrl,
+    })),
+    ...(typed.length >= 2 ? (deezer.data ?? []) : []).map((candidate) => ({
+      kind: 'deezer' as const,
+      deezerId: candidate.deezerId,
+      name: candidate.name,
+      fans: candidate.fans,
+      picture: candidate.pictureSmallUrl,
+    })),
+    ...(typed && !exact ? [{ kind: 'new' as const, name: typed }] : []),
+  ];
   const status = search.isError
     ? t('searchUnavailable')
-    : search.isFetching && results.length === 0 && typed
+    : search.isFetching && ours.length === 0 && typed
       ? t('searching')
       : null;
 
@@ -53,21 +94,36 @@ export function ArtistField({
         value={value}
         onValueChange={onValueChange}
         items={items}
-        itemKey={(item) => item.id ?? `new:${item.name}`}
+        itemKey={optionKey}
         itemText={(item) => item.name}
+        onItemPick={(item) =>
+          onDeezerPick(item.kind === 'deezer' ? { deezerId: item.deezerId, name: item.name } : null)
+        }
         placeholder={t('artistPlaceholder')}
         status={status}
         renderItem={(item) =>
-          item.id === null ? (
+          item.kind === 'new' ? (
             <span className="flex items-center gap-2 text-muted-foreground">
               <Plus className="size-4" />
               {t('createArtist', { name: item.name })}
             </span>
           ) : (
-            <span className="flex w-full items-baseline justify-between gap-2">
-              <span>{item.name}</span>
-              <span className="text-muted-foreground text-xs">
-                {t('songCount', { count: item.songCount })}
+            <span className="flex w-full items-center gap-2">
+              <ArtistCover
+                artist={item.name}
+                picture={item.picture}
+                className="size-7 rounded-full text-[10px]"
+              />
+              <span className="min-w-0 flex-1 truncate">{item.name}</span>
+              <span className="flex shrink-0 items-center gap-1 text-muted-foreground text-xs">
+                {item.kind === 'ours' ? (
+                  t('songCount', { count: item.songCount })
+                ) : (
+                  <>
+                    Deezer · <Users className="size-3" />
+                    {formatCount(item.fans)}
+                  </>
+                )}
               </span>
             </span>
           )

@@ -15,6 +15,7 @@ export function SuggestField<T>({
   renderItem,
   status,
   placeholder,
+  onItemPick,
 }: {
   id: string;
   value: string;
@@ -25,6 +26,8 @@ export function SuggestField<T>({
   renderItem: (item: T) => React.ReactNode;
   status: React.ReactNode;
   placeholder?: string;
+  /** Called when an item is chosen, by pointer or Enter: Base UI commits Enter by clicking the highlighted item. */
+  onItemPick?: (item: T) => void;
 }) {
   return (
     <Autocomplete.Root
@@ -54,6 +57,7 @@ export function SuggestField<T>({
                 <Autocomplete.Item
                   key={itemKey(item)}
                   value={item}
+                  onClick={() => onItemPick?.(item)}
                   className="flex cursor-default select-none items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none data-highlighted:bg-accent data-highlighted:text-accent-foreground"
                 >
                   {renderItem(item)}

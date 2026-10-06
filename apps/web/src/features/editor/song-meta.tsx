@@ -19,7 +19,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Textarea } from '@/components/ui/textarea';
 import { DEFAULT_BPM } from '@/features/rhythm/playback';
 import { ArtistCover } from '@/features/songs/song-card';
-import { ArtistField } from './artist-field';
+import { ArtistField, type DeezerPick } from './artist-field';
 import { SongTitleField } from './song-title-field';
 import type { Draft } from './use-draft';
 
@@ -80,6 +80,7 @@ export function SongMetaSheet({
   onKeepWritten,
   artistId,
   onArtistMatch,
+  onDeezerPick,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -92,6 +93,7 @@ export function SongMetaSheet({
   onKeepWritten: () => void;
   artistId: string | null;
   onArtistMatch: (id: string | null) => void;
+  onDeezerPick: (pick: DeezerPick | null) => void;
 }) {
   const t = useTranslations('editor');
   const tTuner = useTranslations('tuner');
@@ -125,6 +127,7 @@ export function SongMetaSheet({
               value={fields.artist}
               onValueChange={(artist) => onChange({ artist })}
               onMatch={onArtistMatch}
+              onDeezerPick={onDeezerPick}
             />
             <SongTitleField
               value={fields.title}

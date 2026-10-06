@@ -176,7 +176,7 @@
     "saving": "Сохраняю…",
     "artist": "Исполнитель",
     "artistPlaceholder": "Например, Кино",
-    "createArtist": "Новый исполнитель «{name}»",
+    "createArtist": "Новый исполнитель «{name}» без фото",
     "songCount": "{count, plural, one {# песня} few {# песни} many {# песен} other {# песни}}",
     "title": "Название",
     "titlePlaceholder": "Название песни",

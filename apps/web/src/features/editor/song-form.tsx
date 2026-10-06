@@ -27,6 +27,7 @@ import { songHref } from '@/features/song/links';
 import { SongView } from '@/features/song/song-view';
 import { useRouter } from '@/i18n/navigation';
 import { type ArrangementView, useTRPC } from '@/lib/trpc';
+import type { DeezerPick } from './artist-field';
 import { ChordEditor, unknownRhythmKeys } from './chord-editor';
 import { SaveButton, type SaveState } from './save-button';
 import {
@@ -62,6 +63,7 @@ export function SongForm() {
   const [doc, setDoc] = useState<SongDoc>(() => parse('').doc);
   const [docVersion, setDocVersion] = useState(0);
   const [artistId, setArtistId] = useState<string | null>(null);
+  const [deezerPick, setDeezerPick] = useState<DeezerPick | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [metaOpen, setMetaOpen] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>('idle');
@@ -242,7 +244,11 @@ export function SongForm() {
       Object.entries(fields.voicings).filter(([chord]) => chords.includes(chord)),
     );
     const input = {
-      artist: { name: artist },
+      // A Deezer pick counts only while the field still holds the picked name.
+      artist:
+        deezerPick && deezerPick.name === artist
+          ? { deezerId: deezerPick.deezerId, name: artist }
+          : { name: artist },
       song: { title },
       content: serialize(doc),
       rhythms: fields.rhythms,
@@ -370,6 +376,7 @@ export function SongForm() {
         onKeepWritten={keepWritten}
         artistId={artistId}
         onArtistMatch={setArtistId}
+        onDeezerPick={setDeezerPick}
       />
     </div>
   );
