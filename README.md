@@ -19,6 +19,10 @@ bun run dev                   # web on :3000, api on :4000
 The API applies database migrations on start and generates its auth secret on first start, keeping
 it in the `app_config` table.
 
+Artist photos come from Deezer and descriptions from Wikipedia, fetched when an artist is
+created; `bun run --cwd apps/api artists:link` links artists created before that. Accounts listed
+in `ADMIN_EMAILS` can fix an artist's links from its page.
+
 ## Checks
 
 ```sh
@@ -66,6 +70,7 @@ With `PUBLIC_URL` the image also carries the mobile bundle of its commit at
 cp .env.example .env          # domain, image version, passwords
 docker compose up -d
 docker compose exec app sh -c 'cd /app/apps/api && bun src/scripts/reindex.ts'   # rebuild search from Postgres
+docker compose exec app sh -c 'cd /app/apps/api && bun src/scripts/link-artists.ts'   # once: photos and descriptions for existing artists
 ```
 
 ## Release
