@@ -18,7 +18,7 @@ import type { Database } from '../db';
 import { arrangement, artist, song } from '../db/schema';
 import { slugify } from '../lib/translit';
 import type { SearchIndex } from '../search';
-import { syncArrangement } from '../search/documents';
+import { syncArrangement, syncArtist } from '../search/documents';
 import { type ArtistSources, type DeezerArtist, noArtistSources } from './artist-sources';
 
 export const MAX_CONTENT_LENGTH = 50_000;
@@ -75,22 +75,29 @@ async function freeSlug(name: string, taken: (slug: string) => Promise<boolean>)
   }
 }
 
+type ArtistRow = typeof artist.$inferSelect;
+
+/**
+ * Resolves the artist row for the save. `linked` is true only when an existing artist (matched by
+ * name) just got its first Deezer link: its other search documents need a re-sync, since they keep
+ * the old (missing) picture otherwise.
+ */
 async function resolveArtist(
   tx: Transaction,
   input: ArrangementInput['artist'],
   deezer: DeezerArtist | null,
-) {
+): Promise<{ row: ArtistRow; linked: boolean }> {
   if ('id' in input) {
     const found = await tx.query.artist.findFirst({ where: { id: input.id } });
     if (!found) {
       throw new TRPCError({ code: 'NOT_FOUND', message: 'Artist not found' });
     }
-    return found;
+    return { row: found, linked: false };
   }
   if (deezer) {
     const [linked] = await tx.select().from(artist).where(eq(artist.deezerId, deezer.deezerId));
     if (linked) {
-      return linked;
+      return { row: linked, linked: false };
     }
   }
   const name = deezer?.name ?? input.name;
@@ -106,14 +113,16 @@ async function resolveArtist(
   if (existing) {
     // Names are unique, so a namesake linked to another Deezer artist stays as it is.
     if (!pictures || existing.deezerId !== null) {
-      return existing;
+      return { row: existing, linked: false };
     }
+    // Reset enrichedAt: the background enrichment runs again, now able to look the artist up by
+    // its reliable Deezer id instead of by name.
     const [linked] = await tx
       .update(artist)
-      .set(pictures)
+      .set({ ...pictures, enrichedAt: null })
       .where(eq(artist.id, existing.id))
       .returning();
-    return linked ?? existing;
+    return { row: linked ?? existing, linked: true };
   }
   const slug = await freeSlug(name, async (candidate) =>
     Boolean(await tx.$count(artist, eq(artist.slug, candidate))),
@@ -125,7 +134,7 @@ async function resolveArtist(
   if (!created) {
     throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
   }
-  return created;
+  return { row: created, linked: false };
 }
 
 async function resolveSong(tx: Transaction, artistId: string, input: ArrangementInput['song']) {
@@ -195,7 +204,7 @@ export async function saveArrangement(
       : null;
 
   const saved = await db.transaction(async (tx) => {
-    const artistRow = await resolveArtist(tx, input.artist, deezer);
+    const { row: artistRow, linked: artistLinked } = await resolveArtist(tx, input.artist, deezer);
     const songRow = await resolveSong(tx, artistRow.id, input.song);
     const chords = chordList(doc);
     const values = {
@@ -243,9 +252,13 @@ export async function saveArrangement(
       songSlug: songRow.slug,
       artistId: artistRow.id,
       artistEnriched: artistRow.enrichedAt !== null,
+      artistLinked,
     };
   });
 
   await syncArrangement(db, search, saved.id);
+  if (saved.artistLinked) {
+    await syncArtist(db, search, saved.artistId);
+  }
   return saved;
 }

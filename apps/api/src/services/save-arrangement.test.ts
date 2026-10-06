@@ -3,10 +3,22 @@ import { TRPCError } from '@trpc/server';
 
 import type { Database } from '../db';
 import { artist, song } from '../db/schema';
-import { noopSearch } from '../search';
+import { type ArrangementDoc, type ArtistDoc, noopSearch, type SearchIndex } from '../search';
 import { createTestDb, createUser } from '../test/db';
 import { type ArtistSources, type DeezerArtist, noArtistSources } from './artist-sources';
 import { type ArrangementInput, arrangementInput, saveArrangement } from './save-arrangement';
+
+/** Records what gets pushed to search, instead of actually talking to Meilisearch. */
+function recordingSearch() {
+  const artists: ArtistDoc[] = [];
+  const arrangements: ArrangementDoc[] = [];
+  const search: SearchIndex = {
+    ...noopSearch,
+    upsertArtist: async (doc) => void artists.push(doc),
+    upsertArrangement: async (doc) => void arrangements.push(doc),
+  };
+  return { search, artists, arrangements };
+}
 
 const base: ArrangementInput = {
   artist: { name: 'Noize MC' },
@@ -304,6 +316,36 @@ describe('saveArrangement with a Deezer pick', () => {
       ['Кино', null],
       ['Сплин', null],
     ]);
+  });
+
+  test('re-syncs the artist’s other arrangements when a save links it to Deezer', async () => {
+    const first = await saveArrangement(db, noopSearch, {
+      authorId,
+      input: { ...base, artist: { name: 'Кино' }, song: { title: 'Кукушка' } },
+    });
+    const second = await saveArrangement(db, noopSearch, {
+      authorId,
+      input: { ...base, artist: { name: 'Кино' }, song: { title: 'Группа крови' } },
+    });
+
+    const { search, arrangements } = recordingSearch();
+    const saved = await saveArrangement(
+      db,
+      search,
+      {
+        authorId,
+        input: { ...base, artist: { deezerId: 4505880, name: 'Кино' }, song: { title: 'Звезда' } },
+      },
+      deezer([KINO]),
+    );
+
+    const byId = new Map(arrangements.map((doc) => [doc.id, doc]));
+    expect(byId.get(first.id)?.artistPictureSmallUrl).toBe(KINO.pictureSmallUrl);
+    expect(byId.get(second.id)?.artistPictureSmallUrl).toBe(KINO.pictureSmallUrl);
+
+    const [row] = await db.select().from(artist);
+    expect(row?.enrichedAt).toBeNull();
+    expect(saved.artistEnriched).toBe(false);
   });
 
   test('the input accepts a Deezer pick and keeps it apart from a plain name', () => {
