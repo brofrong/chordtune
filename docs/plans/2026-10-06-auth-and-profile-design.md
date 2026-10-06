@@ -82,7 +82,7 @@ SMTP-провайдер не зашит: Unisender Go, Resend, Brevo, SES — л
 4. Шаг кода: одно поле на 6 цифр, `autocomplete="one-time-code"`, отправка на шестой цифре,
    «Отправить ещё раз» через 60 секунд, «Изменить почту».
 
-**OAuth.** Редирект `signIn.social` / `signIn.oauth2` с `callbackURL` на текущую страницу.
+**OAuth.** Редирект `signIn.social` (Яндекс тоже: в Better Auth 1.7 genericOAuth-провайдеры идут через него) с `callbackURL` на текущую страницу.
 Веб ходит в API через свой домен (rewrites Next), после возврата сессия поднимается по
 cookie, а bearer-плагин отдаёт токен в `set-auth-token` — `lib/auth-client.ts` его уже
 сохраняет. Черновик новой песни в `localStorage` переживает редирект.
@@ -121,7 +121,7 @@ Telegram на мобильной странице — виджет в режим
 
 **Привязка сервиса из приложения.** Приложение по своему bearer-токену получает одноразовый
 токен, открывает `/auth/mobile?mode=link&provider=<p>&ott=<t>&state=<s>`; страница меняет
-токен на сессию в браузере, запускает `linkSocial` / `oauth2.link` / привязку Telegram,
+токен на сессию в браузере, запускает `linkSocial` / привязку Telegram,
 после колбэка — `app.chordtune://auth?linked=<p>&state=<s>`.
 
 Разбор deep link и проверка `state` — чистая функция в `features/auth/mobile-link.ts`.
@@ -226,7 +226,7 @@ passkey и смену почты).
 Раздел «Авторизация» в README:
 
 - колбэки: `https://<домен>/api/auth/callback/google`, `…/callback/vk`,
-  `…/oauth2/callback/yandex`;
+  `…/callback/yandex`;
 - Яндекс — oauth.yandex.ru, доступ к email и аватару;
 - VK — id.vk.com, веб-приложение, доверенный redirect URL;
 - Google — Cloud Console → OAuth consent screen → Credentials → Web client;

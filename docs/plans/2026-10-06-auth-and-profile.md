@@ -994,7 +994,7 @@ git commit -m "Give every user a username"
   - `genericProviders(config: AuthConfig)` — массив для `genericOAuth({ config })`
   - `vkProfileToUser(profile: { user: { user_id: string | number; email?: string } }): { email?: string }`
   - `TRUSTED_PROVIDERS = ['google', 'yandex'] as const`
-- Колбэки: `/api/auth/callback/google`, `/api/auth/callback/vk`, `/api/auth/oauth2/callback/yandex`.
+- Колбэки: `/api/auth/callback/google`, `/api/auth/callback/vk`, `/api/auth/callback/yandex` (Better Auth 1.7.6 serves genericOAuth providers through the core `callback/:id` route).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1994,7 +1994,7 @@ git commit -m "Serve user profiles with arrangement stats"
 **Interfaces:**
 - Consumes: tRPC `auth.methods` (Task 7), эндпоинты Better Auth (Tasks 3–7).
 - Produces:
-  - `authClient` с `emailOTPClient`, `usernameClient`, `oneTimeTokenClient`, `genericOAuthClient`, `passkeyClient`; каждый запрос шлёт `x-locale`
+  - `authClient` с `emailOTPClient`, `usernameClient`, `oneTimeTokenClient`, `passkeyClient` (no `genericOAuthClient` in 1.7.6 — Yandex goes through `signIn.social`/`linkSocial`); каждый запрос шлёт `x-locale`
   - `normalizeOtp(value: string): string`, `OTP_LENGTH = 6`
   - `authErrorKey(error: { code?: string; status?: number } | string | null | undefined): AuthErrorKey`, `type AuthErrorKey = 'wrongCode' | 'codeExpired' | 'tooManyAttempts' | 'mailFailed' | 'accountNotLinked' | 'lastMethod' | 'telegramTaken' | 'reauth' | 'failed'`
   - `isPlaceholderEmail(email: string): boolean` (веб-копия, тот же домен `users.invalid`)
@@ -2129,7 +2129,6 @@ cd apps/web && bun add @better-auth/passkey@1.7.6
 import { passkeyClient } from '@better-auth/passkey/client';
 import {
   emailOTPClient,
-  genericOAuthClient,
   oneTimeTokenClient,
   usernameClient,
 } from 'better-auth/client/plugins';
@@ -2143,7 +2142,6 @@ export const authClient = createAuthClient({
     emailOTPClient(),
     usernameClient(),
     oneTimeTokenClient(),
-    genericOAuthClient(),
     passkeyClient(),
   ],
   fetchOptions: {
@@ -2287,9 +2285,8 @@ export async function signInWithProvider(provider: ProviderId, callbackURL: stri
     await startNativeSignIn({ provider });
     return;
   }
-  if (provider === 'yandex') {
-    await authClient.signIn.oauth2({ providerId: 'yandex', callbackURL, errorCallbackURL: callbackURL });
-  } else if (provider === 'google' || provider === 'vk') {
+  if (provider !== 'telegram') {
+    // Yandex is a genericOAuth provider, which Better Auth 1.7 serves through `signIn.social` too.
     await authClient.signIn.social({ provider, callbackURL, errorCallbackURL: callbackURL });
   }
 }
@@ -3100,12 +3097,8 @@ export function MobileAuthStart({
       const options = { callbackURL: done, errorCallbackURL: done };
       const result =
         mode === 'link'
-          ? provider === 'yandex'
-            ? await authClient.oauth2.link({ providerId: 'yandex', ...options })
-            : await authClient.linkSocial({ provider, ...options })
-          : provider === 'yandex'
-            ? await authClient.signIn.oauth2({ providerId: 'yandex', ...options })
-            : await authClient.signIn.social({ provider, ...options });
+          ? await authClient.linkSocial({ provider, ...options })
+          : await authClient.signIn.social({ provider, ...options });
       if (result?.error) {
         setMessage(t('errors.failed'));
         back({ state, error: result.error.code ?? 'failed' });
@@ -4384,7 +4377,7 @@ git commit -m "Edit the display name and username"
 - Test: `apps/web/src/features/profile/user-agent.test.ts`
 
 **Interfaces:**
-- Consumes: `authClient.listSessions/revokeSession/revokeOtherSessions/listAccounts/unlinkAccount/linkSocial/oauth2.link/passkey.listUserPasskeys/passkey.deletePasskey/emailOtp.requestEmailChange/emailOtp.changeEmail/deleteUser`, `addPasskey`, `passkeySupported` (Task 13), `linkTelegram` (Task 11), `startNativeSignIn` (Task 12), `authErrorKey`, `isPlaceholderEmail`, `normalizeOtp`, `useAuthMethods`.
+- Consumes: `authClient.listSessions/revokeSession/revokeOtherSessions/listAccounts/unlinkAccount/linkSocial/passkey.listUserPasskeys/passkey.deletePasskey/emailOtp.requestEmailChange/emailOtp.changeEmail/deleteUser`, `addPasskey`, `passkeySupported` (Task 13), `linkTelegram` (Task 11), `startNativeSignIn` (Task 12), `authErrorKey`, `isPlaceholderEmail`, `normalizeOtp`, `useAuthMethods`.
 - Produces: `describeUserAgent(ua: string | null | undefined): { browser: string | null; os: string | null; mobile: boolean }`
 
 - [ ] **Step 1: Write the failing test**
@@ -4798,9 +4791,6 @@ async function link(provider: ProviderId, telegramBot: string | undefined) {
   const callbackURL = window.location.href;
   if (provider === 'telegram') {
     return telegramBot ? linkTelegram(telegramBot) : undefined;
-  }
-  if (provider === 'yandex') {
-    return authClient.oauth2.link({ providerId: 'yandex', callbackURL });
   }
   return authClient.linkSocial({ provider, callbackURL });
 }
@@ -5308,7 +5298,7 @@ its keys are in the environment (see `.env.example`).
 
 | Provider | Where | Callback / setting |
 |---|---|---|
-| Yandex | oauth.yandex.ru → new app, web services, access to email and avatar | `https://<domain>/api/auth/oauth2/callback/yandex` |
+| Yandex | oauth.yandex.ru → new app, web services, access to email and avatar | `https://<domain>/api/auth/callback/yandex` |
 | VK | id.vk.com → app type «Web» | trusted redirect URL `https://<domain>/api/auth/callback/vk` |
 | Google | Google Cloud Console → OAuth consent screen → Credentials → Web client | `https://<domain>/api/auth/callback/google` |
 | Telegram | @BotFather → `/newbot`, then `/setdomain` | your domain |
