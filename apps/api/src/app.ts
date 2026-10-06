@@ -5,6 +5,7 @@ import { logger } from 'hono/logger';
 
 import { auth } from './auth';
 import { env } from './env';
+import { withMailFailure } from './mail/failures';
 import { createContext } from './trpc/init';
 import { appRouter } from './trpc/router';
 
@@ -23,7 +24,9 @@ app.use(
 
 app.get('/health', (c) => c.json({ ok: true }));
 
-app.on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw));
+// Better Auth 1.7 logs and swallows errors thrown from the OTP send callback, so this turns a
+// flagged mailer failure into a distinct response instead.
+app.on(['GET', 'POST'], '/api/auth/*', (c) => withMailFailure(() => auth.handler(c.req.raw)));
 
 app.use(
   '/trpc/*',
