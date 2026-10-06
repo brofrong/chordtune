@@ -90,6 +90,7 @@
     "results": "Found",
     "empty": "Nothing found — be the first to add it",
     "searchUnavailable": "Search is temporarily unavailable",
+    "artists": "Artists",
     "add": "Add a song",
     "addHint": "Your own chords in a couple of minutes",
     "write": "Write",
@@ -167,7 +168,15 @@
     "empty": "No published songs yet",
     "more": "More",
     "less": "Less",
-    "source": "Source: Wikipedia · CC BY-SA"
+    "source": "Source: Wikipedia · CC BY-SA",
+    "relink": "Change link",
+    "relinkTitle": "Artist link",
+    "relinkDeezer": "Photo from Deezer",
+    "relinkWikipedia": "Wikipedia article",
+    "noPhoto": "No photo",
+    "noArticle": "No article",
+    "unavailable": "Search unavailable",
+    "save": "Save"
   },
   "editor": {
     "newTitle": "New song",

@@ -6,12 +6,13 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import { artistHref } from '@/features/song/links';
 import { Link } from '@/i18n/navigation';
 import { spring } from '@/lib/motion';
 import { useTRPC } from '@/lib/trpc';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { CreateSongMenu } from './create-song-menu';
-import { SongCard } from './song-card';
+import { ArtistCover, SongCard } from './song-card';
 
 export function SongsBrowser() {
   const t = useTranslations('songs');
@@ -23,6 +24,11 @@ export function SongsBrowser() {
   const popular = useQuery({ ...trpc.songs.list.queryOptions(), enabled: !searching });
   const found = useQuery({
     ...trpc.search.query.queryOptions({ q: query }),
+    enabled: searching,
+    retry: false,
+  });
+  const artists = useQuery({
+    ...trpc.artists.search.queryOptions({ q: query }),
     enabled: searching,
     retry: false,
   });
@@ -43,6 +49,31 @@ export function SongsBrowser() {
       </label>
 
       <CreateSongMenu />
+
+      {searching && artists.data && artists.data.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className="px-1 text-[11px] text-muted-foreground uppercase tracking-[0.12em]">
+            {t('artists')}
+          </h2>
+          <ul className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
+            {artists.data.map((artist) => (
+              <li key={artist.id}>
+                <Link
+                  href={artistHref(artist)}
+                  className="flex w-20 flex-col items-center gap-1.5 text-center"
+                >
+                  <ArtistCover
+                    artist={artist.name}
+                    picture={artist.pictureSmallUrl}
+                    className="size-16 rounded-full text-lg"
+                  />
+                  <span className="w-full truncate text-xs">{artist.name}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="flex flex-col gap-2">
         <h2 className="flex justify-between px-1 text-[11px] text-muted-foreground uppercase tracking-[0.12em]">

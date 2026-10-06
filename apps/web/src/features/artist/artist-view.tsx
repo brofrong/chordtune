@@ -9,6 +9,7 @@ import { wikipediaUrl } from '@/features/song/links';
 import { ArtistCover, SongCard } from '@/features/songs/song-card';
 import { useRouter } from '@/i18n/navigation';
 import type { RouterOutputs } from '@/lib/trpc';
+import { RelinkButton } from './relink-button';
 
 export type ArtistPage = RouterOutputs['artists']['bySlug'];
 
@@ -41,6 +42,7 @@ export function ArtistView({ artist }: { artist: ArtistPage }) {
         />
         <h1 className="font-bold font-display text-3xl tracking-tight">{artist.name}</h1>
         <p className="text-muted-foreground text-sm">{subtitle}</p>
+        <RelinkButton artist={artist} />
       </header>
 
       {artist.wiki && (
