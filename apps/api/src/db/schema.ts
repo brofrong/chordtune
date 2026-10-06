@@ -69,9 +69,8 @@ export const arrangement = pgTable(
     songId: text('song_id')
       .notNull()
       .references(() => song.id, { onDelete: 'cascade' }),
-    authorId: text('author_id')
-      .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
+    // Null once the author deletes their account: the arrangement stays, credited to «Anonymous».
+    authorId: text('author_id').references(() => user.id, { onDelete: 'set null' }),
     /** Song source in the `${Chord}` format of `@chordtune/chord-sheet`. */
     content: text('content').notNull(),
     rhythms: jsonb('rhythms').$type<Rhythm[]>().notNull().default([]),
@@ -181,7 +180,7 @@ const appRelations = defineRelations(
     },
     arrangement: {
       song: r.one.song({ from: r.arrangement.songId, to: r.song.id, optional: false }),
-      author: r.one.user({ from: r.arrangement.authorId, to: r.user.id, optional: false }),
+      author: r.one.user({ from: r.arrangement.authorId, to: r.user.id, optional: true }),
     },
   }),
 );

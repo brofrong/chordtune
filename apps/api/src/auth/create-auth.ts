@@ -10,6 +10,7 @@ import type { Mailer } from '../mail';
 import { markMailFailed } from '../mail/failures';
 import { otpMessage, pickLocale } from '../mail/otp-message';
 import type { AuthConfig } from './config';
+import { isRecentSignIn, REAUTH_REQUIRED } from './delete-account';
 import { isPlaceholderEmail } from './placeholder-email';
 import { genericProviders, socialProviders, TRUSTED_PROVIDERS } from './providers';
 import { LAST_SIGN_IN_METHOD, signInMethodCount } from './sign-in-methods';
@@ -59,11 +60,11 @@ export function createAuth({
         allowUnlinkingAll: true,
       },
     },
+    user: {
+      deleteUser: { enabled: true },
+    },
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
-        if (ctx.path !== '/unlink-account' && ctx.path !== '/passkey/delete-passkey') {
-          return;
-        }
         // `getSessionFromCtx` calls `getSession()` as a plain function, which skips the
         // before-hook pipeline — so it never sees the `bearer` plugin's header→cookie
         // translation and returns no session for bearer-authenticated callers. Re-enter the
@@ -72,7 +73,25 @@ export function createAuth({
         // session — that's the only "no session" case we treat as such. Anything it throws
         // (a real failure, not "unauthenticated") must propagate and block the action: this is a
         // security guard, so a transient error here has to fail closed, not be read as "no
-        // session, go ahead".
+        // session, go ahead". Deleting the account relies on this same re-entry: `deleteUser`'s
+        // own `beforeDelete(user, request)` only gets a `request` when the call arrives over
+        // HTTP, not from a direct `auth.api.deleteUser({ headers })` (bearer, like the mobile
+        // app, or our own tests) — so the freshness check lives here instead.
+        if (ctx.path === '/delete-user') {
+          const current = (await dispatchAuthEndpoint(getSession(), {
+            headers: ctx.headers,
+            context: ctx.context,
+            method: 'GET',
+            asResponse: false,
+          })) as { session: { createdAt: Date } } | null;
+          if (!current || !isRecentSignIn(new Date(current.session.createdAt))) {
+            throw new APIError('FORBIDDEN', { message: 'Sign in again', code: REAUTH_REQUIRED });
+          }
+          return;
+        }
+        if (ctx.path !== '/unlink-account' && ctx.path !== '/passkey/delete-passkey') {
+          return;
+        }
         const session = (await dispatchAuthEndpoint(getSession(), {
           headers: ctx.headers,
           context: ctx.context,

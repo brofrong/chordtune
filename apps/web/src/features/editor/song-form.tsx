@@ -287,7 +287,12 @@ export function SongForm() {
     status: 'published',
     createdAt: new Date(0),
     updatedAt: new Date(0),
-    author: { id: session.data?.user.id ?? '', name: session.data?.user.name ?? '' },
+    // The preview never links to a profile, so a real username isn't needed here.
+    author: {
+      id: session.data?.user.id ?? '',
+      name: session.data?.user.name ?? '',
+      username: null,
+    },
     song: {
       id: '',
       title: fields.title.trim() || t('metaPlaceholder'),

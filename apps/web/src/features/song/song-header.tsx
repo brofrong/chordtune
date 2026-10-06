@@ -15,7 +15,7 @@ export function SongHeader({ arrangement }: { arrangement: ArrangementView }) {
   const router = useRouter();
   const toast = useToast();
   const session = useSession();
-  const isAuthor = session.data?.user.id === arrangement.author.id;
+  const isAuthor = Boolean(arrangement.author) && session.data?.user.id === arrangement.author?.id;
 
   return (
     <div className="flex items-center justify-between">

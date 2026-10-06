@@ -123,6 +123,7 @@
     "bpm": "{bpm} BPM",
     "key": "Key {key}",
     "by": "Chords by {name}",
+    "anonymous": "Anonymous",
     "rhythm": "Rhythm",
     "play": "Listen",
     "playSection": "Listen to the section",

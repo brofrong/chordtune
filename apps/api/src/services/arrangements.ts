@@ -9,7 +9,7 @@ export const WITH_DETAILS = {
   song: {
     with: { artist: { columns: { id: true, name: true, slug: true, pictureSmallUrl: true } } },
   },
-  author: { columns: { id: true, name: true } },
+  author: { columns: { id: true, name: true, username: true } },
 } as const;
 
 export type ArrangementListItem = {

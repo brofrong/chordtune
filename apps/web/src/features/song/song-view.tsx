@@ -203,7 +203,7 @@ export function SongView({
           )}
           {arrangement.tempo ? <span>{t('bpm', { bpm: arrangement.tempo })}</span> : null}
           {arrangement.key ? <span>{t('key', { key: arrangement.key })}</span> : null}
-          <span>{t('by', { name: arrangement.author.name })}</span>
+          <span>{t('by', { name: arrangement.author?.name ?? t('anonymous') })}</span>
         </p>
       </header>
 
