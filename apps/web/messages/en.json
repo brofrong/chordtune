@@ -175,6 +175,8 @@
     "relinkWikipedia": "Wikipedia article",
     "noPhoto": "No photo",
     "noArticle": "No article",
+    "currentPhoto": "Current photo",
+    "currentArticle": "Current article",
     "unavailable": "Search unavailable",
     "save": "Save"
   },

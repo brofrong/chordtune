@@ -175,6 +175,8 @@
     "relinkWikipedia": "Статья в Википедии",
     "noPhoto": "Без фото",
     "noArticle": "Без статьи",
+    "currentPhoto": "Текущее фото",
+    "currentArticle": "Текущая статья",
     "unavailable": "Поиск недоступен",
     "save": "Сохранить"
   },

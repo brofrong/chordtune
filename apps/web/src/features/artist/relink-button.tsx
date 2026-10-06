@@ -91,6 +91,13 @@ function RelinkForm({ artist, onDone }: { artist: ArtistPage; onDone: () => void
     enabled: wikiQuery.length > 0,
     retry: false,
   });
+  // The lists come from a name search, so the currently linked item may be absent from them.
+  const currentDeezerListed = deezer.data?.some(
+    (candidate) => candidate.deezerId === artist.deezerId,
+  );
+  const currentWikiListed = wiki.data?.some(
+    (candidate) => candidate.wikidataId === artist.wikidataId,
+  );
   const relink = useMutation(
     trpc.artists.relink.mutationOptions({
       onSuccess: async () => {
@@ -115,6 +122,19 @@ function RelinkForm({ artist, onDone }: { artist: ArtistPage; onDone: () => void
         <Choice selected={deezerId === null} onSelect={() => setDeezerId(null)}>
           {t('noPhoto')}
         </Choice>
+        {artist.deezerId !== null && !currentDeezerListed && (
+          <Choice
+            selected={deezerId === artist.deezerId}
+            onSelect={() => setDeezerId(artist.deezerId)}
+          >
+            <ArtistCover
+              artist={artist.name}
+              picture={artist.pictureSmallUrl}
+              className="size-9 rounded-full text-xs"
+            />
+            <span className="min-w-0 flex-1 truncate">{t('currentPhoto')}</span>
+          </Choice>
+        )}
         {deezer.isError && <p className="text-muted-foreground text-xs">{t('unavailable')}</p>}
         {deezer.data?.map((candidate) => (
           <Choice
@@ -139,6 +159,21 @@ function RelinkForm({ artist, onDone }: { artist: ArtistPage; onDone: () => void
         <Choice selected={wikidataId === null} onSelect={() => setWikidataId(null)}>
           {t('noArticle')}
         </Choice>
+        {artist.wikidataId !== null && !currentWikiListed && (
+          <Choice
+            selected={wikidataId === artist.wikidataId}
+            onSelect={() => setWikidataId(artist.wikidataId)}
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block truncate">{t('currentArticle')}</span>
+              {artist.wiki?.title && (
+                <span className="block truncate text-muted-foreground text-xs">
+                  {artist.wiki.title}
+                </span>
+              )}
+            </span>
+          </Choice>
+        )}
         {wiki.isError && <p className="text-muted-foreground text-xs">{t('unavailable')}</p>}
         {wiki.data?.map((candidate) => (
           <Choice
@@ -161,7 +196,10 @@ function RelinkForm({ artist, onDone }: { artist: ArtistPage; onDone: () => void
       {error && <p className="text-destructive text-sm">{error}</p>}
       <Button
         disabled={relink.isPending}
-        onClick={() => relink.mutate({ id: artist.id, deezerId, wikidataId })}
+        onClick={() => {
+          setError(null);
+          relink.mutate({ id: artist.id, deezerId, wikidataId });
+        }}
       >
         {t('save')}
       </Button>
