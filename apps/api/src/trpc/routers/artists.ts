@@ -8,6 +8,12 @@ export const artistsRouter = router({
     .input(z.object({ q: z.string().max(100) }))
     .query(async ({ ctx, input }) => {
       const hits = await fromSearch(() => ctx.search.searchArtists(input.q));
-      return hits.map(({ id, name, songCount }) => ({ id, name, songCount }));
+      return hits.map(({ id, name, slug, songCount, pictureSmallUrl }) => ({
+        id,
+        name,
+        slug,
+        songCount,
+        pictureSmallUrl: pictureSmallUrl ?? null,
+      }));
     }),
 });

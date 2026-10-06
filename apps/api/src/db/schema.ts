@@ -1,6 +1,7 @@
 import type { Rhythm, SongTuningId, Voicings, ZenModeId } from '@chordtune/chord-sheet';
 import { defineRelations, sql } from 'drizzle-orm';
 import {
+  bigint,
   date,
   index,
   integer,
@@ -12,7 +13,7 @@ import {
   unique,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
-
+import type { Wiki } from '../services/artist-sources';
 import { account, authRelations, session, user, verification } from './auth-schema';
 
 export * from './auth-schema';
@@ -28,6 +29,17 @@ export const artist = pgTable(
     id: id(),
     name: text('name').notNull(),
     slug: text('slug').notNull().unique(),
+    /** The Deezer artist the pictures come from; picking it again finds this artist. */
+    deezerId: bigint('deezer_id', { mode: 'number' }).unique(),
+    /** Deezer's 1000×1000 picture, for the artist page. */
+    pictureUrl: text('picture_url'),
+    /** Deezer's 250×250 picture, for lists. */
+    pictureSmallUrl: text('picture_small_url'),
+    wikidataId: text('wikidata_id'),
+    /** Wikipedia summaries by language, fetched when the artist is created or relinked. */
+    wiki: jsonb('wiki').$type<Wiki>(),
+    /** When Wikipedia was last asked; `null` if never. */
+    enrichedAt: timestamp('enriched_at'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [uniqueIndex('artist_name_lower_idx').on(sql`lower(${table.name})`)],

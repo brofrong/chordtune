@@ -13,6 +13,8 @@ export type ArtistDoc = {
   /** The name in the other alphabet, so «лумен» finds LUMEN. */
   nameTranslit: string;
   songCount: number;
+  /** Deezer's 250×250 picture; absent in documents indexed before pictures existed. */
+  pictureSmallUrl: string | null;
 };
 
 export type ArrangementDoc = {
@@ -23,6 +25,7 @@ export type ArrangementDoc = {
   artistSlug: string;
   artist: string;
   artistTranslit: string;
+  artistPictureSmallUrl: string | null;
   title: string;
   titleTranslit: string;
   lyrics: string;

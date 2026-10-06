@@ -14,6 +14,7 @@ export type ArrangementListItem = {
   id: string;
   artist: string;
   artistSlug: string;
+  artistPictureSmallUrl: string | null;
   title: string;
   songSlug: string;
   views: number;
@@ -24,7 +25,11 @@ type ListRow = {
   id: string;
   viewCount: number;
   likeCount: number;
-  song: { title: string; slug: string; artist: { name: string; slug: string } };
+  song: {
+    title: string;
+    slug: string;
+    artist: { name: string; slug: string; pictureSmallUrl: string | null };
+  };
 };
 
 export function toListItem(row: ListRow): ArrangementListItem {
@@ -32,6 +37,7 @@ export function toListItem(row: ListRow): ArrangementListItem {
     id: row.id,
     artist: row.song.artist.name,
     artistSlug: row.song.artist.slug,
+    artistPictureSmallUrl: row.song.artist.pictureSmallUrl,
     title: row.song.title,
     songSlug: row.song.slug,
     views: row.viewCount,

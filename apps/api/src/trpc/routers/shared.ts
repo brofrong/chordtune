@@ -8,6 +8,7 @@ export function listItemFromDoc(doc: ArrangementDoc): ArrangementListItem {
     id: doc.id,
     artist: doc.artist,
     artistSlug: doc.artistSlug,
+    artistPictureSmallUrl: doc.artistPictureSmallUrl ?? null,
     title: doc.title,
     songSlug: doc.songSlug,
     views: doc.views,

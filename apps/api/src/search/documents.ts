@@ -20,6 +20,7 @@ export function toArtistDoc(row: ArtistRow, songCount: number): ArtistDoc {
     slug: row.slug,
     nameTranslit: otherScript(row.name),
     songCount,
+    pictureSmallUrl: row.pictureSmallUrl,
   };
 }
 
@@ -33,6 +34,7 @@ export function toArrangementDoc(row: ArrangementRow): ArrangementDoc {
     artistSlug: songRow.artist.slug,
     artist: songRow.artist.name,
     artistTranslit: otherScript(songRow.artist.name),
+    artistPictureSmallUrl: songRow.artist.pictureSmallUrl,
     title: songRow.title,
     titleTranslit: otherScript(songRow.title),
     lyrics: lyrics(parse(row.content).doc),
@@ -80,4 +82,34 @@ export async function reindexAll(db: Database, search: SearchIndex) {
     arrangements.map(toArrangementDoc),
   );
   return { artists: artists.length, arrangements: arrangements.length };
+}
+
+/**
+ * Pushes an artist and all its published arrangements, after its name or pictures changed.
+ * Search is secondary, so a failure is logged and never fails the change.
+ */
+export async function syncArtist(db: Database, search: SearchIndex, artistId: string) {
+  try {
+    const row = await db.query.artist.findFirst({
+      where: { id: artistId },
+      with: { songs: { columns: { id: true } } },
+    });
+    if (!row) {
+      return;
+    }
+    await search.upsertArtist(toArtistDoc(row, row.songs.length));
+    const songIds = row.songs.map((songRow) => songRow.id);
+    if (songIds.length === 0) {
+      return;
+    }
+    const rows = await db.query.arrangement.findMany({
+      where: { status: 'published', songId: { in: songIds } },
+      with: WITH_SONG_AND_ARTIST,
+    });
+    for (const arrangementRow of rows) {
+      await search.upsertArrangement(toArrangementDoc(arrangementRow));
+    }
+  } catch (error) {
+    console.error(`Search sync failed for artist ${artistId}`, error);
+  }
 }
