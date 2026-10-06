@@ -11,6 +11,7 @@ import { otpMessage, pickLocale } from '../mail/otp-message';
 import type { AuthConfig } from './config';
 import { isPlaceholderEmail } from './placeholder-email';
 import { genericProviders, socialProviders, TRUSTED_PROVIDERS } from './providers';
+import { telegram } from './telegram-plugin';
 import { isValidUsername, usernameGenerator } from './username';
 
 export type AuthDeps = {
@@ -102,6 +103,7 @@ export function createAuth({
         usernameValidator: isValidUsername,
       }),
       ...(config.yandex ? [genericOAuth({ config: genericProviders(config) })] : []),
+      ...(config.telegram ? [telegram({ botToken: config.telegram.botToken })] : []),
       // Capacitor WebViews run on capacitor:// or https://localhost, where third-party cookies to the
       // API are unreliable, so every build authenticates with a bearer token.
       bearer(),
