@@ -7,6 +7,7 @@ export type AuthErrorKey =
   | 'lastMethod'
   | 'telegramTaken'
   | 'reauth'
+  | 'providerRefused'
   | 'failed';
 
 const BY_CODE: Record<string, AuthErrorKey> = {
@@ -20,7 +21,8 @@ const BY_CODE: Record<string, AuthErrorKey> = {
   // OAuth redirects back with `?error=account_not_linked` when the email has an account that
   // cannot be joined automatically (e.g. VK, or a former password user who never confirmed it).
   account_not_linked: 'accountNotLinked',
-  ACCOUNT_NOT_LINKED: 'accountNotLinked',
+  // The provider itself sends this back (callback.mjs) when the user cancels its consent screen.
+  access_denied: 'providerRefused',
 };
 
 /** A message key under `auth.errors` for a Better Auth error object or an OAuth `?error=` value. */

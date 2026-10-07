@@ -136,6 +136,7 @@
       "lastMethod": "This is your last way to sign in — add another one first.",
       "telegramTaken": "This Telegram account is linked to another user.",
       "reauth": "Sign in again to confirm.",
+      "providerRefused": "Sign-in was cancelled or the service refused. Try again or use another way.",
       "failed": "That didn't work. Try again."
     }
   },

@@ -17,6 +17,10 @@ describe('authErrorKey', () => {
     expect(authErrorKey('account_not_linked')).toBe('accountNotLinked');
   });
 
+  test('maps a cancelled or refused OAuth consent screen', () => {
+    expect(authErrorKey('access_denied')).toBe('providerRefused');
+  });
+
   test('anything else is a generic failure', () => {
     expect(authErrorKey({ code: 'SOMETHING' })).toBe('failed');
     expect(authErrorKey(null)).toBe('failed');

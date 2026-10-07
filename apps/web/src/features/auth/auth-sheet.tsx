@@ -34,7 +34,8 @@ export function AuthSheetProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const show = useCallback(() => setOpen(true), []);
 
-  // OAuth comes back with `?error=…` on failure: reopen the sheet and say why.
+  // OAuth comes back with `?error=…` (and sometimes `error_description`) on failure: reopen the
+  // sheet and say why.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const oauthError = params.get('error');
@@ -42,6 +43,7 @@ export function AuthSheetProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     params.delete('error');
+    params.delete('error_description');
     const query = params.toString();
     window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
     setError(oauthError);
@@ -75,10 +77,10 @@ function AuthForm({ initialError, onDone }: { initialError: string | null; onDon
     onDone();
   };
 
-  const run = async (action: () => Promise<{ error?: { code?: string } | null } | void>) => {
+  const run = async (action: () => Promise<{ error?: { code?: string } | null } | undefined>) => {
     setError(null);
     const result = await action();
-    if (result && result.error) {
+    if (result?.error) {
       setError(t(`errors.${authErrorKey(result.error)}`));
       return;
     }
@@ -95,7 +97,8 @@ function AuthForm({ initialError, onDone }: { initialError: string | null; onDon
       </SheetHeader>
       <ProviderButtons
         onTelegram={() =>
-          methods.data?.telegramBot && run(() => openTelegramLogin(methods.data.telegramBot!.id))
+          methods.data?.telegramBot &&
+          run(() => openTelegramLogin(methods.data?.telegramBot?.id ?? ''))
         }
       />
       <Button variant="outline" size="lg" onClick={() => run(signInWithPasskey)}>
