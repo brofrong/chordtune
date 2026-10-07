@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { and, desc, eq, lt, or, sql } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 
 import type { Database } from '../db';
 import { arrangement, user } from '../db/schema';
@@ -70,16 +70,21 @@ async function inOrder(db: Database, ids: string[]) {
   return ids.flatMap((id) => byId.get(id) ?? []);
 }
 
-/** The cursor is `<createdAt ISO>|<id>` of the last item: ties on time still page correctly. */
+/**
+ * The cursor is `<createdAt>|<id>` of the last item, so ties on time still page correctly. The time
+ * is Postgres's own text with microseconds: a JS `Date` keeps only milliseconds, and two rows in the
+ * same millisecond would be skipped or repeated across a page boundary.
+ */
+const CURSOR_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?$/;
+const createdAtText = sql<string>`to_char(${arrangement.createdAt}, 'YYYY-MM-DD"T"HH24:MI:SS.US')`;
+
 export async function profileArrangements(
   db: Database,
   params: { userId: string; viewerId?: string; cursor?: string | null; limit?: number },
 ) {
   const { userId, viewerId, cursor, limit = 20 } = params;
   const [cursorTime, cursorId] = cursor ? cursor.split('|') : [];
-  const cursorDate = cursorTime ? new Date(cursorTime) : undefined;
-  const hasCursor = Boolean(cursorDate && !Number.isNaN(cursorDate.getTime()) && cursorId);
-  if (cursor && !hasCursor) {
+  if (cursor && !(cursorTime && CURSOR_TIME.test(cursorTime) && cursorId)) {
     throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid cursor' });
   }
 
@@ -89,16 +94,13 @@ export async function profileArrangements(
   if (viewerId !== userId) {
     conditions.push(eq(arrangement.status, 'published'));
   }
-  if (hasCursor && cursorDate && cursorId) {
+  if (cursorTime && cursorId) {
     conditions.push(
-      or(
-        lt(arrangement.createdAt, cursorDate),
-        and(eq(arrangement.createdAt, cursorDate), lt(arrangement.id, cursorId)),
-      ) ?? sql`true`,
+      sql`(${arrangement.createdAt}, ${arrangement.id}) < (${cursorTime}::timestamp, ${cursorId})`,
     );
   }
   const idRows = await db
-    .select({ id: arrangement.id })
+    .select({ id: arrangement.id, createdAt: createdAtText })
     .from(arrangement)
     .where(and(...conditions))
     .orderBy(desc(arrangement.createdAt), desc(arrangement.id))
@@ -109,7 +111,7 @@ export async function profileArrangements(
     idRows.map((row) => row.id),
   );
   const page = rows.slice(0, limit);
-  const last = page.at(-1);
+  const last = idRows[limit - 1];
   return {
     items: page.map(
       (row): ProfileArrangement => ({
@@ -118,6 +120,6 @@ export async function profileArrangements(
         createdAt: row.createdAt,
       }),
     ),
-    nextCursor: rows.length > limit && last ? `${last.createdAt.toISOString()}|${last.id}` : null,
+    nextCursor: idRows.length > limit && last ? `${last.createdAt}|${last.id}` : null,
   };
 }

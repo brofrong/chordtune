@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 import type { Database } from '../db';
 import { arrangement, user } from '../db/schema';
@@ -84,5 +84,45 @@ describe('profileArrangements', () => {
     });
     expect(page2.items.map((item) => item.id)).toEqual([a]);
     expect(page2.nextCursor).toBeNull();
+  });
+
+  test('pages across rows in the same millisecond', async () => {
+    const [a, b, c] = [
+      await create('alice', 'A'),
+      await create('alice', 'B'),
+      await create('alice', 'C'),
+    ];
+    // Same millisecond, different microseconds; ids are random, so their order doesn't help.
+    const times = [
+      '2026-10-07 12:00:00.123400',
+      '2026-10-07 12:00:00.123700',
+      '2026-10-07 12:00:00.123500',
+    ];
+    for (const [i, id] of [a, b, c].entries()) {
+      await db
+        .update(arrangement)
+        .set({ createdAt: sql`${times[i]}::timestamp` })
+        .where(eq(arrangement.id, id));
+    }
+    const newestFirst = [b, c, a];
+
+    const seen: string[] = [];
+    let cursor: string | null = null;
+    do {
+      const page: Awaited<ReturnType<typeof profileArrangements>> = await profileArrangements(db, {
+        userId: 'alice',
+        limit: 1,
+        cursor,
+      });
+      seen.push(...page.items.map((item) => item.id));
+      cursor = page.nextCursor;
+    } while (cursor);
+    expect(seen).toEqual(newestFirst);
+  });
+
+  test('a malformed cursor is refused', async () => {
+    await expect(profileArrangements(db, { userId: 'alice', cursor: "x'|y" })).rejects.toThrow(
+      'Invalid cursor',
+    );
   });
 });
