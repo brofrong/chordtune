@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Associates this app with the domain's apple-app-site-association so it can use its
+	     passkeys. The release workflow substitutes the real host from PUBLIC_URL at build time. -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>webcredentials:chordtune.example.com</string>
+	</array>
+</dict>
+</plist>

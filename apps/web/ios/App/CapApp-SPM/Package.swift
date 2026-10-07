@@ -16,6 +16,7 @@ let package = Package(
         .package(name: "CapacitorBrowser", path: "../../../../../node_modules/.bun/@capacitor+browser@8.0.5+8c735c3c6e2ff3c1/node_modules/@capacitor/browser"),
         .package(name: "CapacitorHaptics", path: "../../../../../node_modules/.bun/@capacitor+haptics@8.0.2+8c735c3c6e2ff3c1/node_modules/@capacitor/haptics"),
         .package(name: "CapacitorNetwork", path: "../../../../../node_modules/.bun/@capacitor+network@8.0.1+8c735c3c6e2ff3c1/node_modules/@capacitor/network"),
+        .package(name: "CapawesomeCapacitorPasskeys", path: "../../../../../node_modules/.bun/@capawesome+capacitor-passkeys@0.1.2+8c735c3c6e2ff3c1/node_modules/@capawesome/capacitor-passkeys"),
         .package(name: "CapgoCapacitorUpdater", path: "../../../../../node_modules/.bun/@capgo+capacitor-updater@8.52.1+8c735c3c6e2ff3c1/node_modules/@capgo/capacitor-updater")
     ],
     targets: [
@@ -28,6 +29,7 @@ let package = Package(
                 .product(name: "CapacitorBrowser", package: "CapacitorBrowser"),
                 .product(name: "CapacitorHaptics", package: "CapacitorHaptics"),
                 .product(name: "CapacitorNetwork", package: "CapacitorNetwork"),
+                .product(name: "CapawesomeCapacitorPasskeys", package: "CapawesomeCapacitorPasskeys"),
                 .product(name: "CapgoCapacitorUpdater", package: "CapgoCapacitorUpdater")
             ]
         )

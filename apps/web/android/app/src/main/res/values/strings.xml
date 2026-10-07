@@ -4,4 +4,7 @@
     <string name="title_activity_main">ChordTune</string>
     <string name="package_name">app.chordtune</string>
     <string name="custom_url_scheme">app.chordtune</string>
+    <!-- Associates this app with the domain's assetlinks.json so it can use its passkeys.
+         The release workflow substitutes the real host from PUBLIC_URL at build time. -->
+    <string name="asset_statements" translatable="false">[{\"include\": \"https://chordtune.example.com/.well-known/assetlinks.json\"}]</string>
 </resources>

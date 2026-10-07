@@ -13,6 +13,7 @@ dependencies {
     implementation project(':capacitor-browser')
     implementation project(':capacitor-haptics')
     implementation project(':capacitor-network')
+    implementation project(':capawesome-capacitor-passkeys')
     implementation project(':capgo-capacitor-updater')
 
 }

@@ -14,9 +14,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { isCapacitor } from '@/features/song/links';
+import { authClient } from '@/lib/auth-client';
 import { authErrorKey } from './auth-errors';
 import { EmailCodeForm } from './email-code-form';
-import { signInWithPasskey } from './passkeys';
+import { passkeySupported, signInWithPasskey } from './passkeys';
 import { ProviderButtons } from './provider-buttons';
 import { openTelegramLogin } from './telegram-login';
 import { useAuthMethods } from './use-auth-methods';
@@ -71,11 +73,11 @@ function AuthForm({ initialError, onDone }: { initialError: string | null; onDon
     initialError ? t(`errors.${authErrorKey(initialError)}`) : null,
   );
 
-  const finish = async () => {
+  const finish = useCallback(async () => {
     await session.refetch();
     await queryClient.invalidateQueries();
     onDone();
-  };
+  }, [session, queryClient, onDone]);
 
   const run = async (action: () => Promise<{ error?: { code?: string } | null } | undefined>) => {
     setError(null);
@@ -89,6 +91,28 @@ function AuthForm({ initialError, onDone }: { initialError: string | null; onDon
     }
   };
 
+  // Lets the browser suggest a passkey from the email field's autofill dropdown. Resolves only
+  // if the user actually picks one there; runs once per sheet open, not on every render.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once per sheet open
+  useEffect(() => {
+    if (isCapacitor || !window.PublicKeyCredential?.isConditionalMediationAvailable) {
+      return;
+    }
+    let active = true;
+    window.PublicKeyCredential.isConditionalMediationAvailable().then(async (available) => {
+      if (!available || !active) {
+        return;
+      }
+      const result = await authClient.signIn.passkey({ autoFill: true });
+      if (active && result && !result.error) {
+        await finish();
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <div className="flex flex-col gap-4 p-4 pt-0">
       <SheetHeader className="px-0">
@@ -101,10 +125,12 @@ function AuthForm({ initialError, onDone }: { initialError: string | null; onDon
           run(() => openTelegramLogin(methods.data?.telegramBot?.id ?? ''))
         }
       />
-      <Button variant="outline" size="lg" onClick={() => run(signInWithPasskey)}>
-        <KeyRound />
-        {t('passkey')}
-      </Button>
+      {passkeySupported(methods.data) && (
+        <Button variant="outline" size="lg" onClick={() => run(signInWithPasskey)}>
+          <KeyRound />
+          {t('passkey')}
+        </Button>
+      )}
       <div className="flex items-center gap-3 text-muted-foreground text-xs">
         <Separator className="flex-1" />
         {t('orEmail')}
