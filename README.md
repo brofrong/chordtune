@@ -23,6 +23,29 @@ Artist photos come from Deezer and descriptions from Wikipedia, fetched when an 
 created; `bun run --cwd apps/api artists:link` links artists created before that. Accounts listed
 in `ADMIN_EMAILS` can fix an artist's links from its page.
 
+## Sign-in
+
+No passwords: Yandex, VK, Google, Telegram, passkeys and a code by email. Each provider turns on when
+its keys are in the environment (see `.env.example`).
+
+| Provider | Where | Callback / setting |
+|---|---|---|
+| Yandex | oauth.yandex.ru → new app, web services, access to email and avatar | `https://<domain>/api/auth/callback/yandex` |
+| VK | id.vk.com → app type «Web» | trusted redirect URL `https://<domain>/api/auth/callback/vk` |
+| Google | Google Cloud Console → OAuth consent screen → Credentials → Web client | `https://<domain>/api/auth/callback/google` |
+| Telegram | @BotFather → `/newbot`, then `/setdomain` | your domain |
+
+Email codes need an SMTP provider (`SMTP_URL`, `MAIL_FROM`) and SPF, DKIM and DMARC records for the
+sender's domain, or Mail.ru and Gmail will treat the codes as spam.
+
+The mobile apps sign in through the system browser and come back by the `app.chordtune://auth` deep
+link. Passkeys in the apps also need `APPLE_TEAM_ID` (iOS, paid Apple Developer account) and
+`ANDROID_CERT_SHA256` (the release key; the release workflow prints it); the server then serves
+`/.well-known/apple-app-site-association` and `assetlinks.json`. iOS passkeys are opt-in: in Xcode,
+select the App target → Signing & Capabilities → "+ Capability" → Associated Domains, then replace
+the placeholder host in `apps/web/ios/App/App/App.entitlements` with the real domain (see the
+comment there — a free personal Apple team cannot sign this capability at all).
+
 ## Checks
 
 ```sh

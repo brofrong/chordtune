@@ -17,6 +17,22 @@ services:
       MEILI_URL: http://meilisearch:7700
       MEILI_KEY: ${MEILI_MASTER_KEY:?}
       ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      SMTP_URL: ${SMTP_URL:-}
+      # MAIL_FROM defaults in code to a localhost sender; set it explicitly once SMTP_URL points
+      # at a real provider, or that provider's recipients will see no sender address.
+      MAIL_FROM: ${MAIL_FROM:-ChordTune <no-reply@localhost>}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      YANDEX_CLIENT_ID: ${YANDEX_CLIENT_ID:-}
+      YANDEX_CLIENT_SECRET: ${YANDEX_CLIENT_SECRET:-}
+      VK_CLIENT_ID: ${VK_CLIENT_ID:-}
+      VK_CLIENT_SECRET: ${VK_CLIENT_SECRET:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_BOT_NAME: ${TELEGRAM_BOT_NAME:-}
+      REVIEW_EMAIL: ${REVIEW_EMAIL:-}
+      REVIEW_CODE: ${REVIEW_CODE:-}
+      APPLE_TEAM_ID: ${APPLE_TEAM_ID:-}
+      ANDROID_CERT_SHA256: ${ANDROID_CERT_SHA256:-}
     depends_on:
       postgres:
         condition: service_healthy

@@ -96,6 +96,10 @@ jobs:
           code="$(bun scripts/version-code.ts "$version")"
           echo "VERSION=$version" >> "$GITHUB_ENV"
           echo "VERSION_CODE=$code" >> "$GITHUB_ENV"
+      - name: Point Android passkeys at the public domain
+        run: |
+          host=$(echo "${{ vars.PUBLIC_URL }}" | sed -E 's#^https?://##; s#/.*$##')
+          sed -i "s#chordtune.example.com#${host}#" apps/web/android/app/src/main/res/values/strings.xml
       - name: Web build for Capacitor
         working-directory: apps/web
         env:
@@ -111,6 +115,10 @@ jobs:
           fi
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
           echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+      - name: Print the signing key SHA-256 for ANDROID_CERT_SHA256
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: keytool -list -v -keystore "$RUNNER_TEMP/release.keystore" -storepass "$ANDROID_KEYSTORE_PASSWORD" | grep 'SHA256:'
       - name: Build APK
         working-directory: apps/web/android
         env:

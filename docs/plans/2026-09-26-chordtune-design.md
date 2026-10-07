@@ -187,7 +187,8 @@ type Bar = { segments: { chord: Chord | null; text: string }[] };
   проверяет исходники пакета, а в DSP-циклах флаг даёт только шум из `!`.
 - Better Auth 1.7 поддерживает Drizzle relations v2 через
   `@better-auth/drizzle-adapter/relations-v2`; схема сгенерирована их CLI.
-  Для Capacitor включён bearer-плагин, токен хранится в `localStorage`.
+  Для Capacitor включён bearer-плагин, токен хранится в `localStorage`. Вход без пароля —
+  `2026-10-06-auth-and-profile-design.md`.
 
 ## Статус (2026-09-27)
 
