@@ -127,6 +127,8 @@
       "google": "Google"
     },
     "continueWith": "Continue with {provider}",
+    "redirecting": "Opening sign-in…",
+    "returning": "Returning to the app…",
     "errors": {
       "wrongCode": "Wrong code.",
       "codeExpired": "The code has expired, ask for a new one.",

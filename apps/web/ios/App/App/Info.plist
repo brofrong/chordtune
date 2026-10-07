@@ -68,5 +68,16 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>ChordTune listens to your instrument to tune it and to follow the chords you play.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>app.chordtune</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>app.chordtune</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

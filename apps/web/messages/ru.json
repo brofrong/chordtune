@@ -127,6 +127,8 @@
       "google": "Google"
     },
     "continueWith": "Войти через {provider}",
+    "redirecting": "Открываем вход…",
+    "returning": "Возвращаемся в приложение…",
     "errors": {
       "wrongCode": "Неверный код.",
       "codeExpired": "Код устарел, запросите новый.",

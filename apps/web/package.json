@@ -18,6 +18,8 @@
     "@base-ui/react": "^1.8.0",
     "@better-auth/passkey": "1.7.6",
     "@capacitor/android": "8.5.2",
+    "@capacitor/app": "^8",
+    "@capacitor/browser": "^8",
     "@capacitor/core": "8.5.2",
     "@capacitor/haptics": "^8",
     "@capacitor/ios": "8.5.2",

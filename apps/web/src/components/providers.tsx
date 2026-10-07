@@ -7,7 +7,9 @@ import { useState } from 'react';
 import { ToastProvider } from '@/components/toast';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { AuthSheetProvider } from '@/features/auth/auth-sheet';
+import { NativeAuthLinks } from '@/features/auth/native-auth-links';
 import { OfflineSync } from '@/features/library/offline-sync';
+import { isCapacitor } from '@/features/song/links';
 import { makeQueryClient, makeTRPCClient, TRPCProvider } from '@/lib/trpc';
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -22,6 +24,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             <AuthSheetProvider>
               <ToastProvider>
                 <OfflineSync />
+                {isCapacitor && <NativeAuthLinks />}
                 {children}
               </ToastProvider>
             </AuthSheetProvider>
