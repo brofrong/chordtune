@@ -374,7 +374,9 @@
     "draft": "Draft",
     "empty": "No arrangements yet.",
     "more": "Show more",
-    "notFound": "User not found"
+    "notFound": "User not found",
+    "loading": "Loading…",
+    "loadFailed": "Could not load"
   },
   "tab": {
     "title": "Tab",

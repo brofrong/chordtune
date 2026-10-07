@@ -66,28 +66,41 @@ export function ProfileView({ profile }: { profile: Profile }) {
         <span>{t('saves', { count: profile.stats.saves })}</span>
       </div>
 
-      {list.isSuccess && items.length === 0 && (
+      {list.isPending ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {[0, 1, 2, 3].map((index) => (
+            <div key={index} className="h-[66px] animate-pulse rounded-2xl bg-surface-2" />
+          ))}
+        </div>
+      ) : list.isError ? (
+        <p className="text-muted-foreground text-sm">{t('loadFailed')}</p>
+      ) : items.length === 0 ? (
         <p className="text-muted-foreground">{t('empty')}</p>
-      )}
-      <div className="grid gap-3 sm:grid-cols-2">
-        {items.map((item) => (
-          <SongCard
-            key={item.id}
-            item={item}
-            badge={
-              item.status === 'draft' ? <Badge variant="secondary">{t('draft')}</Badge> : undefined
-            }
-          />
-        ))}
-      </div>
-      {list.hasNextPage && (
-        <Button
-          variant="outline"
-          onClick={() => list.fetchNextPage()}
-          disabled={list.isFetchingNextPage}
-        >
-          {t('more')}
-        </Button>
+      ) : (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {items.map((item) => (
+              <SongCard
+                key={item.id}
+                item={item}
+                badge={
+                  item.status === 'draft' ? (
+                    <Badge variant="secondary">{t('draft')}</Badge>
+                  ) : undefined
+                }
+              />
+            ))}
+          </div>
+          {list.hasNextPage && (
+            <Button
+              variant="outline"
+              onClick={() => list.fetchNextPage()}
+              disabled={list.isFetchingNextPage}
+            >
+              {t('more')}
+            </Button>
+          )}
+        </>
       )}
     </div>
   );

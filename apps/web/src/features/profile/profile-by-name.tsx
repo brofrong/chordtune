@@ -19,5 +19,8 @@ export function ProfileByQuery() {
   if (profile.isError || !name) {
     return <p className="p-8 text-center text-muted-foreground">{t('notFound')}</p>;
   }
-  return profile.data ? <ProfileView profile={profile.data} /> : null;
+  if (profile.isPending) {
+    return <p className="p-8 text-center text-muted-foreground">{t('loading')}</p>;
+  }
+  return <ProfileView profile={profile.data} />;
 }

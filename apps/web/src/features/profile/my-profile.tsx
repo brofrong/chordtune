@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 
 import { useAuthSheet } from '@/features/auth/auth-sheet';
@@ -9,6 +10,7 @@ import { useTRPC } from '@/lib/trpc';
 import { ProfileView } from './profile-view';
 
 export function MyProfile() {
+  const t = useTranslations('profile');
   const trpc = useTRPC();
   const session = useSession();
   const openAuth = useAuthSheet();
@@ -21,5 +23,14 @@ export function MyProfile() {
     }
   }, [openAuth, session.isPending, signedIn]);
 
-  return profile.data ? <ProfileView profile={profile.data} /> : null;
+  if (!signedIn) {
+    return null;
+  }
+  if (profile.isError) {
+    return <p className="p-8 text-center text-muted-foreground">{t('loadFailed')}</p>;
+  }
+  if (profile.isPending) {
+    return <p className="p-8 text-center text-muted-foreground">{t('loading')}</p>;
+  }
+  return <ProfileView profile={profile.data} />;
 }
