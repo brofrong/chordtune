@@ -24,6 +24,7 @@ import { ChordCard } from '@/features/chords/chord-card';
 import { ChordSidebar, ChordStrip, useChordBrowser } from '@/features/chords/chord-panel';
 import { useChordPanelOpen } from '@/features/chords/use-chord-panel';
 import { useOfflineHooks } from '@/features/library/use-offline-hooks';
+import { profileHref } from '@/features/profile/links';
 import {
   DEFAULT_BPM,
   type PlayingAt,
@@ -203,7 +204,18 @@ export function SongView({
           )}
           {arrangement.tempo ? <span>{t('bpm', { bpm: arrangement.tempo })}</span> : null}
           {arrangement.key ? <span>{t('key', { key: arrangement.key })}</span> : null}
-          <span>{t('by', { name: arrangement.author?.name ?? t('anonymous') })}</span>
+          <span>
+            {arrangement.author?.username ? (
+              <Link
+                href={profileHref(arrangement.author.username)}
+                className="underline-offset-4 hover:underline"
+              >
+                {t('by', { name: arrangement.author.name })}
+              </Link>
+            ) : (
+              t('by', { name: arrangement.author?.name ?? t('anonymous') })
+            )}
+          </span>
         </p>
       </header>
 

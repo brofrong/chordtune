@@ -12,6 +12,7 @@ export const { TRPCProvider, useTRPC, useTRPCClient } = createTRPCContext<AppRou
 export type RouterOutputs = inferRouterOutputs<AppRouter>;
 export type ArrangementView = RouterOutputs['arrangements']['byId'];
 export type ArrangementListItem = RouterOutputs['songs']['list'][number];
+export type Profile = RouterOutputs['profile']['me'];
 
 export function makeQueryClient() {
   return new QueryClient({

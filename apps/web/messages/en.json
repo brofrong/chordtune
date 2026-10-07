@@ -363,6 +363,19 @@
     "browse": "Find a song",
     "loadFailed": "Could not load"
   },
+  "profile": {
+    "title": "Profile",
+    "edit": "Edit",
+    "security": "Security",
+    "since": "Joined {date}",
+    "arrangements": "{count, plural, one {# arrangement} other {# arrangements}}",
+    "likes": "{count, plural, one {# like} other {# likes}}",
+    "saves": "{count, plural, one {# save} other {# saves}}",
+    "draft": "Draft",
+    "empty": "No arrangements yet.",
+    "more": "Show more",
+    "notFound": "User not found"
+  },
   "tab": {
     "title": "Tab",
     "tempo": "Tempo",

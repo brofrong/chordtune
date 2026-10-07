@@ -363,6 +363,19 @@
     "browse": "Найти песню",
     "loadFailed": "Не удалось загрузить"
   },
+  "profile": {
+    "title": "Профиль",
+    "edit": "Редактировать",
+    "security": "Безопасность",
+    "since": "На сайте с {date}",
+    "arrangements": "{count, plural, one {# разбор} few {# разбора} many {# разборов} other {# разбора}}",
+    "likes": "{count, plural, one {# лайк} few {# лайка} many {# лайков} other {# лайка}}",
+    "saves": "{count, plural, one {# сохранение} few {# сохранения} many {# сохранений} other {# сохранения}}",
+    "draft": "Черновик",
+    "empty": "Пока нет разборов.",
+    "more": "Показать ещё",
+    "notFound": "Пользователь не найден"
+  },
   "tab": {
     "title": "Таб",
     "tempo": "Темп",
