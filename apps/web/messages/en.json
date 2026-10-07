@@ -376,7 +376,20 @@
     "more": "Show more",
     "notFound": "User not found",
     "loading": "Loading…",
-    "loadFailed": "Could not load"
+    "loadFailed": "Could not load",
+    "editForm": {
+      "title": "Edit profile",
+      "name": "Display name",
+      "username": "Username",
+      "usernameHint": "Latin letters, digits and _, 3 to 30 characters.",
+      "short": "Too short.",
+      "reserved": "This username is reserved.",
+      "taken": "Already taken.",
+      "available": "Available.",
+      "save": "Save",
+      "saved": "Saved",
+      "failed": "That didn't work. Try again."
+    }
   },
   "tab": {
     "title": "Tab",
