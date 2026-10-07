@@ -3,8 +3,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useFormatter, useTranslations } from 'next-intl';
 
+import { useToast } from '@/components/toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { authErrorKey } from '@/features/auth/auth-errors';
 import { useSession } from '@/features/auth/use-session';
 import { authClient } from '@/lib/auth-client';
 import { Section } from './section';
@@ -13,7 +15,9 @@ import { describeUserAgent } from './user-agent';
 export function SessionsSection() {
   const t = useTranslations('security');
   const tProfile = useTranslations('profile');
+  const tAuth = useTranslations('auth');
   const format = useFormatter();
+  const toast = useToast();
   const session = useSession();
   const queryClient = useQueryClient();
   const sessions = useQuery({
@@ -22,6 +26,8 @@ export function SessionsSection() {
   });
   const current = session.data?.session.token;
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['auth', 'sessions'] });
+  const report = (error: { code?: string } | null | undefined) =>
+    error && toast(tAuth(`errors.${authErrorKey(error)}`), 'error');
 
   return (
     <Section title={t('sessions')}>
@@ -56,7 +62,8 @@ export function SessionsSection() {
                       variant="ghost"
                       size="sm"
                       onClick={async () => {
-                        await authClient.revokeSession({ token: item.token });
+                        const result = await authClient.revokeSession({ token: item.token });
+                        report(result.error);
                         await refresh();
                       }}
                     >
@@ -72,7 +79,8 @@ export function SessionsSection() {
               variant="outline"
               className="self-start"
               onClick={async () => {
-                await authClient.revokeOtherSessions();
+                const result = await authClient.revokeOtherSessions();
+                report(result.error);
                 await refresh();
               }}
             >

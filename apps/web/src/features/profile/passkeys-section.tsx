@@ -41,7 +41,7 @@ export function PasskeysSection({
           <li key={item.id} className="flex items-center gap-3 rounded-xl border border-border p-3">
             <KeyRound className="size-4 shrink-0" />
             <div className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate">{item.name || 'Passkey'}</span>
+              <span className="truncate">{item.name || t('passkeyDefaultName')}</span>
               <span className="text-muted-foreground text-xs">
                 {format.dateTime(new Date(item.createdAt), { dateStyle: 'medium' })}
               </span>

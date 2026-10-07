@@ -1,5 +1,6 @@
 'use client';
 
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -23,6 +24,7 @@ export function DeleteAccountSection() {
   const t = useTranslations('security');
   const tAuth = useTranslations('auth');
   const session = useSession();
+  const queryClient = useQueryClient();
   const router = useRouter();
   const openAuth = useAuthSheet();
   const [open, setOpen] = useState(false);
@@ -44,6 +46,7 @@ export function DeleteAccountSection() {
     }
     authToken.set(null);
     await session.refetch();
+    await queryClient.invalidateQueries();
     router.push('/');
   };
 
