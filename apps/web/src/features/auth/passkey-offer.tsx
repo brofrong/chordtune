@@ -5,7 +5,9 @@ import { KeyRound, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import { useToast } from '@/components/toast';
 import { Button } from '@/components/ui/button';
+import { authErrorKey } from '@/features/auth/auth-errors';
 import { authClient } from '@/lib/auth-client';
 import { passkeyOfferStore, shouldOfferPasskey } from './passkey-offer-state';
 import { addPasskey, passkeySupported } from './passkeys';
@@ -15,21 +17,24 @@ import { useSession } from './use-session';
 /** A one-time nudge after sign-in; closing it means never again on this device. */
 export function PasskeyOffer() {
   const t = useTranslations('auth.passkeyOffer');
+  const tAuth = useTranslations('auth');
+  const toast = useToast();
   const session = useSession();
   const methods = useAuthMethods();
   const queryClient = useQueryClient();
   const [dismissed, setDismissed] = useState(() => passkeyOfferStore.dismissed());
   const signedIn = Boolean(session.data?.user);
+  const supported = passkeySupported(methods.data);
   const passkeys = useQuery({
     queryKey: ['auth', 'passkeys'],
     queryFn: async () => (await authClient.passkey.listUserPasskeys()).data ?? [],
-    enabled: signedIn && !dismissed,
+    enabled: signedIn && !dismissed && supported,
   });
 
   if (
     !shouldOfferPasskey({
       signedIn,
-      supported: passkeySupported(methods.data),
+      supported,
       passkeyCount: passkeys.data?.length,
       dismissed,
     })
@@ -55,6 +60,8 @@ export function PasskeyOffer() {
               if (result && !result.error) {
                 await queryClient.invalidateQueries({ queryKey: ['auth', 'passkeys'] });
                 close();
+              } else if (result?.error) {
+                toast(tAuth(`errors.${authErrorKey(result.error)}`), 'error');
               }
             }}
           >
