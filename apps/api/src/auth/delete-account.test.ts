@@ -5,7 +5,7 @@ import { arrangement, session } from '../db/schema';
 import { noopSearch } from '../search';
 import { saveArrangement } from '../services/save-arrangement';
 import { createTestAuth } from '../test/auth';
-import { isRecentSignIn } from './delete-account';
+import { isRecentSignIn, REAUTH_REQUIRED } from './delete-account';
 
 const input = {
   artist: { name: 'LUMEN' },
@@ -48,6 +48,8 @@ describe('deleting an account', () => {
       .update(session)
       .set({ createdAt: new Date(Date.now() - 20 * 60_000) })
       .where(eq(session.userId, userId));
-    await expect(t.auth.api.deleteUser({ body: {}, headers })).rejects.toThrow();
+    await expect(t.auth.api.deleteUser({ body: {}, headers })).rejects.toMatchObject({
+      body: { code: REAUTH_REQUIRED },
+    });
   });
 });

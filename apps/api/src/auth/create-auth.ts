@@ -73,18 +73,22 @@ export function createAuth({
         // session — that's the only "no session" case we treat as such. Anything it throws
         // (a real failure, not "unauthenticated") must propagate and block the action: this is a
         // security guard, so a transient error here has to fail closed, not be read as "no
-        // session, go ahead". Deleting the account relies on this same re-entry: `deleteUser`'s
-        // own `beforeDelete(user, request)` only gets a `request` when the call arrives over
-        // HTTP, not from a direct `auth.api.deleteUser({ headers })` (bearer, like the mobile
-        // app, or our own tests) — so the freshness check lives here instead.
-        if (ctx.path === '/delete-user') {
-          const current = (await dispatchAuthEndpoint(getSession(), {
-            headers: ctx.headers,
-            context: ctx.context,
+        // session, go ahead".
+        const getCurrentSession = (c: typeof ctx) =>
+          dispatchAuthEndpoint(getSession(), {
+            headers: c.headers,
+            context: c.context,
             method: 'GET',
             asResponse: false,
-          })) as { session: { createdAt: Date } } | null;
-          if (!current || !isRecentSignIn(new Date(current.session.createdAt))) {
+          }) as Promise<{ session: { createdAt: Date }; user: { id: string } } | null>;
+
+        // Deleting the account relies on this same re-entry: `deleteUser`'s own
+        // `beforeDelete(user, request)` only gets a `request` when the call arrives over HTTP,
+        // not from a direct `auth.api.deleteUser({ headers })` (bearer, like the mobile app, or
+        // our own tests) — so the freshness check lives here instead.
+        if (ctx.path === '/delete-user') {
+          const current = await getCurrentSession(ctx);
+          if (!current || !isRecentSignIn(current.session.createdAt)) {
             throw new APIError('FORBIDDEN', { message: 'Sign in again', code: REAUTH_REQUIRED });
           }
           return;
@@ -92,12 +96,7 @@ export function createAuth({
         if (ctx.path !== '/unlink-account' && ctx.path !== '/passkey/delete-passkey') {
           return;
         }
-        const session = (await dispatchAuthEndpoint(getSession(), {
-          headers: ctx.headers,
-          context: ctx.context,
-          method: 'GET',
-          asResponse: false,
-        })) as { user: { id: string } } | null;
+        const session = await getCurrentSession(ctx);
         if (session && (await signInMethodCount(db, session.user.id)) <= 1) {
           throw new APIError('BAD_REQUEST', {
             message: 'This is the last way to sign in',
