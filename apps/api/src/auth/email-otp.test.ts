@@ -56,10 +56,10 @@ describe('email code sign-in', () => {
     expect(result.user.email).toBe('review@chordtune.app');
   });
 
-  test('placeholder addresses get no mail', async () => {
-    await t.auth.api.sendVerificationOTP({
-      body: { email: 'tg-1@users.invalid', type: 'sign-in' },
-    });
+  test('placeholder addresses get no code and no mail', async () => {
+    await expect(
+      t.auth.api.sendVerificationOTP({ body: { email: 'tg-1@users.invalid', type: 'sign-in' } }),
+    ).rejects.toMatchObject({ body: { code: 'INVALID_EMAIL' } });
     expect(t.sent).toHaveLength(0);
   });
 

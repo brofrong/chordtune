@@ -30,6 +30,38 @@ export type AuthDeps = {
 };
 
 export const MAIL_FAILED = 'MAIL_FAILED';
+export const EMAIL_CHANGE_NOT_ALLOWED = 'EMAIL_CHANGE_NOT_ALLOWED';
+export const EMAIL_TAKEN = 'EMAIL_TAKEN';
+export const INVALID_EMAIL = 'INVALID_EMAIL';
+export const IMAGE_NOT_ALLOWED = 'IMAGE_NOT_ALLOWED';
+
+/**
+ * Every route the installed plugins register for signing in with, setting or resetting a password.
+ * `emailAndPassword` is off, but `username()` and `emailOTP()` bring their own password routes,
+ * which would still accept a former user's password or create a new one for a code-only user.
+ * (`/reset-password/:token` can't be listed — the match is exact — but it only redeems tokens
+ * that `/request-password-reset` would have created.)
+ */
+export const PASSWORD_PATHS = [
+  '/sign-in/email',
+  '/sign-up/email',
+  '/sign-in/username',
+  '/change-password',
+  '/verify-password',
+  '/request-password-reset',
+  '/reset-password',
+  '/email-otp/request-password-reset',
+  '/email-otp/reset-password',
+  '/forget-password/email-otp',
+];
+
+/** Code routes keyed by an email: placeholders get no mail, so a code there could only be guessed. */
+const EMAIL_CODE_PATHS = new Set([
+  '/email-otp/send-verification-otp',
+  '/sign-in/email-otp',
+  '/email-otp/check-verification-otp',
+  '/email-otp/verify-email',
+]);
 
 export function createAuth({
   db,
@@ -48,6 +80,7 @@ export function createAuth({
     logger,
     database: drizzleAdapter(db, { provider: 'pg', schema: tables }),
     trustedOrigins,
+    disabledPaths: PASSWORD_PATHS,
     socialProviders: socialProviders(config),
     account: {
       accountLinking: {
@@ -81,7 +114,63 @@ export function createAuth({
             context: c.context,
             method: 'GET',
             asResponse: false,
-          }) as Promise<{ session: { createdAt: Date }; user: { id: string } } | null>;
+          }) as Promise<{
+            session: { createdAt: Date };
+            user: { id: string; email: string; emailVerified: boolean };
+          } | null>;
+
+        const body = (ctx.body ?? {}) as Record<string, unknown>;
+        const emailIn = (field: string) =>
+          typeof body[field] === 'string' ? body[field].toLowerCase() : undefined;
+
+        if (EMAIL_CODE_PATHS.has(ctx.path)) {
+          const email = emailIn('email');
+          if (email && isPlaceholderEmail(email)) {
+            throw new APIError('BAD_REQUEST', { message: 'Invalid email', code: INVALID_EMAIL });
+          }
+          return;
+        }
+        // A public profile shows the avatar to everyone, so a client-set URL would be a tracking
+        // pixel; avatars only ever come from the sign-in provider.
+        if (ctx.path === '/update-user') {
+          if (body.image !== undefined) {
+            throw new APIError('BAD_REQUEST', {
+              message: 'The avatar comes from the sign-in provider',
+              code: IMAGE_NOT_ALLOWED,
+            });
+          }
+          return;
+        }
+        if (
+          ctx.path === '/email-otp/request-email-change' ||
+          ctx.path === '/email-otp/change-email'
+        ) {
+          const current = await getCurrentSession(ctx);
+          // The profile only offers to add an email to an account without a real one; changing
+          // a confirmed address would need the old mailbox's consent, which we don't ask for.
+          if (current?.user.emailVerified && !isPlaceholderEmail(current.user.email)) {
+            throw new APIError('FORBIDDEN', {
+              message: 'The email can not be changed',
+              code: EMAIL_CHANGE_NOT_ALLOWED,
+            });
+          }
+          const newEmail = emailIn('newEmail');
+          if (newEmail && isPlaceholderEmail(newEmail)) {
+            throw new APIError('BAD_REQUEST', { message: 'Invalid email', code: INVALID_EMAIL });
+          }
+          // Better Auth quietly sends no code to a taken address (no account enumeration), which
+          // leaves the user waiting for mail that never comes; for a signed-in user we say so.
+          if (current && newEmail && ctx.path === '/email-otp/request-email-change') {
+            const owner = await ctx.context.internalAdapter.findUserByEmail(newEmail);
+            if (owner && owner.user.id !== current.user.id) {
+              throw new APIError('BAD_REQUEST', {
+                message: 'Email already in use',
+                code: EMAIL_TAKEN,
+              });
+            }
+          }
+          return;
+        }
 
         // Deleting the account relies on this same re-entry: `deleteUser`'s own
         // `beforeDelete(user, request)` only gets a `request` when the call arrives over HTTP,
@@ -128,7 +217,10 @@ export function createAuth({
           try {
             await mailer({ to: email, ...message });
           } catch (error) {
-            console.error('[mail] sending the code failed', error);
+            // Not the error itself: nodemailer's errors may carry the transport config, SMTP_URL
+            // with its password included.
+            const { code, message } = (error ?? {}) as { code?: unknown; message?: unknown };
+            console.error('[mail] sending the code failed', { code, message });
             // Better Auth swallows a throw here (see mail/failures.ts), so mark the failure
             // on the request's store; outside that store (e.g. a direct auth.api call),
             // throwing is the only way to signal it.
