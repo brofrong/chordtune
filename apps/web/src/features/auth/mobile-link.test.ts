@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
+  appLink,
   createPendingAuth,
   decodeTgAuthResult,
   matchBrowserFlow,
@@ -10,6 +11,14 @@ import {
   parseAuthLink,
   pickDisplayName,
 } from './mobile-link';
+
+describe('appLink', () => {
+  test('round-trips through parseAuthLink', () => {
+    const link = appLink({ state: 's', token: 'a+b/c' });
+    expect(link.startsWith('app.chordtune://auth?')).toBe(true);
+    expect(parseAuthLink(link)).toEqual({ state: 's', token: 'a+b/c', linked: null, error: null });
+  });
+});
 
 describe('parseAuthLink', () => {
   test('reads token, linked provider and error', () => {

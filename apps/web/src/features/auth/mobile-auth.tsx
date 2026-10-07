@@ -4,18 +4,41 @@ import type { ProviderId } from '@chordtune/api';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { authToken } from '@/lib/api';
 import { authClient } from '@/lib/auth-client';
 import {
+  appLink,
   browserFlowStore,
-  DEEP_LINK_PREFIX,
   decodeTgAuthResult,
   matchBrowserFlow,
   pickDisplayName,
 } from './mobile-link';
 
-function back(params: Record<string, string>) {
-  window.location.replace(`${DEEP_LINK_PREFIX}?${new URLSearchParams(params)}`);
+/**
+ * Sends the browser back to the app. Browsers may refuse to open an app without a user gesture,
+ * so the same link also stays on the page as a button.
+ */
+function useBackToApp() {
+  const [href, setHref] = useState<string | null>(null);
+  const back = useCallback((params: Record<string, string>) => {
+    const link = appLink(params);
+    setHref(link);
+    window.location.replace(link);
+  }, []);
+  return [href, back] as const;
+}
+
+function BackToApp({ href, message }: { href: string; message: string }) {
+  const t = useTranslations('auth');
+  return (
+    <div className="flex flex-col items-center gap-4 p-8 text-center">
+      <p className="text-muted-foreground">{message}</p>
+      <a href={href} className={buttonVariants()}>
+        {t('openApp')}
+      </a>
+    </div>
+  );
 }
 
 /** The ott travels in the fragment (never sent to a server); read it once, then drop it from the URL. */
@@ -41,6 +64,7 @@ export function MobileAuthStart({
 }) {
   const t = useTranslations('auth');
   const started = useRef(false);
+  const [backHref, back] = useBackToApp();
   const [message, setMessage] = useState<string | null>(null);
   const [confirmUsername, setConfirmUsername] = useState<string | null>(null);
 
@@ -62,6 +86,11 @@ export function MobileAuthStart({
       return;
     }
     const options = { callbackURL: done, errorCallbackURL: done };
+    if (mode === 'sign-in') {
+      // The redirect back sets a fresh session cookie but no new token; a token this browser
+      // kept from an earlier visit would win over that cookie on `/done`.
+      authToken.set(null);
+    }
     const result =
       mode === 'link'
         ? await authClient.linkSocial({ provider, ...options })
@@ -70,7 +99,7 @@ export function MobileAuthStart({
       setMessage(t('errors.failed'));
       back({ state, error: result.error.code ?? 'failed' });
     }
-  }, [mode, provider, state, telegramBot, t]);
+  }, [back, mode, provider, state, telegramBot, t]);
 
   useEffect(() => {
     if (started.current) {
@@ -97,10 +126,11 @@ export function MobileAuthStart({
       }
       await proceed();
     })();
-  }, [mode, state, proceed]);
+  }, [back, mode, state, proceed]);
 
   function cancel() {
     browserFlowStore.set(null);
+    setConfirmUsername(null);
     back({ state, error: 'access_denied' });
   }
 
@@ -127,10 +157,17 @@ export function MobileAuthStart({
     );
   }
 
-  return <p className="p-8 text-center text-muted-foreground">{message ?? t('redirecting')}</p>;
+  if (backHref) {
+    return <BackToApp href={backHref} message={message ?? t('returning')} />;
+  }
+  return <p className="p-8 text-center text-muted-foreground">{t('redirecting')}</p>;
 }
 
-/** Step two: the provider is done; hand the app a one-time token or say the link worked. */
+/**
+ * Step two: the provider is done; say the link worked, or — after the user confirms the account —
+ * hand the app a one-time token. The token is only minted on that tap: anything that could catch
+ * the deep link on its way to the app gets nothing from a page merely being opened.
+ */
 export function MobileAuthDone({
   state,
   mode,
@@ -142,6 +179,8 @@ export function MobileAuthDone({
 }) {
   const t = useTranslations('auth');
   const started = useRef(false);
+  const [backHref, back] = useBackToApp();
+  const [signedInAs, setSignedInAs] = useState<string | null>(null);
 
   useEffect(() => {
     if (started.current) {
@@ -185,10 +224,33 @@ export function MobileAuthDone({
         back({ state, linked: provider });
         return;
       }
-      const { data, error } = await authClient.oneTimeToken.generate();
-      back(error || !data ? { state, error: 'failed' } : { state, token: data.token });
+      const { data } = await authClient.getSession();
+      if (!data?.user) {
+        back({ state, error: 'failed' });
+        return;
+      }
+      setSignedInAs(pickDisplayName(data.user));
     })();
-  }, [mode, provider, state]);
+  }, [back, mode, provider, state]);
 
+  async function continueInApp() {
+    setSignedInAs(null);
+    const { data, error } = await authClient.oneTimeToken.generate();
+    back(error || !data ? { state, error: 'failed' } : { state, token: data.token });
+  }
+
+  if (backHref) {
+    return <BackToApp href={backHref} message={t('returning')} />;
+  }
+  if (signedInAs) {
+    return (
+      <div className="flex flex-col items-center gap-4 p-8 text-center">
+        <p className="text-muted-foreground">{t('continueInAppHint')}</p>
+        <Button size="lg" onClick={continueInApp}>
+          {t('continueInApp', { username: signedInAs })}
+        </Button>
+      </div>
+    );
+  }
   return <p className="p-8 text-center text-muted-foreground">{t('returning')}</p>;
 }

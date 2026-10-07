@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { isCapacitor } from '@/features/song/links';
+import { authToken } from '@/lib/api';
 import { authClient } from '@/lib/auth-client';
 import { startNativeSignIn } from './native-sign-in';
 import { useAuthMethods } from './use-auth-methods';
@@ -16,6 +17,9 @@ export async function signInWithProvider(provider: ProviderId, callbackURL: stri
     return;
   }
   if (provider !== 'telegram') {
+    // The redirect back sets a fresh session cookie but no new token, and a stored token —
+    // a dead one, or the old session being re-confirmed — would win over that cookie.
+    authToken.set(null);
     // Yandex is a genericOAuth provider, which Better Auth 1.7 serves through `signIn.social` too.
     await authClient.signIn.social({ provider, callbackURL, errorCallbackURL: callbackURL });
   }

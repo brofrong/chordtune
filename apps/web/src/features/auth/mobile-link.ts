@@ -24,6 +24,11 @@ export function createPendingAuth(
   return { state, mode, provider, createdAt: now };
 }
 
+/** The deep link the browser pages hand their result back to the app with. */
+export function appLink(params: Record<string, string>) {
+  return `${DEEP_LINK_PREFIX}?${new URLSearchParams(params)}`;
+}
+
 export function parseAuthLink(url: string) {
   if (!url.startsWith(DEEP_LINK_PREFIX)) {
     return null;
