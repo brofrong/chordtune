@@ -5,6 +5,7 @@ import { arrangementsRouter } from './routers/arrangements';
 import { artistsRouter } from './routers/artists';
 import { authRouter } from './routers/auth';
 import { libraryRouter } from './routers/library';
+import { profileRouter } from './routers/profile';
 import { searchRouter } from './routers/search';
 import { songsRouter } from './routers/songs';
 
@@ -20,6 +21,7 @@ export const appRouter = router({
   search: searchRouter,
   arrangements: arrangementsRouter,
   library: libraryRouter,
+  profile: profileRouter,
 });
 
 export type AppRouter = typeof appRouter;
