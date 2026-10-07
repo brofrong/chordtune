@@ -120,6 +120,9 @@
     "resendIn": "Отправить ещё раз через {seconds} с",
     "changeEmail": "Изменить почту",
     "passkey": "Войти с passkey",
+    "linkConfirm": "Привязать {provider} к аккаунту @{username}?",
+    "link": "Привязать",
+    "cancel": "Отмена",
     "providers": {
       "yandex": "Яндекс",
       "vk": "VK",

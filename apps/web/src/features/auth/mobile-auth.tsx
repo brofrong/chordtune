@@ -2,14 +2,16 @@
 
 import type { ProviderId } from '@chordtune/api';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { Button } from '@/components/ui/button';
 import { authClient } from '@/lib/auth-client';
 import {
   browserFlowStore,
   DEEP_LINK_PREFIX,
   decodeTgAuthResult,
   matchBrowserFlow,
+  pickDisplayName,
 } from './mobile-link';
 
 function back(params: Record<string, string>) {
@@ -40,6 +42,35 @@ export function MobileAuthStart({
   const t = useTranslations('auth');
   const started = useRef(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [confirmUsername, setConfirmUsername] = useState<string | null>(null);
+
+  // Lets `/auth/mobile/done` confirm this exact tab actually went through this exact flow. Written
+  // only right before the provider redirect, so an early-error exit never leaves a stale entry.
+  const proceed = useCallback(async () => {
+    browserFlowStore.set({ state, mode, provider });
+    const done = `${window.location.origin}${window.location.pathname}/done?${new URLSearchParams({ state, mode, provider })}`;
+    if (provider === 'telegram') {
+      // Redirect mode: popups are unreliable inside Custom Tabs and Safari View Controller.
+      if (!telegramBot) {
+        back({ state, error: 'failed' });
+        return;
+      }
+      const origin = window.location.origin;
+      window.location.replace(
+        `https://oauth.telegram.org/auth?${new URLSearchParams({ bot_id: telegramBot, origin, return_to: done })}`,
+      );
+      return;
+    }
+    const options = { callbackURL: done, errorCallbackURL: done };
+    const result =
+      mode === 'link'
+        ? await authClient.linkSocial({ provider, ...options })
+        : await authClient.signIn.social({ provider, ...options });
+    if (result?.error) {
+      setMessage(t('errors.failed'));
+      back({ state, error: result.error.code ?? 'failed' });
+    }
+  }, [mode, provider, state, telegramBot, t]);
 
   useEffect(() => {
     if (started.current) {
@@ -47,44 +78,54 @@ export function MobileAuthStart({
     }
     started.current = true;
     const ott = takeOttFromHash();
-    // Lets `/auth/mobile/done` confirm this exact tab actually went through this exact flow.
-    browserFlowStore.set({ state, mode, provider });
     (async () => {
       if (mode === 'link') {
         if (!ott) {
           back({ state, error: 'failed' });
           return;
         }
-        const { error } = await authClient.oneTimeToken.verify({ token: ott });
-        if (error) {
-          back({ state, error: error.code ?? 'failed' });
+        const { data, error } = await authClient.oneTimeToken.verify({ token: ott });
+        if (error || !data) {
+          back({ state, error: error?.code ?? 'failed' });
           return;
         }
-      }
-      const done = `${window.location.origin}${window.location.pathname}/done?${new URLSearchParams({ state, mode, provider })}`;
-      if (provider === 'telegram') {
-        // Redirect mode: popups are unreliable inside Custom Tabs and Safari View Controller.
-        if (!telegramBot) {
-          back({ state, error: 'failed' });
-          return;
-        }
-        const origin = window.location.origin;
-        window.location.replace(
-          `https://oauth.telegram.org/auth?${new URLSearchParams({ bot_id: telegramBot, origin, return_to: done })}`,
-        );
+        // Linking signs the browser into the ott's account first: an attacker could mint their own
+        // ott and send the victim here to link the victim's provider to the attacker's account.
+        // Confirm the account before doing anything irreversible.
+        setConfirmUsername(pickDisplayName(data.user));
         return;
       }
-      const options = { callbackURL: done, errorCallbackURL: done };
-      const result =
-        mode === 'link'
-          ? await authClient.linkSocial({ provider, ...options })
-          : await authClient.signIn.social({ provider, ...options });
-      if (result?.error) {
-        setMessage(t('errors.failed'));
-        back({ state, error: result.error.code ?? 'failed' });
-      }
+      await proceed();
     })();
-  }, [mode, provider, state, telegramBot, t]);
+  }, [mode, state, proceed]);
+
+  function cancel() {
+    browserFlowStore.set(null);
+    back({ state, error: 'access_denied' });
+  }
+
+  if (confirmUsername) {
+    return (
+      <div className="flex flex-col items-center gap-4 p-8 text-center">
+        <p>
+          {t('linkConfirm', { provider: t(`providers.${provider}`), username: confirmUsername })}
+        </p>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => {
+              setConfirmUsername(null);
+              proceed();
+            }}
+          >
+            {t('link')}
+          </Button>
+          <Button variant="outline" onClick={cancel}>
+            {t('cancel')}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return <p className="p-8 text-center text-muted-foreground">{message ?? t('redirecting')}</p>;
 }

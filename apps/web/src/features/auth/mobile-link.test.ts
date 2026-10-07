@@ -8,6 +8,7 @@ import {
   mobileStartUrl,
   PENDING_TTL_MS,
   parseAuthLink,
+  pickDisplayName,
 } from './mobile-link';
 
 describe('parseAuthLink', () => {
@@ -89,6 +90,17 @@ function encodeTgAuthResult(data: unknown): string {
   const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join('');
   return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
 }
+
+describe('pickDisplayName', () => {
+  test('prefers the username over the raw name', () => {
+    expect(pickDisplayName({ username: 'dima', name: 'Dmitrii' })).toBe('dima');
+  });
+
+  test('falls back to the name when there is no username', () => {
+    expect(pickDisplayName({ username: null, name: 'Dmitrii' })).toBe('Dmitrii');
+    expect(pickDisplayName({ name: 'Dmitrii' })).toBe('Dmitrii');
+  });
+});
 
 describe('decodeTgAuthResult', () => {
   test('round-trips a Cyrillic name', () => {

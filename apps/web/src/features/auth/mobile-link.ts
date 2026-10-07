@@ -135,6 +135,11 @@ export const browserFlowStore = {
   },
 };
 
+/** Prefers the handle over the raw name, since that's what the owner would recognize as "their" account. */
+export function pickDisplayName(user: { username?: string | null; name: string }): string {
+  return user.username || user.name;
+}
+
 /**
  * Telegram's redirect callback appends `#tgAuthResult=<base64url>` (or `=false` when the user
  * cancels) to `return_to`. `atob` alone mangles non-ASCII names (it reads Latin-1, not UTF-8), so

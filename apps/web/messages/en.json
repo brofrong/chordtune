@@ -120,6 +120,9 @@
     "resendIn": "Send again in {seconds} s",
     "changeEmail": "Change email",
     "passkey": "Sign in with a passkey",
+    "linkConfirm": "Link {provider} to @{username}?",
+    "link": "Link",
+    "cancel": "Cancel",
     "providers": {
       "yandex": "Yandex",
       "vk": "VK",
