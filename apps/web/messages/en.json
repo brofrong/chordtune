@@ -391,6 +391,32 @@
       "failed": "That didn't work. Try again."
     }
   },
+  "security": {
+    "title": "Security",
+    "sessions": "Active sessions",
+    "thisDevice": "This device",
+    "unknownDevice": "Unknown device",
+    "lastActive": "Last active: {date}",
+    "revoke": "Sign out",
+    "revokeOthers": "Sign out everywhere else",
+    "passkeys": "Passkeys",
+    "addPasskey": "Add a passkey",
+    "noPasskeys": "No passkeys yet.",
+    "delete": "Delete",
+    "services": "Sign-in services",
+    "link": "Link",
+    "unlink": "Unlink",
+    "lastMethodHint": "Your last way to sign in can't be removed.",
+    "email": "Email",
+    "addEmail": "Add an email",
+    "sendCode": "Send code",
+    "confirm": "Confirm",
+    "emailTaken": "This email belongs to another account.",
+    "deleteAccount": "Delete account",
+    "deleteWarning": "Your account will be gone for good. Published arrangements stay on the site without an author; likes and saves are removed.",
+    "deleteConfirm": "Delete for good",
+    "reauth": "Sign in again to delete — it confirms the account is yours."
+  },
   "tab": {
     "title": "Tab",
     "tempo": "Tempo",
