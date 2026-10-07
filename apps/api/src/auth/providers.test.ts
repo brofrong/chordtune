@@ -23,8 +23,9 @@ describe('providers', () => {
 });
 
 describe('vkProfileToUser', () => {
-  test('keeps the VK email or stands in a placeholder', () => {
-    expect(vkProfileToUser({ user: { user_id: 7, email: 'v@vk.com' } })).toEqual({});
-    expect(vkProfileToUser({ user: { user_id: 7 } })).toEqual({ email: 'vk-7@users.invalid' });
+  test('always stands in a verified placeholder, even when VK returns an email', () => {
+    const placeholder = { email: 'vk-7@users.invalid', emailVerified: true };
+    expect(vkProfileToUser({ user: { user_id: 7, email: 'v@vk.com' } })).toEqual(placeholder);
+    expect(vkProfileToUser({ user: { user_id: 7 } })).toEqual(placeholder);
   });
 });
