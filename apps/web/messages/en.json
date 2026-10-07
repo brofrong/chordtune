@@ -106,16 +106,38 @@
   },
   "auth": {
     "signIn": "Sign in",
-    "signUp": "Sign up",
     "signOut": "Sign out",
     "account": "Account",
-    "signInTitle": "Sign in",
-    "signUpTitle": "New account",
+    "profile": "Profile",
+    "title": "Sign in",
     "description": "To save and edit your arrangements.",
-    "name": "Name",
+    "orEmail": "or with email",
     "email": "Email",
-    "password": "Password",
-    "failed": "That didn't work. Check your email and password."
+    "getCode": "Get a code",
+    "codeSent": "We sent a code to {email}",
+    "code": "Code from the email",
+    "resend": "Send again",
+    "resendIn": "Send again in {seconds} s",
+    "changeEmail": "Change email",
+    "passkey": "Sign in with a passkey",
+    "providers": {
+      "yandex": "Yandex",
+      "vk": "VK",
+      "telegram": "Telegram",
+      "google": "Google"
+    },
+    "continueWith": "Continue with {provider}",
+    "errors": {
+      "wrongCode": "Wrong code.",
+      "codeExpired": "The code has expired, ask for a new one.",
+      "tooManyAttempts": "Too many attempts, ask for a new code.",
+      "mailFailed": "We couldn't send the email. Try another way to sign in.",
+      "accountNotLinked": "An account with this email already exists. Sign in with an email code, then link the service in your profile.",
+      "lastMethod": "This is your last way to sign in — add another one first.",
+      "telegramTaken": "This Telegram account is linked to another user.",
+      "reauth": "Sign in again to confirm.",
+      "failed": "That didn't work. Try again."
+    }
   },
   "song": {
     "tuning": "Tuning: {name}",
