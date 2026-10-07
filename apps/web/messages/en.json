@@ -143,6 +143,12 @@
       "reauth": "Sign in again to confirm.",
       "providerRefused": "Sign-in was cancelled or the service refused. Try again or use another way.",
       "failed": "That didn't work. Try again."
+    },
+    "passkeyOffer": {
+      "title": "Sign in with Face ID or a fingerprint?",
+      "text": "Add a passkey and skip the email code next time.",
+      "add": "Add",
+      "later": "Not now"
     }
   },
   "song": {
