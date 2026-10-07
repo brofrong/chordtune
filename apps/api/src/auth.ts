@@ -12,7 +12,11 @@ export const auth = createAuth({
   baseURL: env.BETTER_AUTH_URL,
   trustedOrigins: env.WEB_ORIGINS,
   config: authConfig(env),
-  mailer: createMailer({ smtpUrl: env.SMTP_URL, from: env.MAIL_FROM }),
+  mailer: createMailer({
+    smtpUrl: env.SMTP_URL,
+    from: env.MAIL_FROM,
+    production: process.env.NODE_ENV === 'production',
+  }),
 });
 
 export type Session = typeof auth.$Infer.Session;

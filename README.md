@@ -36,7 +36,12 @@ its keys are in the environment (see `.env.example`).
 | Telegram | @BotFather → `/newbot`, then `/setdomain` | your domain |
 
 Email codes need an SMTP provider (`SMTP_URL`, `MAIL_FROM`) and SPF, DKIM and DMARC records for the
-sender's domain, or Mail.ru and Gmail will treat the codes as spam.
+sender's domain, or Mail.ru and Gmail will treat the codes as spam. Without `SMTP_URL` the codes go to
+the log in development and fail to send in production.
+
+Upgrading from the password version: former password users now sign in by email code, so configure
+SMTP before deploying. `REVIEW_EMAIL`/`REVIEW_CODE` let a store reviewer in with a fixed code — set them
+only for the duration of a review.
 
 The mobile apps sign in through the system browser and come back by the `app.chordtune://auth` deep
 link. Passkeys in the apps also need `APPLE_TEAM_ID` (iOS, paid Apple Developer account) and
