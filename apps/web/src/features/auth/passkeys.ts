@@ -25,6 +25,20 @@ export function passkeySupported(methods: AuthMethods | undefined) {
   return Capacitor.getPlatform() === 'ios' ? methods.passkey.ios : methods.passkey.android;
 }
 
+/**
+ * Whether this device can use passkeys at all (Android 9+; always on iOS). Only asked in the app:
+ * the server's `passkey.ios`/`android` flags say the app is set up, not that the phone can do it.
+ */
+export async function nativePasskeysAvailable(): Promise<boolean> {
+  try {
+    return (await Passkeys.isAvailable()).available;
+  } catch {
+    return false;
+  }
+}
+
+const NOT_SUPPORTED: Result = { error: { code: 'NOT_SUPPORTED' } };
+
 /** The plugin's `ErrorCode.Canceled`, or `undefined` for every other platform error code. */
 export function nativeErrorCode(err: unknown): string | undefined {
   if (typeof err !== 'object' || err === null || !('code' in err)) {
@@ -47,6 +61,9 @@ export function nativeErrorResult(err: unknown): Result {
 export async function signInWithPasskey(): Promise<Result> {
   if (!isCapacitor) {
     return authClient.signIn.passkey();
+  }
+  if (!(await nativePasskeysAvailable())) {
+    return NOT_SUPPORTED;
   }
   let challenge: string | null = null;
   const { data: options, error } = await authClient.$fetch<PublicKeyCredentialRequestOptionsJSON>(
@@ -81,6 +98,9 @@ export async function signInWithPasskey(): Promise<Result> {
 export async function addPasskey(name?: string): Promise<Result> {
   if (!isCapacitor) {
     return authClient.passkey.addPasskey({ name });
+  }
+  if (!(await nativePasskeysAvailable())) {
+    return NOT_SUPPORTED;
   }
   let challenge: string | null = null;
   const { data: options, error } = await authClient.$fetch<PublicKeyCredentialCreationOptionsJSON>(

@@ -8,10 +8,10 @@ import { useState } from 'react';
 import { useToast } from '@/components/toast';
 import { Button } from '@/components/ui/button';
 import { authErrorKey } from '@/features/auth/auth-errors';
-import { authClient } from '@/lib/auth-client';
+import { passkeysQuery } from './auth-queries';
 import { passkeyOfferStore, shouldOfferPasskey } from './passkey-offer-state';
-import { addPasskey, passkeySupported } from './passkeys';
-import { useAuthMethods } from './use-auth-methods';
+import { addPasskey } from './passkeys';
+import { usePasskeySupport } from './use-passkey-support';
 import { useSession } from './use-session';
 
 /** A one-time nudge after sign-in; closing it means never again on this device. */
@@ -20,14 +20,12 @@ export function PasskeyOffer() {
   const tAuth = useTranslations('auth');
   const toast = useToast();
   const session = useSession();
-  const methods = useAuthMethods();
   const queryClient = useQueryClient();
   const [dismissed, setDismissed] = useState(() => passkeyOfferStore.dismissed());
   const signedIn = Boolean(session.data?.user);
-  const supported = passkeySupported(methods.data);
+  const supported = usePasskeySupport();
   const passkeys = useQuery({
-    queryKey: ['auth', 'passkeys'],
-    queryFn: async () => (await authClient.passkey.listUserPasskeys()).data ?? [],
+    ...passkeysQuery,
     enabled: signedIn && !dismissed && supported,
   });
 
@@ -58,7 +56,7 @@ export function PasskeyOffer() {
             onClick={async () => {
               const result = await addPasskey();
               if (result && !result.error) {
-                await queryClient.invalidateQueries({ queryKey: ['auth', 'passkeys'] });
+                await queryClient.invalidateQueries({ queryKey: passkeysQuery.queryKey });
                 close();
               } else if (result?.error) {
                 toast(tAuth(`errors.${authErrorKey(result.error)}`), 'error');

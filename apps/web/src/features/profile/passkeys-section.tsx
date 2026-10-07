@@ -4,13 +4,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import { KeyRound } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 
-import { useToast } from '@/components/toast';
 import { Button } from '@/components/ui/button';
-import { authErrorKey } from '@/features/auth/auth-errors';
-import { addPasskey, passkeySupported } from '@/features/auth/passkeys';
-import { useAuthMethods } from '@/features/auth/use-auth-methods';
+import { passkeysQuery } from '@/features/auth/auth-queries';
+import { addPasskey } from '@/features/auth/passkeys';
+import { usePasskeySupport } from '@/features/auth/use-passkey-support';
 import { authClient } from '@/lib/auth-client';
 import { Section } from './section';
+import { useSecurityReport } from './security-report';
 import { describeUserAgent } from './user-agent';
 
 type Passkey = { id: string; name?: string | null; createdAt: Date | string };
@@ -23,15 +23,11 @@ export function PasskeysSection({
   canRemove: boolean;
 }) {
   const t = useTranslations('security');
-  const tAuth = useTranslations('auth');
   const format = useFormatter();
-  const toast = useToast();
-  const methods = useAuthMethods();
+  const report = useSecurityReport();
+  const supported = usePasskeySupport();
   const queryClient = useQueryClient();
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['auth', 'passkeys'] });
-  // `undefined` means the user cancelled the system sheet — silent, not an error.
-  const report = (error: { code?: string } | null | undefined) =>
-    error && toast(tAuth(`errors.${authErrorKey(error)}`), 'error');
+  const refresh = () => queryClient.invalidateQueries({ queryKey: passkeysQuery.queryKey });
 
   return (
     <Section title={t('passkeys')}>
@@ -62,12 +58,13 @@ export function PasskeysSection({
           </li>
         ))}
       </ul>
-      {passkeySupported(methods.data) && (
+      {supported && (
         <Button
           variant="outline"
           className="self-start"
           onClick={async () => {
             const result = await addPasskey(describeUserAgent(navigator.userAgent).os ?? undefined);
+            // `undefined` means the user cancelled the system sheet — silent, not an error.
             report(result?.error);
             await refresh();
           }}

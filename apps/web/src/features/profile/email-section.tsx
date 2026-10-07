@@ -28,13 +28,9 @@ export function EmailSection({ email }: { email: string | null }) {
     );
   }
 
-  // `request-email-change` always reports success, even for a taken email (it won't leak whether
-  // an account exists); only the actual `change-email` step can hit that case, and — for the same
-  // reason — without a `code`, just this literal message (better-auth 1.7.6, email-otp/routes.mjs).
-  const message = (failure: { code?: string; status?: number; message?: string }) =>
-    failure.message === 'Email already in use'
-      ? t('emailTaken')
-      : tAuth(`errors.${authErrorKey(failure)}`);
+  // A taken address is refused up front with `EMAIL_TAKEN` (apps/api create-auth.ts).
+  const message = (failure: { code?: string; status?: number }) =>
+    tAuth(`errors.${authErrorKey(failure)}`);
 
   return (
     <Section title={t('addEmail')}>

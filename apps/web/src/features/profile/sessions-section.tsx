@@ -3,31 +3,25 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useFormatter, useTranslations } from 'next-intl';
 
-import { useToast } from '@/components/toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { authErrorKey } from '@/features/auth/auth-errors';
+import { sessionsQuery } from '@/features/auth/auth-queries';
 import { useSession } from '@/features/auth/use-session';
 import { authClient } from '@/lib/auth-client';
 import { Section } from './section';
+import { useSecurityReport } from './security-report';
 import { describeUserAgent } from './user-agent';
 
 export function SessionsSection() {
   const t = useTranslations('security');
   const tProfile = useTranslations('profile');
-  const tAuth = useTranslations('auth');
   const format = useFormatter();
-  const toast = useToast();
   const session = useSession();
   const queryClient = useQueryClient();
-  const sessions = useQuery({
-    queryKey: ['auth', 'sessions'],
-    queryFn: async () => (await authClient.listSessions()).data ?? [],
-  });
+  const sessions = useQuery(sessionsQuery);
   const current = session.data?.session.token;
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['auth', 'sessions'] });
-  const report = (error: { code?: string } | null | undefined) =>
-    error && toast(tAuth(`errors.${authErrorKey(error)}`), 'error');
+  const report = useSecurityReport();
+  const refresh = () => queryClient.invalidateQueries({ queryKey: sessionsQuery.queryKey });
 
   return (
     <Section title={t('sessions')}>

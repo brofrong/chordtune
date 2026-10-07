@@ -4,15 +4,15 @@ import type { ProviderId } from '@chordtune/api';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 
-import { useToast } from '@/components/toast';
 import { Button } from '@/components/ui/button';
-import { authErrorKey } from '@/features/auth/auth-errors';
+import { accountsQuery } from '@/features/auth/auth-queries';
 import { startNativeSignIn } from '@/features/auth/native-sign-in';
 import { linkTelegram } from '@/features/auth/telegram-login';
 import { useAuthMethods } from '@/features/auth/use-auth-methods';
 import { isCapacitor } from '@/features/song/links';
 import { authClient } from '@/lib/auth-client';
 import { Section } from './section';
+import { useSecurityReport } from './security-report';
 
 type LinkedAccount = { id: string; providerId: string };
 type LinkResult = { error?: { code?: string } | null } | undefined;
@@ -28,11 +28,13 @@ async function link(provider: ProviderId, telegramBot: string | undefined): Prom
     }
     return undefined;
   }
-  const callbackURL = window.location.href;
   if (provider === 'telegram') {
     return telegramBot ? linkTelegram(telegramBot) : undefined;
   }
-  return authClient.linkSocial({ provider, callbackURL });
+  // Both ways back land on this page, which reports a `?error=` itself (SecurityView) — without
+  // `errorCallbackURL` a failure would end on Better Auth's bare error page.
+  const callbackURL = window.location.href;
+  return authClient.linkSocial({ provider, callbackURL, errorCallbackURL: callbackURL });
 }
 
 export function ProvidersSection({
@@ -44,19 +46,14 @@ export function ProvidersSection({
 }) {
   const t = useTranslations('security');
   const tAuth = useTranslations('auth');
-  const toast = useToast();
+  const report = useSecurityReport();
   const methods = useAuthMethods();
   const queryClient = useQueryClient();
   const providers = methods.data?.providers ?? [];
   if (providers.length === 0) {
     return null;
   }
-  const report = (result: LinkResult) => {
-    if (result?.error) {
-      toast(tAuth(`errors.${authErrorKey(result.error)}`), 'error');
-    }
-  };
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['auth', 'accounts'] });
+  const refresh = () => queryClient.invalidateQueries({ queryKey: accountsQuery.queryKey });
 
   return (
     <Section title={t('services')}>
@@ -73,7 +70,7 @@ export function ProvidersSection({
                   disabled={!canRemove}
                   title={canRemove ? undefined : t('lastMethodHint')}
                   onClick={async () => {
-                    report(await authClient.unlinkAccount({ accountId: account.id }));
+                    report((await authClient.unlinkAccount({ accountId: account.id })).error);
                     await refresh();
                   }}
                 >
@@ -84,7 +81,7 @@ export function ProvidersSection({
                   variant="outline"
                   size="sm"
                   onClick={async () => {
-                    report(await link(provider, methods.data?.telegramBot?.id));
+                    report((await link(provider, methods.data?.telegramBot?.id))?.error);
                     await refresh();
                   }}
                 >

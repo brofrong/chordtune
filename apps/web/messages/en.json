@@ -132,6 +132,9 @@
     "continueWith": "Continue with {provider}",
     "redirecting": "Opening sign-in…",
     "returning": "Returning to the app…",
+    "openApp": "Open ChordTune",
+    "continueInApp": "Continue in the app as @{username}",
+    "continueInAppHint": "You're signed in in the browser. Go back to the app with this account.",
     "errors": {
       "wrongCode": "Wrong code.",
       "codeExpired": "The code has expired, ask for a new one.",
@@ -142,6 +145,12 @@
       "telegramTaken": "This Telegram account is linked to another user.",
       "reauth": "Sign in again to confirm.",
       "providerRefused": "Sign-in was cancelled or the service refused. Try again or use another way.",
+      "emailTaken": "This email belongs to another account.",
+      "emailChangeNotAllowed": "A confirmed email can't be changed.",
+      "invalidEmail": "Check the email address.",
+      "passkeyNotSupported": "This device doesn't support passkeys.",
+      "unableToLink": "Couldn't link the service. Try again or pick another one.",
+      "linkedToAnother": "This service account is already linked to another ChordTune user.",
       "failed": "That didn't work. Try again."
     },
     "passkeyOffer": {
@@ -417,11 +426,11 @@
     "email": "Email",
     "addEmail": "Add an email",
     "sendCode": "Send code",
-    "emailTaken": "This email belongs to another account.",
     "deleteAccount": "Delete account",
     "deleteWarning": "Your account will be gone for good. Published arrangements stay on the site without an author; likes and saves are removed.",
     "deleteConfirm": "Delete for good",
-    "reauth": "Sign in again to delete — it confirms the account is yours."
+    "reauth": "Sign in again to delete — it confirms the account is yours.",
+    "reauthManage": "Sign in again to manage security."
   },
   "tab": {
     "title": "Tab",

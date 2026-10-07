@@ -18,10 +18,12 @@ import { isCapacitor } from '@/features/song/links';
 import { authClient } from '@/lib/auth-client';
 import { authErrorKey } from './auth-errors';
 import { EmailCodeForm } from './email-code-form';
-import { passkeySupported, signInWithPasskey } from './passkeys';
+import { isSecurityPath, takeOAuthError } from './oauth-error';
+import { signInWithPasskey } from './passkeys';
 import { ProviderButtons } from './provider-buttons';
 import { openTelegramLogin } from './telegram-login';
 import { useAuthMethods } from './use-auth-methods';
+import { usePasskeySupport } from './use-passkey-support';
 import { useSession } from './use-session';
 
 const AuthSheetContext = createContext<() => void>(() => {});
@@ -37,17 +39,15 @@ export function AuthSheetProvider({ children }: { children: React.ReactNode }) {
   const show = useCallback(() => setOpen(true), []);
 
   // OAuth comes back with `?error=…` (and sometimes `error_description`) on failure: reopen the
-  // sheet and say why.
+  // sheet and say why. The security page reports its own linking errors.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const oauthError = params.get('error');
+    if (isSecurityPath(window.location.pathname)) {
+      return;
+    }
+    const oauthError = takeOAuthError();
     if (!oauthError) {
       return;
     }
-    params.delete('error');
-    params.delete('error_description');
-    const query = params.toString();
-    window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
     setError(oauthError);
     setOpen(true);
   }, []);
@@ -69,6 +69,7 @@ function AuthForm({ initialError, onDone }: { initialError: string | null; onDon
   const queryClient = useQueryClient();
   const session = useSession();
   const methods = useAuthMethods();
+  const passkeys = usePasskeySupport();
   const [error, setError] = useState(
     initialError ? t(`errors.${authErrorKey(initialError)}`) : null,
   );
@@ -125,7 +126,7 @@ function AuthForm({ initialError, onDone }: { initialError: string | null; onDon
           run(() => openTelegramLogin(methods.data?.telegramBot?.id ?? ''))
         }
       />
-      {passkeySupported(methods.data) && (
+      {passkeys && (
         <Button variant="outline" size="lg" onClick={() => run(signInWithPasskey)}>
           <KeyRound />
           {t('passkey')}
