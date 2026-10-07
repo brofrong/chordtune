@@ -17,8 +17,8 @@ app.use(
   cors({
     origin: env.WEB_ORIGINS,
     credentials: true,
-    allowHeaders: ['Content-Type', 'Authorization', 'x-locale'],
-    exposeHeaders: ['set-auth-token'],
+    allowHeaders: ['Content-Type', 'Authorization', 'x-locale', 'x-passkey-challenge'],
+    exposeHeaders: ['set-auth-token', 'x-passkey-challenge'],
   }),
 );
 

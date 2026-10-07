@@ -3,7 +3,14 @@
 <plist version="1.0">
 <dict>
 	<!-- Associates this app with the domain's apple-app-site-association so it can use its
-	     passkeys. The release workflow substitutes the real host from PUBLIC_URL at build time. -->
+	     passkeys. Not wired into project.pbxproj: Associated Domains needs a paid Apple
+	     Developer team, and signing this in with only a free personal team blocks running the
+	     app on a device at all. Opt in by hand when a paid team is available: in Xcode, select
+	     the App target → Signing & Capabilities → "+ Capability" → Associated Domains (this
+	     both sets CODE_SIGN_ENTITLEMENTS and adds a `webcredentials:` entry for you), or set
+	     CODE_SIGN_ENTITLEMENTS = App/App.entitlements by hand on both Debug and Release of the
+	     App target. Either way, replace the placeholder domain below with the real host first —
+	     nothing currently substitutes it at build time. -->
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>webcredentials:chordtune.example.com</string>

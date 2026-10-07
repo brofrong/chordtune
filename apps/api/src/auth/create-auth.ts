@@ -11,6 +11,7 @@ import { markMailFailed } from '../mail/failures';
 import { otpMessage, pickLocale } from '../mail/otp-message';
 import type { AuthConfig } from './config';
 import { isRecentSignIn, REAUTH_REQUIRED } from './delete-account';
+import { passkeyChallengeHeader } from './passkey-challenge-header';
 import { isPlaceholderEmail } from './placeholder-email';
 import { genericProviders, socialProviders, TRUSTED_PROVIDERS } from './providers';
 import { LAST_SIGN_IN_METHOD, signInMethodCount } from './sign-in-methods';
@@ -155,6 +156,10 @@ export function createAuth({
       // The system browser signs in on the web and hands the app a one-time token by deep link.
       oneTimeToken({ expiresIn: 3 }),
       passkey({ rpID: config.passkey.rpID, rpName: 'ChordTune', origin: config.passkey.origins }),
+      // The passkey plugin's own challenge cookie doesn't survive the Capacitor apps' cross-site
+      // calls any better than a session cookie would (see its own why-comment); relay it the same
+      // way `bearer()` below relays the session.
+      passkeyChallengeHeader(),
       // Capacitor WebViews run on capacitor:// or https://localhost, where third-party cookies to the
       // API are unreliable, so every build authenticates with a bearer token.
       bearer(),

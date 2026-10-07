@@ -25,16 +25,44 @@ export function passkeySupported(methods: AuthMethods | undefined) {
   return Capacitor.getPlatform() === 'ios' ? methods.passkey.ios : methods.passkey.android;
 }
 
+/** The plugin's `ErrorCode.Canceled`, or `undefined` for every other platform error code. */
+export function nativeErrorCode(err: unknown): string | undefined {
+  if (typeof err !== 'object' || err === null || !('code' in err)) {
+    return undefined;
+  }
+  const { code } = err as { code: unknown };
+  return typeof code === 'string' ? code : undefined;
+}
+
+/**
+ * Only a user-cancelled system sheet (`CANCELED`) is silent. Anything else — `NO_CREDENTIAL`,
+ * `DOMAIN_NOT_ASSOCIATED` (associated-domains/assetlinks misconfigured), `NOT_SUPPORTED`, a
+ * plain native crash — is a real failure and must surface, not be swallowed like a cancel.
+ */
+export function nativeErrorResult(err: unknown): Result {
+  const code = nativeErrorCode(err);
+  return code === 'CANCELED' ? undefined : { error: { code: code ?? 'FAILED' } };
+}
+
 export async function signInWithPasskey(): Promise<Result> {
   if (!isCapacitor) {
     return authClient.signIn.passkey();
   }
+  let challenge: string | null = null;
   const { data: options, error } = await authClient.$fetch<PublicKeyCredentialRequestOptionsJSON>(
     '/passkey/generate-authenticate-options',
-    { method: 'GET' },
+    {
+      method: 'GET',
+      // This WebView's origin can't carry the API's `SameSite=lax` challenge cookie across the
+      // cross-site call, so the API hands the signed cookie value back as a header instead
+      // (apps/api/src/auth/passkey-challenge-header.ts); relay it on the verify call below.
+      onResponse: ({ response }) => {
+        challenge = response.headers.get('x-passkey-challenge');
+      },
+    },
   );
   if (error || !options) {
-    return { error };
+    return { error: error ?? { code: 'FAILED' } };
   }
   try {
     // The server's WebAuthn JSON and the plugin's field names line up; `transports` just names
@@ -43,9 +71,10 @@ export async function signInWithPasskey(): Promise<Result> {
     return authClient.$fetch('/passkey/verify-authentication', {
       method: 'POST',
       body: { response },
+      headers: challenge ? { 'x-passkey-challenge': challenge } : undefined,
     });
-  } catch {
-    return; // the user closed the system sheet, or the platform rejected the request
+  } catch (err) {
+    return nativeErrorResult(err);
   }
 }
 
@@ -53,20 +82,28 @@ export async function addPasskey(name?: string): Promise<Result> {
   if (!isCapacitor) {
     return authClient.passkey.addPasskey({ name });
   }
+  let challenge: string | null = null;
   const { data: options, error } = await authClient.$fetch<PublicKeyCredentialCreationOptionsJSON>(
     '/passkey/generate-register-options',
-    { method: 'GET', query: name ? { name } : {} },
+    {
+      method: 'GET',
+      query: name ? { name } : {},
+      onResponse: ({ response }) => {
+        challenge = response.headers.get('x-passkey-challenge');
+      },
+    },
   );
   if (error || !options) {
-    return { error };
+    return { error: error ?? { code: 'FAILED' } };
   }
   try {
     const response = await Passkeys.createPasskey(options as CreatePasskeyOptions);
     return authClient.$fetch('/passkey/verify-registration', {
       method: 'POST',
       body: { response, name },
+      headers: challenge ? { 'x-passkey-challenge': challenge } : undefined,
     });
-  } catch {
-    return;
+  } catch (err) {
+    return nativeErrorResult(err);
   }
 }

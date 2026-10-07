@@ -73,11 +73,11 @@ function AuthForm({ initialError, onDone }: { initialError: string | null; onDon
     initialError ? t(`errors.${authErrorKey(initialError)}`) : null,
   );
 
-  const finish = useCallback(async () => {
+  const finish = async () => {
     await session.refetch();
     await queryClient.invalidateQueries();
     onDone();
-  }, [session, queryClient, onDone]);
+  };
 
   const run = async (action: () => Promise<{ error?: { code?: string } | null } | undefined>) => {
     setError(null);
