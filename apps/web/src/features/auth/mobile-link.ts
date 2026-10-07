@@ -65,9 +65,10 @@ export function mobileStartUrl(params: {
     provider: params.provider,
     state: params.state,
     mode: params.mode,
-    ...(params.ott ? { ott: params.ott } : {}),
   });
-  return `${params.origin}/${params.locale}/auth/mobile?${query}`;
+  // The fragment never reaches the server (access logs, proxies), unlike the query string.
+  const hash = params.ott ? `#ott=${encodeURIComponent(params.ott)}` : '';
+  return `${params.origin}/${params.locale}/auth/mobile?${query}${hash}`;
 }
 
 /** localStorage, not sessionStorage: Android may kill the app while the browser is open. */
@@ -92,3 +93,69 @@ export const pendingAuthStore = {
     }
   },
 };
+
+export type BrowserFlow = { state: string; mode: 'sign-in' | 'link'; provider: ProviderId };
+const BROWSER_FLOW_KEY = 'chordtune.mobile-auth';
+
+/**
+ * Ties `/auth/mobile/done` back to the `/auth/mobile` request that started it, in this same
+ * browser tab. Without this, anyone who can get a signed-in browser to open
+ * `/auth/mobile/done?...` (e.g. a Custom Tab sharing Chrome's cookies) could mint a session or
+ * fake a `linked` result without ever having gone through the provider.
+ */
+export function matchBrowserFlow(saved: BrowserFlow | null, flow: BrowserFlow): boolean {
+  return Boolean(
+    saved &&
+      saved.state === flow.state &&
+      saved.mode === flow.mode &&
+      saved.provider === flow.provider,
+  );
+}
+
+/** sessionStorage: this only needs to survive the redirect round trip in the same tab. */
+export const browserFlowStore = {
+  get(): BrowserFlow | null {
+    try {
+      const raw = sessionStorage.getItem(BROWSER_FLOW_KEY);
+      return raw ? (JSON.parse(raw) as BrowserFlow) : null;
+    } catch {
+      return null;
+    }
+  },
+  set(value: BrowserFlow | null) {
+    try {
+      if (value) {
+        sessionStorage.setItem(BROWSER_FLOW_KEY, JSON.stringify(value));
+      } else {
+        sessionStorage.removeItem(BROWSER_FLOW_KEY);
+      }
+    } catch {
+      // storage can be unavailable
+    }
+  },
+};
+
+/**
+ * Telegram's redirect callback appends `#tgAuthResult=<base64url>` (or `=false` when the user
+ * cancels) to `return_to`. `atob` alone mangles non-ASCII names (it reads Latin-1, not UTF-8), so
+ * we go through bytes and `TextDecoder`. Returns `null` when the fragment is missing or unusable.
+ */
+export function decodeTgAuthResult(hash: string): Record<string, unknown> | null | false {
+  const match = hash.match(/tgAuthResult=([^&]*)/);
+  if (!match) {
+    return null;
+  }
+  const raw = match[1] ?? '';
+  if (raw === 'false') {
+    return false;
+  }
+  try {
+    const base64 = raw.replaceAll('-', '+').replaceAll('_', '/');
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+    const bytes = Uint8Array.from(atob(padded), (char) => char.charCodeAt(0));
+    const data = JSON.parse(new TextDecoder().decode(bytes));
+    return data && typeof data === 'object' ? (data as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}

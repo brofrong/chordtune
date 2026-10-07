@@ -14,7 +14,8 @@ const PROVIDERS = ['yandex', 'vk', 'telegram', 'google'] as const;
 
 export default async function MobileAuthPage({ params, searchParams }: Props) {
   await resolveLocale(params);
-  const { provider, state, mode = 'sign-in', ott = null } = await searchParams;
+  // The one-time token (when linking) travels in the URL fragment, which the server never sees.
+  const { provider, state, mode = 'sign-in' } = await searchParams;
   const known = PROVIDERS.find((id) => id === provider);
   if (!known || !state || (mode !== 'sign-in' && mode !== 'link')) {
     notFound();
@@ -25,7 +26,6 @@ export default async function MobileAuthPage({ params, searchParams }: Props) {
       provider={known}
       state={state}
       mode={mode}
-      ott={ott}
       telegramBot={methods.telegramBot?.id ?? null}
     />
   );

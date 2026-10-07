@@ -29,6 +29,12 @@ export async function startNativeSignIn({
   if (mode === 'link') {
     const { data } = await authClient.oneTimeToken.generate();
     ott = data?.token;
+    // Without an ott the browser page cannot prove it's acting on our session, so it would fall
+    // back to linkSocial with whatever account is already signed in there. Bail before opening it.
+    if (!ott) {
+      pendingAuthStore.set(null);
+      throw new Error('Could not start linking: no one-time token');
+    }
   }
   await Browser.open({
     url: mobileStartUrl({
@@ -54,7 +60,7 @@ export function listenForAuthLinks(
       return;
     }
     const pending = pendingAuthStore.get();
-    if (!matchPendingAuth(pending, link)) {
+    if (!pending || !matchPendingAuth(pending, link)) {
       return;
     }
     pendingAuthStore.set(null);
@@ -62,6 +68,11 @@ export function listenForAuthLinks(
     if (link.error) {
       onError(link.error);
     } else if (link.token) {
+      // A token only means something for the sign-in flow we actually started.
+      if (pending.mode !== 'sign-in') {
+        onError('failed');
+        return;
+      }
       const { data, error } = await authClient.oneTimeToken.verify({ token: link.token });
       if (error || !data) {
         onError(error?.code ?? 'failed');
@@ -70,6 +81,11 @@ export function listenForAuthLinks(
       authToken.set(data.session.token);
       onSignedIn();
     } else if (link.linked) {
+      // Likewise, only believe a `linked` result for the provider we actually asked to link.
+      if (link.linked !== pending.provider) {
+        onError('failed');
+        return;
+      }
       onLinked(link.linked);
     }
   });

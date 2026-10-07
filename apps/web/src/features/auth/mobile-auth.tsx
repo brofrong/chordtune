@@ -5,21 +5,24 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
 import { authClient } from '@/lib/auth-client';
-import { DEEP_LINK_PREFIX } from './mobile-link';
+import {
+  browserFlowStore,
+  DEEP_LINK_PREFIX,
+  decodeTgAuthResult,
+  matchBrowserFlow,
+} from './mobile-link';
 
 function back(params: Record<string, string>) {
   window.location.replace(`${DEEP_LINK_PREFIX}?${new URLSearchParams(params)}`);
 }
 
-/** Decodes Telegram's `tgAuthResult` fragment: base64url, possibly missing its `=` padding. */
-function decodeTgAuthResult(encoded: string): Record<string, unknown> | null {
-  try {
-    const base64 = encoded.replaceAll('-', '+').replaceAll('_', '/');
-    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
-    return JSON.parse(atob(padded)) as Record<string, unknown>;
-  } catch {
-    return null;
+/** The ott travels in the fragment (never sent to a server); read it once, then drop it from the URL. */
+function takeOttFromHash(): string | null {
+  const ott = new URLSearchParams(window.location.hash.slice(1)).get('ott');
+  if (window.location.hash) {
+    history.replaceState(null, '', window.location.pathname + window.location.search);
   }
+  return ott;
 }
 
 /** Step one in the system browser: start OAuth (after taking over the app's session to link). */
@@ -27,13 +30,11 @@ export function MobileAuthStart({
   provider,
   state,
   mode,
-  ott,
   telegramBot,
 }: {
   provider: ProviderId;
   state: string;
   mode: 'sign-in' | 'link';
-  ott: string | null;
   telegramBot: string | null;
 }) {
   const t = useTranslations('auth');
@@ -45,8 +46,15 @@ export function MobileAuthStart({
       return;
     }
     started.current = true;
+    const ott = takeOttFromHash();
+    // Lets `/auth/mobile/done` confirm this exact tab actually went through this exact flow.
+    browserFlowStore.set({ state, mode, provider });
     (async () => {
-      if (mode === 'link' && ott) {
+      if (mode === 'link') {
+        if (!ott) {
+          back({ state, error: 'failed' });
+          return;
+        }
         const { error } = await authClient.oneTimeToken.verify({ token: ott });
         if (error) {
           back({ state, error: error.code ?? 'failed' });
@@ -76,7 +84,7 @@ export function MobileAuthStart({
         back({ state, error: result.error.code ?? 'failed' });
       }
     })();
-  }, [mode, ott, provider, state, telegramBot, t]);
+  }, [mode, provider, state, telegramBot, t]);
 
   return <p className="p-8 text-center text-muted-foreground">{message ?? t('redirecting')}</p>;
 }
@@ -100,21 +108,33 @@ export function MobileAuthDone({
     }
     started.current = true;
     (async () => {
+      // Only a tab that actually ran `/auth/mobile` for this exact flow gets past here — closes
+      // the hole where any page could send a signed-in browser straight to this URL and mint a
+      // session or a fake `linked` result.
+      const saved = browserFlowStore.get();
+      if (!matchBrowserFlow(saved, { state, mode, provider })) {
+        back({ state, error: 'failed' });
+        return;
+      }
+      browserFlowStore.set(null);
       const params = new URLSearchParams(window.location.search);
       const oauthError = params.get('error');
       if (oauthError) {
         back({ state, error: oauthError });
         return;
       }
-      if (provider === 'telegram' && window.location.hash.includes('tgAuthResult=')) {
-        const encoded = window.location.hash.split('tgAuthResult=')[1] ?? '';
-        const data = decodeTgAuthResult(encoded);
-        if (!data) {
+      if (provider === 'telegram') {
+        const result = decodeTgAuthResult(window.location.hash);
+        if (result === false) {
+          back({ state, error: 'access_denied' });
+          return;
+        }
+        if (!result) {
           back({ state, error: 'failed' });
           return;
         }
         const path = mode === 'link' ? '/telegram/link' : '/telegram/sign-in';
-        const { error } = await authClient.$fetch(path, { method: 'POST', body: data });
+        const { error } = await authClient.$fetch(path, { method: 'POST', body: result });
         if (error) {
           back({ state, error: (error as { code?: string }).code ?? 'failed' });
           return;

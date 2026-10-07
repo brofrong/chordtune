@@ -2,6 +2,8 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   createPendingAuth,
+  decodeTgAuthResult,
+  matchBrowserFlow,
   matchPendingAuth,
   mobileStartUrl,
   PENDING_TTL_MS,
@@ -53,6 +55,61 @@ describe('mobileStartUrl', () => {
         mode: 'link',
         ott: 'o',
       }),
-    ).toBe('https://chordtune.app/ru/auth/mobile?provider=yandex&state=s&mode=link&ott=o');
+      // The ott goes in the fragment, not the query string, so it never reaches server logs.
+    ).toBe('https://chordtune.app/ru/auth/mobile?provider=yandex&state=s&mode=link#ott=o');
+  });
+
+  test('has no fragment when there is no one-time token', () => {
+    expect(
+      mobileStartUrl({
+        origin: 'https://chordtune.app',
+        locale: 'ru',
+        provider: 'google',
+        state: 's',
+        mode: 'sign-in',
+      }),
+    ).toBe('https://chordtune.app/ru/auth/mobile?provider=google&state=s&mode=sign-in');
+  });
+});
+
+describe('matchBrowserFlow', () => {
+  test('requires state, mode and provider to all agree', () => {
+    const flow = { state: 's', mode: 'sign-in' as const, provider: 'google' as const };
+    expect(matchBrowserFlow(flow, flow)).toBe(true);
+    expect(matchBrowserFlow(flow, { ...flow, state: 'other' })).toBe(false);
+    expect(matchBrowserFlow(flow, { ...flow, mode: 'link' })).toBe(false);
+    expect(matchBrowserFlow(flow, { ...flow, provider: 'yandex' })).toBe(false);
+    expect(matchBrowserFlow(null, flow)).toBe(false);
+  });
+});
+
+/** Base64url-encodes like Telegram does, including UTF-8 bytes beyond ASCII. */
+function encodeTgAuthResult(data: unknown): string {
+  const bytes = new TextEncoder().encode(JSON.stringify(data));
+  const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join('');
+  return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
+}
+
+describe('decodeTgAuthResult', () => {
+  test('round-trips a Cyrillic name', () => {
+    const data = { id: 1, first_name: 'Дима', hash: 'abc' };
+    expect(decodeTgAuthResult(`#tgAuthResult=${encodeTgAuthResult(data)}`)).toEqual(data);
+  });
+
+  test('decodes even when the base64url is missing its padding', () => {
+    const data = { id: 1 };
+    const encoded = encodeTgAuthResult(data);
+    expect(encoded.endsWith('=')).toBe(false); // already stripped by encodeTgAuthResult
+    expect(decodeTgAuthResult(`#tgAuthResult=${encoded}`)).toEqual(data);
+  });
+
+  test('a cancelled login is `false`, not an object', () => {
+    expect(decodeTgAuthResult('#tgAuthResult=false')).toBe(false);
+  });
+
+  test('garbage and a missing fragment both read as null', () => {
+    expect(decodeTgAuthResult('#tgAuthResult=%%%not-base64%%%')).toBeNull();
+    expect(decodeTgAuthResult('#other=1')).toBeNull();
+    expect(decodeTgAuthResult('')).toBeNull();
   });
 });
