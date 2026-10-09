@@ -27,7 +27,12 @@ export const authClient = createAuthClient({
         return;
       }
       if (
-        isStaleToken({ url: context.request.url, data: context.data, storedToken: authToken.get() })
+        isStaleToken({
+          url: context.request.url,
+          data: context.data,
+          sentAuthorization: new Headers(context.request.headers).get('authorization'),
+          storedToken: authToken.get(),
+        })
       ) {
         // Drop it and ask once more: on the web the cookie may hold a live session (in the app
         // there's no cookie, so this simply ends up signed out). The new fetch supersedes this
