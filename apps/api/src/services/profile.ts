@@ -75,7 +75,33 @@ async function inOrder(db: Database, ids: string[]) {
  * is Postgres's own text with microseconds: a JS `Date` keeps only milliseconds, and two rows in the
  * same millisecond would be skipped or repeated across a page boundary.
  */
-const CURSOR_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?$/;
+const CURSOR_TIME = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d{1,6})?$/;
+
+/** The shape alone lets through `2026-02-30`, which Postgres would reject with a 500. */
+function isCursorTime(text: string): boolean {
+  const parts = CURSOR_TIME.exec(text)?.slice(1, 7).map(Number);
+  if (!parts) {
+    return false;
+  }
+  const [year, month, day, hours, minutes, seconds] = parts as [
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+  ];
+  const date = new Date(Date.UTC(year, month - 1, day, hours, minutes, seconds));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day &&
+    date.getUTCHours() === hours &&
+    date.getUTCMinutes() === minutes &&
+    date.getUTCSeconds() === seconds
+  );
+}
+
 const createdAtText = sql<string>`to_char(${arrangement.createdAt}, 'YYYY-MM-DD"T"HH24:MI:SS.US')`;
 
 export async function profileArrangements(
@@ -84,7 +110,7 @@ export async function profileArrangements(
 ) {
   const { userId, viewerId, cursor, limit = 20 } = params;
   const [cursorTime, cursorId] = cursor ? cursor.split('|') : [];
-  if (cursor && !(cursorTime && CURSOR_TIME.test(cursorTime) && cursorId)) {
+  if (cursor && !(cursorTime && isCursorTime(cursorTime) && cursorId)) {
     throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid cursor' });
   }
 

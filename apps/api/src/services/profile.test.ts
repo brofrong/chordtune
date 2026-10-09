@@ -125,4 +125,12 @@ describe('profileArrangements', () => {
       'Invalid cursor',
     );
   });
+
+  test('a cursor with an impossible date is refused, not a database error', async () => {
+    for (const time of ['2026-13-01T00:00:00', '2026-02-30T00:00:00', '2026-01-01T25:00:00']) {
+      await expect(
+        profileArrangements(db, { userId: 'alice', cursor: `${time}|x` }),
+      ).rejects.toThrow('Invalid cursor');
+    }
+  });
 });
