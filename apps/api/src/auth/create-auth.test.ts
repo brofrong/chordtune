@@ -68,14 +68,12 @@ describe("passwords", () => {
 
   test("an old password no longer signs in, by username or by email", async () => {
     const t = await createTestAuth();
-    await t.db
-      .insert(user)
-      .values({
-        id: "old",
-        name: "Old",
-        email: "alice@test.local",
-        username: "alice",
-      });
+    await t.db.insert(user).values({
+      id: "old",
+      name: "Old",
+      email: "alice@test.local",
+      username: "alice",
+    });
     await t.db.insert(account).values({
       id: "old-credential",
       userId: "old",

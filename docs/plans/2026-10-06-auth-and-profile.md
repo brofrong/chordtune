@@ -1713,17 +1713,15 @@ describe("last sign-in method", () => {
   test("cannot be unlinked; one of two can", async () => {
     const t = await createTestAuth();
     const { userId, headers } = await t.signIn("a@test.local");
-    await t.db
-      .insert(account)
-      .values([
-        {
-          id: "y",
-          userId,
-          accountId: "y1",
-          providerId: "yandex",
-          updatedAt: new Date(),
-        },
-      ]);
+    await t.db.insert(account).values([
+      {
+        id: "y",
+        userId,
+        accountId: "y1",
+        providerId: "yandex",
+        updatedAt: new Date(),
+      },
+    ]);
     await t.auth.api.unlinkAccount({ body: { providerId: "yandex" }, headers });
     expect(await signInMethodCount(t.db, userId)).toBe(1);
 
@@ -1731,17 +1729,15 @@ describe("last sign-in method", () => {
       .update(user)
       .set({ email: "tg-1@users.invalid" })
       .where(eq(user.id, userId));
-    await t.db
-      .insert(account)
-      .values([
-        {
-          id: "v",
-          userId,
-          accountId: "v1",
-          providerId: "vk",
-          updatedAt: new Date(),
-        },
-      ]);
+    await t.db.insert(account).values([
+      {
+        id: "v",
+        userId,
+        accountId: "v1",
+        providerId: "vk",
+        updatedAt: new Date(),
+      },
+    ]);
     await expect(
       t.auth.api.unlinkAccount({ body: { providerId: "vk" }, headers }),
     ).rejects.toThrow();
