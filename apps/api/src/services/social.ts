@@ -178,9 +178,9 @@ export async function viewerState(
   if (!userId) {
     return null;
   }
-  // eslint-disable-next-line @typescript-eslint/no-duplicate-type-constituents
   const mine = <
     T extends
+      // eslint-disable-next-line @typescript-eslint/no-duplicate-type-constituents
       typeof arrangementLike | typeof arrangementSave | typeof arrangementPlay,
   >(
     table: T,

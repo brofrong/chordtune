@@ -11,8 +11,8 @@ export function Avatar({
 }) {
   if (image) {
     // Provider avatars come from many hosts; next/image would need each one configured.
-    // eslint-disable-next-line @next/next/no-img-element
     return (
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={image}
         alt=""
