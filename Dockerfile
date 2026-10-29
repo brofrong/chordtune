@@ -1,7 +1,7 @@
 # One image with the API (Bun, :4000 inside) and the web app (Next standalone, :3000 exposed).
 # Build from the repository root: docker build -t chordtune .
 
-FROM oven/bun:1.4.2 AS build
+FROM oven/bun:1.4.4 AS build
 # The address installed apps call; without it the image carries no mobile bundle.
 ARG PUBLIC_URL
 WORKDIR /repo
@@ -18,7 +18,7 @@ RUN if [ -n "$PUBLIC_URL" ]; then \
     && bun ../../scripts/mobile-bundle.ts /standalone/apps/web/public; \
   fi
 
-FROM oven/bun:1.4.2 AS api-deps
+FROM oven/bun:1.4.4 AS api-deps
 WORKDIR /repo
 COPY package.json bun.lock ./
 COPY apps/api/package.json apps/api/
@@ -28,7 +28,7 @@ COPY packages/chord-sheet/package.json packages/chord-sheet/
 COPY packages/tsconfig/package.json packages/tsconfig/
 RUN bun install --production --filter @chordtune/api
 
-FROM oven/bun:1.4.2 AS bun
+FROM oven/bun:1.4.4 AS bun
 
 FROM node:24-slim
 COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
