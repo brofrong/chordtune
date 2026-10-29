@@ -1,9 +1,14 @@
-'use client';
+"use client";
 
-import { type Rhythm, type SongDoc, tabBeats, type ZenModeId } from '@chordtune/chord-sheet';
-import { Pause, Play, RotateCcw, X } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
-import { useTranslations } from 'next-intl';
+import {
+  type Rhythm,
+  type SongDoc,
+  tabBeats,
+  type ZenModeId,
+} from "@chordtune/chord-sheet";
+import { Pause, Play, RotateCcw, X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useTranslations } from "next-intl";
 import {
   Fragment,
   useCallback,
@@ -12,20 +17,21 @@ import {
   useMemo,
   useRef,
   useState,
-} from 'react';
+} from "react";
 
-import { Button } from '@/components/ui/button';
-import type { SongSound } from '@/features/rhythm/playback';
-import { LineView, TabView } from '@/features/song/line-view';
-import { tabBeatQuarters } from '@/features/tab/tab-layout';
-import { TabStaff } from '@/features/tab/tab-staff';
-import { spring } from '@/lib/motion';
-import { cn } from '@/lib/utils';
-import { useWakeLock } from './use-wake-lock';
-import { advanceClock } from './zen-clock';
-import { ZenPanel } from './zen-panel';
-import { ZenStrip } from './zen-strip';
-import { zenLines, zenOffset, zenPosition, zenRowGlide } from './zen-timing';
+import { Button } from "@/components/ui/button";
+import type { SongSound } from "@/features/rhythm/playback";
+import { LineView, TabView } from "@/features/song/line-view";
+import { tabBeatQuarters } from "@/features/tab/tab-layout";
+import { TabStaff } from "@/features/tab/tab-staff";
+import { spring } from "@/lib/motion";
+import { cn } from "@/lib/utils";
+
+import { useWakeLock } from "./use-wake-lock";
+import { advanceClock } from "./zen-clock";
+import { ZenPanel } from "./zen-panel";
+import { ZenStrip } from "./zen-strip";
+import { zenLines, zenOffset, zenPosition, zenRowGlide } from "./zen-timing";
 import {
   clampNudge,
   ownsSpaceKey,
@@ -33,7 +39,7 @@ import {
   rowEmphasis,
   sectionStrip,
   seekTime,
-} from './zen-view';
+} from "./zen-view";
 
 const COUNT_FROM = 3;
 const COUNT_MS = 700;
@@ -41,20 +47,20 @@ const ANCHOR = 0.34;
 /** Below this many pixels of pointer movement, a drag on the paused text is still a tap. */
 const DRAG_THRESHOLD_PX = 6;
 
-type Phase = 'ready' | 'count' | 'play' | 'pause' | 'done';
+type Phase = "ready" | "count" | "play" | "pause" | "done";
 
 /** How bright a row is, by its distance from the row currently playing. */
 const EMPHASIS: Record<RowEmphasis, string> = {
-  current: 'opacity-100',
-  next: 'opacity-75',
-  after: 'opacity-55',
-  later: 'opacity-30',
-  past: 'opacity-15',
+  current: "opacity-100",
+  next: "opacity-75",
+  after: "opacity-55",
+  later: "opacity-30",
+  past: "opacity-15",
 };
 
 function clock(seconds: number) {
   const s = Math.max(0, Math.floor(seconds));
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
 /**
@@ -98,8 +104,8 @@ export function ZenMode({
   onFinished: () => void;
   onClose: () => void;
 }) {
-  const t = useTranslations('zen');
-  const [phase, setPhase] = useState<Phase>('ready');
+  const t = useTranslations("zen");
+  const [phase, setPhase] = useState<Phase>("ready");
   const [count, setCount] = useState(COUNT_FROM);
   const [time, setTime] = useState(0);
   const timeRef = useRef(0);
@@ -111,26 +117,30 @@ export function ZenMode({
   const position = zenPosition(lines, time);
   const current = lines[position.index];
   const next = lines[position.index + 1];
-  const currentLine = current ? doc.sections[current.section]?.lines[current.line] : undefined;
+  const currentLine = current
+    ? doc.sections[current.section]?.lines[current.line]
+    : undefined;
   // The active beat of the current line's tab block, if it is one — shared by the staff
   // highlight below and by the row-to-row scroll glide in the layout effect further down.
   const activeTabBeat =
-    current && currentLine?.type === 'alphatex'
+    current && currentLine?.type === "alphatex"
       ? (() => {
-          const beat = tabBeats(currentLine.block)[current.chordItems[position.chord] ?? -1];
+          const beat = tabBeats(currentLine.block)[
+            current.chordItems[position.chord] ?? -1
+          ];
           return beat ? { bar: beat.bar, beat: beat.beat } : null;
         })()
       : null;
 
-  useWakeLock(phase !== 'done');
+  useWakeLock(phase !== "done");
 
   // Countdown, then play.
   useEffect(() => {
-    if (phase !== 'count') {
+    if (phase !== "count") {
       return;
     }
     if (count === 0) {
-      setPhase('play');
+      setPhase("play");
       return;
     }
     const timer = setTimeout(() => setCount((n) => n - 1), COUNT_MS);
@@ -139,13 +149,17 @@ export function ZenMode({
 
   // The playback clock.
   useEffect(() => {
-    if (phase !== 'play') {
+    if (phase !== "play") {
       return;
     }
     let frame = 0;
     let last = performance.now();
     const tick = (now: number) => {
-      timeRef.current = advanceClock(timeRef.current, now - last, speedRef.current);
+      timeRef.current = advanceClock(
+        timeRef.current,
+        now - last,
+        speedRef.current,
+      );
       last = now;
       setTime(timeRef.current);
       frame = requestAnimationFrame(tick);
@@ -155,9 +169,9 @@ export function ZenMode({
   }, [phase]);
 
   useEffect(() => {
-    if (phase === 'play' && position.done && !finished.current) {
+    if (phase === "play" && position.done && !finished.current) {
       finished.current = true;
-      setPhase('done');
+      setPhase("done");
       onFinished();
     }
   }, [phase, position.done, onFinished]);
@@ -166,24 +180,31 @@ export function ZenMode({
   useEffect(() => {
     const onVisibility = () => {
       if (document.hidden) {
-        setPhase((current) => (current === 'play' ? 'pause' : current));
+        setPhase((current) => (current === "play" ? "pause" : current));
       }
     };
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => document.removeEventListener('visibilitychange', onVisibility);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
   // While paused: the listener can drag/scroll the text and tap a line or chord to pick where
   // the next start/resume plays from. `paused` covers both the ready panel and an in-song pause.
-  const paused = phase === 'ready' || phase === 'pause';
+  const paused = phase === "ready" || phase === "pause";
   const [nudge, setNudge] = useState(0);
-  const [startAt, setStartAt] = useState<{ time: number; key: string; item: number | null } | null>(
-    null,
-  );
+  const [startAt, setStartAt] = useState<{
+    time: number;
+    key: string;
+    item: number | null;
+  } | null>(null);
   const content = useRef<HTMLDivElement>(null);
   // The empty run-out below the last row: its top is where the rows end.
   const runOut = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ y: number; from: number; moved: boolean; captured: boolean } | null>(null);
+  const drag = useRef<{
+    y: number;
+    from: number;
+    moved: boolean;
+    captured: boolean;
+  } | null>(null);
   const dragged = useRef(false);
 
   const clamp = (value: number) => {
@@ -208,7 +229,7 @@ export function ZenMode({
     drag.current = null;
     dragged.current = false;
     setCount(COUNT_FROM);
-    setPhase('count');
+    setPhase("count");
   };
 
   const fromStart = () => {
@@ -219,7 +240,7 @@ export function ZenMode({
     setNudge(0);
     drag.current = null;
     // Back at the top of the song, the panel offers «Начать» again, not «Продолжить».
-    setPhase('ready');
+    setPhase("ready");
   };
 
   /**
@@ -234,10 +255,14 @@ export function ZenMode({
       return;
     }
     const resolved = lines.find(
-      (zen) => zen.section > section || (zen.section === section && zen.line >= line),
+      (zen) =>
+        zen.section > section || (zen.section === section && zen.line >= line),
     );
-    const onTappedLine = resolved?.section === section && resolved.line === line;
-    const key = resolved ? `${resolved.section}:${resolved.line}` : `${section}:${line}`;
+    const onTappedLine =
+      resolved?.section === section && resolved.line === line;
+    const key = resolved
+      ? `${resolved.section}:${resolved.line}`
+      : `${section}:${line}`;
     setStartAt({ time, key, item: onTappedLine ? item : null });
   };
 
@@ -246,13 +271,13 @@ export function ZenMode({
     finished.current = false;
     setTime(0);
     setCount(COUNT_FROM);
-    setPhase('count');
+    setPhase("count");
   }, []);
 
   const togglePause = () => {
-    if (phase === 'play') {
-      setPhase('pause');
-    } else if (phase === 'ready' || phase === 'pause') {
+    if (phase === "play") {
+      setPhase("pause");
+    } else if (phase === "ready" || phase === "pause") {
       start();
     }
   };
@@ -276,7 +301,7 @@ export function ZenMode({
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         // An open popover (the capo list) closes first; zen only on the next Escape.
         if (
           !event.defaultPrevented &&
@@ -284,7 +309,7 @@ export function ZenMode({
         ) {
           onClose();
         }
-      } else if (event.key === ' ') {
+      } else if (event.key === " ") {
         // Space on a focused button, chip or row in zen presses that control, not start/pause.
         const target = event.target instanceof Element ? event.target : null;
         const zen = root.current;
@@ -296,11 +321,11 @@ export function ZenMode({
       }
     };
     const overflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    window.addEventListener('keydown', onKey);
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = overflow;
-      window.removeEventListener('keydown', onKey);
+      window.removeEventListener("keydown", onKey);
     };
   }, [onClose]);
 
@@ -325,8 +350,12 @@ export function ZenMode({
   useLayoutEffect(() => {
     const height = viewport.current?.clientHeight ?? 0;
     const element = (key?: string) => (key ? rows.current.get(key) : undefined);
-    const currentElement = element(current ? `${current.section}:${current.line}` : undefined);
-    const nextElement = next ? element(`${next.section}:${next.line}`) : undefined;
+    const currentElement = element(
+      current ? `${current.section}:${current.line}` : undefined,
+    );
+    const nextElement = next
+      ? element(`${next.section}:${next.line}`)
+      : undefined;
 
     let from = currentElement?.offsetTop ?? 0;
     let to = nextElement?.offsetTop ?? from;
@@ -335,14 +364,23 @@ export function ZenMode({
     // Inside a multi-row tab block, glide row to row within the active beat's own row (by its
     // share of the block, in quarter notes) instead of the whole line's progress, which would
     // otherwise jump by a row's height the moment the highlighted row changes.
-    if (currentElement && currentLine?.type === 'alphatex' && activeTabBeat) {
+    if (currentElement && currentLine?.type === "alphatex" && activeTabBeat) {
       const rowElements = Array.from(
-        currentElement.querySelectorAll<HTMLElement>('[data-row-start-beat]'),
+        currentElement.querySelectorAll<HTMLElement>("[data-row-start-beat]"),
       );
       if (rowElements.length > 0) {
-        const starts = rowElements.map((row) => Number(row.dataset.rowStartBeat));
-        const total = tabBeatQuarters(currentLine.block, currentLine.block.bars.length);
-        const quarters = tabBeatQuarters(currentLine.block, activeTabBeat.bar, activeTabBeat.beat);
+        const starts = rowElements.map((row) =>
+          Number(row.dataset.rowStartBeat),
+        );
+        const total = tabBeatQuarters(
+          currentLine.block,
+          currentLine.block.bars.length,
+        );
+        const quarters = tabBeatQuarters(
+          currentLine.block,
+          activeTabBeat.bar,
+          activeTabBeat.beat,
+        );
         const glide = zenRowGlide(starts, total, quarters);
         from = rowElements[glide.index]?.offsetTop ?? from;
         to = rowElements[glide.index + 1]?.offsetTop ?? to;
@@ -351,7 +389,15 @@ export function ZenMode({
     }
 
     setOffset(height * ANCHOR - (from + (to - from) * zenOffset(progress)));
-  }, [current, next, currentLine, activeTabBeat, position.progress, mode, layout]);
+  }, [
+    current,
+    next,
+    currentLine,
+    activeTabBeat,
+    position.progress,
+    mode,
+    layout,
+  ]);
 
   // Every line of the document, in the order it is shown, so each one's brightness can be set
   // by its distance from the row currently playing.
@@ -364,7 +410,9 @@ export function ZenMode({
       ),
     [doc],
   );
-  const currentRow = current ? (rowIndex.get(`${current.section}:${current.line}`) ?? -1) : -1;
+  const currentRow = current
+    ? (rowIndex.get(`${current.section}:${current.line}`) ?? -1)
+    : -1;
 
   // `position` is a fresh object every frame: memo the strip on the values that actually
   // change it, so it is not rebuilt on every tick (and the memo'd ZenStrip skips those renders).
@@ -381,7 +429,8 @@ export function ZenMode({
   );
 
   const beatSec = 60 / (current?.tempo ?? bpm);
-  const beat = Math.floor(Math.max(0, time - (current?.start ?? 0)) / beatSec) % 4;
+  const beat =
+    Math.floor(Math.max(0, time - (current?.start ?? 0)) / beatSec) % 4;
   const currentSection = current ? doc.sections[current.section]?.label : null;
 
   return (
@@ -399,7 +448,9 @@ export function ZenMode({
       <div className="absolute inset-x-0 top-0 z-20 h-0.5 bg-surface-2">
         <div
           className="h-full bg-primary shadow-glow"
-          style={{ width: `${total ? Math.min(100, (time / total) * 100) : 0}%` }}
+          style={{
+            width: `${total ? Math.min(100, (time / total) * 100) : 0}%`,
+          }}
         />
       </div>
 
@@ -407,7 +458,7 @@ export function ZenMode({
         <Button
           variant="ghost"
           size="icon-sm"
-          aria-label={t('close')}
+          aria-label={t("close")}
           className="rounded-xl bg-surface"
           onClick={onClose}
         >
@@ -417,22 +468,36 @@ export function ZenMode({
           <span className="font-semibold">{title}</span>
           <span className="text-muted-foreground"> · {artist}</span>
         </div>
-        {currentSection && <span className="text-muted-foreground text-xs">{currentSection}</span>}
+        {currentSection && (
+          <span className="text-muted-foreground text-xs">
+            {currentSection}
+          </span>
+        )}
       </header>
 
-      {mode === 'strip' && <ZenStrip strip={strip} sound={sound} />}
+      {mode === "strip" && <ZenStrip strip={strip} sound={sound} />}
 
       <div
         ref={viewport}
-        className={cn('-mt-20 relative flex-1 overflow-hidden', paused && 'touch-none select-none')}
-        onWheel={(event) => paused && setNudge((value) => clamp(value - event.deltaY))}
+        className={cn(
+          "-mt-20 relative flex-1 overflow-hidden",
+          paused && "touch-none select-none",
+        )}
+        onWheel={(event) =>
+          paused && setNudge((value) => clamp(value - event.deltaY))
+        }
         onPointerDown={(event) => {
           // A touch drag that ends without a click never reaches onClickCapture to clear this,
           // so each new press starts clean — otherwise it would swallow the next tap.
           dragged.current = false;
           // A non-primary mouse button (right-click, middle-click) does not start a drag.
-          if (paused && (event.pointerType !== 'mouse' || event.button === 0)) {
-            drag.current = { y: event.clientY, from: nudge, moved: false, captured: false };
+          if (paused && (event.pointerType !== "mouse" || event.button === 0)) {
+            drag.current = {
+              y: event.clientY,
+              from: nudge,
+              moved: false,
+              captured: false,
+            };
           }
         }}
         onPointerMove={(event) => {
@@ -482,11 +547,11 @@ export function ZenMode({
           }
         }}
       >
-        {phase === 'play' && (
+        {phase === "play" && (
           <button
             type="button"
-            aria-label={t('pause')}
-            title={t('tapToPause')}
+            aria-label={t("pause")}
+            title={t("tapToPause")}
             className="absolute inset-0 z-10 cursor-default"
             onClick={togglePause}
           />
@@ -502,8 +567,10 @@ export function ZenMode({
               {section.label !== null && (
                 <p
                   className={cn(
-                    'pt-5 pb-1 font-semibold text-muted-foreground text-xs uppercase tracking-[0.1em] transition-opacity duration-500 md:text-center',
-                    current && sectionIndex < current.section ? 'opacity-20' : 'opacity-70',
+                    "pt-5 pb-1 font-semibold text-muted-foreground text-xs uppercase tracking-[0.1em] transition-opacity duration-500 md:text-center",
+                    current && sectionIndex < current.section
+                      ? "opacity-20"
+                      : "opacity-70",
                   )}
                 >
                   {section.label}
@@ -511,8 +578,11 @@ export function ZenMode({
               )}
               {section.lines.map((line, lineIndex) => {
                 const key = `${sectionIndex}:${lineIndex}`;
-                const emphasis = rowEmphasis(rowIndex.get(key) ?? -1, currentRow);
-                const isCurrent = emphasis === 'current';
+                const emphasis = rowEmphasis(
+                  rowIndex.get(key) ?? -1,
+                  currentRow,
+                );
+                const isCurrent = emphasis === "current";
                 return (
                   // biome-ignore lint/a11y/noStaticElementInteractions: a row holds chord buttons, so it cannot be a <button>
                   <div
@@ -525,21 +595,23 @@ export function ZenMode({
                       }
                     }}
                     className={cn(
-                      'origin-left py-2 text-xl transition-[opacity,transform] duration-500 md:origin-center',
+                      "origin-left py-2 text-xl transition-[opacity,transform] duration-500 md:origin-center",
                       EMPHASIS[emphasis],
-                      isCurrent && line.type === 'line' && 'scale-[1.04]',
-                      startAt?.key === key && 'rounded-xl ring-2 ring-chord/60',
+                      isCurrent && line.type === "line" && "scale-[1.04]",
+                      startAt?.key === key && "rounded-xl ring-2 ring-chord/60",
                     )}
-                    role={paused ? 'button' : undefined}
+                    role={paused ? "button" : undefined}
                     tabIndex={paused ? 0 : undefined}
-                    onClick={paused ? () => pick(sectionIndex, lineIndex) : undefined}
+                    onClick={
+                      paused ? () => pick(sectionIndex, lineIndex) : undefined
+                    }
                     onKeyDown={
                       paused
                         ? (event) => {
                             if (event.target !== event.currentTarget) {
                               return;
                             }
-                            if (event.key === 'Enter' || event.key === ' ') {
+                            if (event.key === "Enter" || event.key === " ") {
                               event.preventDefault();
                               pick(sectionIndex, lineIndex);
                             }
@@ -547,10 +619,13 @@ export function ZenMode({
                         : undefined
                     }
                   >
-                    {line.type === 'tab' ? (
+                    {line.type === "tab" ? (
                       <TabView lines={line.lines} />
-                    ) : line.type === 'alphatex' ? (
-                      <TabStaff block={line.block} activeBeat={isCurrent ? activeTabBeat : null} />
+                    ) : line.type === "alphatex" ? (
+                      <TabStaff
+                        block={line.block}
+                        activeBeat={isCurrent ? activeTabBeat : null}
+                      />
                     ) : (
                       <LineView
                         items={line.items}
@@ -561,11 +636,12 @@ export function ZenMode({
                               ? (current?.chordItems[position.chord] ?? null)
                               : null
                         }
-                        marks={mode === 'strip' ? 'dots' : 'chips'}
+                        marks={mode === "strip" ? "dots" : "chips"}
                         className="md:justify-center md:text-center"
                         onChord={
                           paused
-                            ? (_chord, _anchor, item) => pick(sectionIndex, lineIndex, item)
+                            ? (_chord, _anchor, item) =>
+                                pick(sectionIndex, lineIndex, item)
                             : undefined
                         }
                       />
@@ -579,7 +655,7 @@ export function ZenMode({
         </div>
       </div>
 
-      {phase === 'ready' || phase === 'pause' ? (
+      {phase === "ready" || phase === "pause" ? (
         <footer className="relative z-30 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <ZenPanel
             phase={phase}
@@ -596,20 +672,20 @@ export function ZenMode({
         <footer className="relative z-10 flex items-center gap-3 bg-linear-to-t from-background from-55% to-transparent px-4 pt-8 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <Button
             size="icon"
-            aria-label={phase === 'play' ? t('pause') : t('resume')}
+            aria-label={phase === "play" ? t("pause") : t("resume")}
             className="size-11 rounded-2xl shadow-glow"
-            disabled={phase === 'count' || phase === 'done'}
+            disabled={phase === "count" || phase === "done"}
             onClick={togglePause}
           >
-            {phase === 'play' ? <Pause /> : <Play />}
+            {phase === "play" ? <Pause /> : <Play />}
           </Button>
           <div className="flex gap-1.5" aria-hidden>
             {[0, 1, 2, 3].map((dot) => (
               <span
                 key={dot}
                 className={cn(
-                  'size-2 rounded-full bg-surface-2 transition-colors duration-75',
-                  phase === 'play' && dot === beat && 'bg-primary shadow-glow',
+                  "size-2 rounded-full bg-surface-2 transition-colors duration-75",
+                  phase === "play" && dot === beat && "bg-primary shadow-glow",
                 )}
               />
             ))}
@@ -621,7 +697,7 @@ export function ZenMode({
       )}
 
       <AnimatePresence>
-        {phase === 'count' && count > 0 && (
+        {phase === "count" && count > 0 && (
           <motion.div
             key={count}
             aria-hidden
@@ -634,21 +710,23 @@ export function ZenMode({
             {count}
           </motion.div>
         )}
-        {phase === 'done' && (
+        {phase === "done" && (
           <motion.div
             className="absolute inset-x-6 top-1/2 z-30 mx-auto flex max-w-sm -translate-y-1/2 flex-col items-center gap-3 rounded-3xl border border-primary/35 bg-popover/95 p-6 text-center shadow-glow backdrop-blur-xl"
             initial={{ opacity: 0, scale: 0.85, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={spring.pop}
           >
-            <span className="font-extrabold text-5xl text-primary">{t('doneTitle')}</span>
-            <span className="text-sm">{t('doneText', { count: played })}</span>
+            <span className="font-extrabold text-5xl text-primary">
+              {t("doneTitle")}
+            </span>
+            <span className="text-sm">{t("doneText", { count: played })}</span>
             <div className="mt-2 flex gap-2">
               <Button variant="outline" onClick={restart}>
                 <RotateCcw />
-                {t('again')}
+                {t("again")}
               </Button>
-              <Button onClick={onClose}>{t('finish')}</Button>
+              <Button onClick={onClose}>{t("finish")}</Button>
             </div>
           </motion.div>
         )}

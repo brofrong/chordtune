@@ -1,13 +1,17 @@
 import {
-  type ChordTones,
   chordKey,
+  type ChordTones,
   chordTones,
   isReentrant,
   parseChord,
   pitchClass,
-} from '@chordtune/chord-sheet';
+} from "@chordtune/chord-sheet";
 
-import { CHORD_CATALOG, type GuitarFrets, OPEN_STRING_MIDI } from './guitar-synth';
+import {
+  CHORD_CATALOG,
+  type GuitarFrets,
+  OPEN_STRING_MIDI,
+} from "./guitar-synth";
 
 const MAX_WINDOW_FRET = 12;
 const HAND_SPAN = 3;
@@ -80,7 +84,11 @@ function isStandard(strings: readonly number[]): boolean {
   );
 }
 
-function findVoicings(raw: string, strings: readonly number[], limit: number): Voicing[] {
+function findVoicings(
+  raw: string,
+  strings: readonly number[],
+  limit: number,
+): Voicing[] {
   const chord = parseChord(raw);
   if (!chord) {
     return [];
@@ -90,7 +98,10 @@ function findVoicings(raw: string, strings: readonly number[], limit: number): V
     const root = pitchClass(chord.root);
     const known = CHORD_CATALOG.find((spec) => {
       const candidate = parseChord(spec.label);
-      return candidate?.suffix === chord.suffix && pitchClass(candidate.root) === root;
+      return (
+        candidate?.suffix === chord.suffix &&
+        pitchClass(candidate.root) === root
+      );
     });
     if (known) {
       const id = known.frets.join();
@@ -107,7 +118,9 @@ function describe(frets: GuitarFrets): Voicing {
 
 /** Where the hand sits: 0 for shapes with open strings, else the lowest fretted fret. */
 function position(frets: GuitarFrets): number {
-  const fretted = frets.filter((fret): fret is number => fret !== null && fret > 0);
+  const fretted = frets.filter(
+    (fret): fret is number => fret !== null && fret > 0,
+  );
   return frets.includes(0) || fretted.length === 0 ? 0 : Math.min(...fretted);
 }
 
@@ -124,7 +137,8 @@ function pickVaried(voicings: Voicing[], limit: number): Voicing[] {
   return [...firsts, ...rest].slice(0, limit);
 }
 
-const sounding = (frets: GuitarFrets) => frets.filter((fret) => fret !== null).length;
+const sounding = (frets: GuitarFrets) =>
+  frets.filter((fret) => fret !== null).length;
 
 /**
  * Every four-fret window up to the 12th fret: strings sound in one contiguous run (muted
@@ -140,7 +154,8 @@ function searchVoicings(
   const lowest = isReentrant(strings) ? null : (bass ?? root);
   const allowed = new Set([...tones, bass ?? root]);
   const fifth = (root + 7) % 12;
-  const required = tones.length >= 4 ? tones.filter((tone) => tone !== fifth) : tones;
+  const required =
+    tones.length >= 4 ? tones.filter((tone) => tone !== fifth) : tones;
   const minSounding = Math.min(4, strings.length - 1);
   const found = new Map<string, Voicing>();
 
@@ -160,7 +175,10 @@ function searchVoicings(
 
     const walk = (string: number, chosen: (number | null)[]) => {
       if (chosen.filter((fret) => fret !== null).length >= minSounding) {
-        const frets = [...chosen, ...Array<null>(strings.length - string).fill(null)];
+        const frets = [
+          ...chosen,
+          ...Array<null>(strings.length - string).fill(null),
+        ];
         const id = frets.join();
         if (!found.has(id) && fits(frets, strings, required, lowest)) {
           found.set(id, describe(frets));
@@ -190,16 +208,23 @@ function fits(
   required: number[],
   lowest: number | null,
 ): boolean {
-  const midis = frets.flatMap((fret, i) => (fret === null ? [] : [strings[i] + fret]));
+  const midis = frets.flatMap((fret, i) =>
+    fret === null ? [] : [strings[i] + fret],
+  );
   if (lowest !== null && Math.min(...midis) % 12 !== lowest) {
     return false;
   }
   const pcs = new Set(midis.map((midi) => midi % 12));
-  return required.every((tone) => pcs.has(tone)) && fingersNeeded(frets) <= MAX_FINGERS;
+  return (
+    required.every((tone) => pcs.has(tone)) &&
+    fingersNeeded(frets) <= MAX_FINGERS
+  );
 }
 
 function difficulty(frets: GuitarFrets): number {
-  const fretted = frets.filter((fret): fret is number => fret !== null && fret > 0);
+  const fretted = frets.filter(
+    (fret): fret is number => fret !== null && fret > 0,
+  );
   const minFret = fretted.length > 0 ? Math.min(...fretted) : 0;
   const maxFret = fretted.length > 0 ? Math.max(...fretted) : 0;
   const muted = frets.filter((fret) => fret === null).length;
@@ -212,7 +237,9 @@ function difficulty(frets: GuitarFrets): number {
 
 /** A barre covers every string at the lowest fret unless an open string sits under it. */
 function fingersNeeded(frets: GuitarFrets): number {
-  const fretted = frets.filter((fret): fret is number => fret !== null && fret > 0);
+  const fretted = frets.filter(
+    (fret): fret is number => fret !== null && fret > 0,
+  );
   if (fretted.length === 0) {
     return 0;
   }
@@ -229,7 +256,9 @@ function fingersNeeded(frets: GuitarFrets): number {
 
 /** The barre a shape is played with: only when it needs more than four fingers otherwise. */
 export function barreOf(frets: GuitarFrets): Barre | null {
-  const fretted = frets.filter((fret): fret is number => fret !== null && fret > 0);
+  const fretted = frets.filter(
+    (fret): fret is number => fret !== null && fret > 0,
+  );
   if (fretted.length <= MAX_FINGERS) {
     return null;
   }
@@ -237,7 +266,10 @@ export function barreOf(frets: GuitarFrets): Barre | null {
   const atMin = frets.flatMap((value, i) => (value === fret ? [i] : []));
   const from = atMin[0];
   const to = atMin[atMin.length - 1];
-  if (atMin.length < 2 || frets.slice(from, to + 1).some((value) => value === 0)) {
+  if (
+    atMin.length < 2 ||
+    frets.slice(from, to + 1).some((value) => value === 0)
+  ) {
     return null;
   }
   return { fret, from, to };

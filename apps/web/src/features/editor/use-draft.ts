@@ -3,13 +3,13 @@ import {
   isSongTuningId,
   isZenMode,
   type Rhythm,
-  type SongTuningId,
   sanitizeVoicings,
+  type SongTuningId,
   type Voicings,
   type ZenModeId,
-} from '@chordtune/chord-sheet';
+} from "@chordtune/chord-sheet";
 
-import type { DeezerPick } from './artist-field';
+import type { DeezerPick } from "./artist-field";
 
 export type Draft = {
   artist: string;
@@ -28,32 +28,33 @@ export type Draft = {
   deezerPick: DeezerPick | null;
 };
 
-const DRAFT_KEY = 'chordtune.draft.new';
+const DRAFT_KEY = "chordtune.draft.new";
 
 export const EMPTY_DRAFT: Draft = {
-  artist: '',
-  title: '',
+  artist: "",
+  title: "",
   capo: null,
-  tuning: 'standard',
+  tuning: "standard",
   voicings: {},
   zenMode: null,
   tempo: null,
-  key: '',
-  notes: '',
-  content: '',
+  key: "",
+  notes: "",
+  content: "",
   rhythms: [],
   deezerPick: null,
 };
 
-const text = (value: unknown) => (typeof value === 'string' ? value : '');
-const numberOrNull = (value: unknown) => (typeof value === 'number' ? value : null);
+const text = (value: unknown) => (typeof value === "string" ? value : "");
+const numberOrNull = (value: unknown) =>
+  typeof value === "number" ? value : null;
 
 function deezerPick(value: unknown): DeezerPick | null {
   if (
     value &&
-    typeof value === 'object' &&
-    typeof (value as Record<string, unknown>).deezerId === 'number' &&
-    typeof (value as Record<string, unknown>).name === 'string'
+    typeof value === "object" &&
+    typeof (value as Record<string, unknown>).deezerId === "number" &&
+    typeof (value as Record<string, unknown>).name === "string"
   ) {
     const { deezerId, name } = value as { deezerId: number; name: string };
     return { deezerId, name };
@@ -73,7 +74,7 @@ export function loadDraft(): Draft | null {
       artist: text(data.artist),
       title: text(data.title),
       capo: numberOrNull(data.capo),
-      tuning: isSongTuningId(data.tuning) ? data.tuning : 'standard',
+      tuning: isSongTuningId(data.tuning) ? data.tuning : "standard",
       voicings: sanitizeVoicings(data.voicings, 6),
       zenMode: isZenMode(data.zenMode) ? data.zenMode : null,
       tempo: numberOrNull(data.tempo),

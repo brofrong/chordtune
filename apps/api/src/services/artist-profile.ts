@@ -1,31 +1,38 @@
-import { TRPCError } from '@trpc/server';
-import { and, asc, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
+import { TRPCError } from "@trpc/server";
+import { and, asc, desc, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 
-import type { Database } from '../db';
-import { arrangement, artist, song } from '../db/schema';
-import type { SearchIndex } from '../search';
-import { syncArtist } from '../search/documents';
-import type { ArrangementListItem } from './arrangements';
+import type { Database } from "../db";
+import { arrangement, artist, song } from "../db/schema";
+import type { SearchIndex } from "../search";
+import { syncArtist } from "../search/documents";
+import type { ArrangementListItem } from "./arrangements";
 import {
   type ArtistSources,
   type DeezerCandidate,
-  WIKI_LANGS,
   type Wiki,
+  WIKI_LANGS,
   type WikiLang,
   type WikiSummary,
-} from './artist-sources';
+} from "./artist-sources";
 
 /**
  * Finds the artist's Wikidata entity and stores its Wikipedia summaries. Runs after the save that
  * created the artist; a failure is logged and leaves `enrichedAt` empty so a later run retries.
  */
-export async function enrichArtist(db: Database, sources: ArtistSources, artistId: string) {
+export async function enrichArtist(
+  db: Database,
+  sources: ArtistSources,
+  artistId: string,
+) {
   try {
     const row = await db.query.artist.findFirst({ where: { id: artistId } });
     if (!row) {
       return;
     }
-    const wikidataId = await sources.findWikidata({ deezerId: row.deezerId, name: row.name });
+    const wikidataId = await sources.findWikidata({
+      deezerId: row.deezerId,
+      name: row.name,
+    });
     const wiki = wikidataId ? await sources.getWiki(wikidataId) : null;
     // An admin relink may land while the lookup above is in flight; `enrichedAt` is no longer
     // null then, so this stale result does not overwrite it.
@@ -42,7 +49,9 @@ const TOP_SONGS = 50;
 
 /** The summary in the reader's language, else in the other one. */
 export function pickWiki(wiki: Wiki | null, locale: WikiLang) {
-  const lang = wiki?.[locale] ? locale : WIKI_LANGS.find((other) => wiki?.[other]);
+  const lang = wiki?.[locale]
+    ? locale
+    : WIKI_LANGS.find((other) => wiki?.[other]);
   const summary: WikiSummary | undefined = lang ? wiki?.[lang] : undefined;
   return lang && summary ? { lang, ...summary } : null;
 }
@@ -51,7 +60,7 @@ export function pickWiki(wiki: Wiki | null, locale: WikiLang) {
 export async function artistPage(db: Database, slug: string, locale: WikiLang) {
   const row = await db.query.artist.findFirst({ where: { slug } });
   if (!row) {
-    throw new TRPCError({ code: 'NOT_FOUND' });
+    throw new TRPCError({ code: "NOT_FOUND" });
   }
   const views = sql<number>`sum(${arrangement.viewCount})::int`;
   const likes = sql<number>`sum(${arrangement.likeCount})::int`;
@@ -67,7 +76,7 @@ export async function artistPage(db: Database, slug: string, locale: WikiLang) {
     .from(song)
     .innerJoin(
       arrangement,
-      and(eq(arrangement.songId, song.id), eq(arrangement.status, 'published')),
+      and(eq(arrangement.songId, song.id), eq(arrangement.status, "published")),
     )
     .where(eq(song.artistId, row.id))
     .groupBy(song.id)
@@ -126,11 +135,15 @@ export async function relinkArtist(
   db: Database,
   search: SearchIndex,
   sources: ArtistSources,
-  { id, deezerId, wikidataId }: { id: string; deezerId: number | null; wikidataId: string | null },
+  {
+    id,
+    deezerId,
+    wikidataId,
+  }: { id: string; deezerId: number | null; wikidataId: string | null },
 ) {
   const row = await db.query.artist.findFirst({ where: { id } });
   if (!row) {
-    throw new TRPCError({ code: 'NOT_FOUND', message: 'Artist not found' });
+    throw new TRPCError({ code: "NOT_FOUND", message: "Artist not found" });
   }
   if (deezerId !== null) {
     const [other] = await db
@@ -138,12 +151,19 @@ export async function relinkArtist(
       .from(artist)
       .where(and(eq(artist.deezerId, deezerId), ne(artist.id, id)));
     if (other) {
-      throw new TRPCError({ code: 'CONFLICT', message: `Already linked to ${other.name}` });
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: `Already linked to ${other.name}`,
+      });
     }
   }
-  const deezer = deezerId === null ? null : await sources.getDeezerArtist(deezerId);
+  const deezer =
+    deezerId === null ? null : await sources.getDeezerArtist(deezerId);
   if (deezerId !== null && !deezer) {
-    throw new TRPCError({ code: 'NOT_FOUND', message: 'Deezer artist not found' });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Deezer artist not found",
+    });
   }
   const wiki = wikidataId ? await sources.getWiki(wikidataId) : null;
   // The name and slug stay, so links to the artist keep working.
@@ -164,9 +184,12 @@ export async function relinkArtist(
 /** For linking existing artists without asking anyone: only an exact name counts. */
 export function pickDeezerMatch(name: string, candidates: DeezerCandidate[]) {
   const wanted = name.trim().toLowerCase();
-  const exact = candidates.filter((candidate) => candidate.name.toLowerCase() === wanted);
+  const exact = candidates.filter(
+    (candidate) => candidate.name.toLowerCase() === wanted,
+  );
   return exact.reduce<DeezerCandidate | null>(
-    (best, candidate) => (!best || candidate.fans > best.fans ? candidate : best),
+    (best, candidate) =>
+      !best || candidate.fans > best.fans ? candidate : best,
     null,
   );
 }

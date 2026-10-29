@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from "react";
 
-export const PANEL_KEY = 'chordtune.chords.panel';
+export const PANEL_KEY = "chordtune.chords.panel";
 
 export function readPanelOpen(value: string | null): boolean {
-  return value !== 'hidden';
+  return value !== "hidden";
 }
 
 /** Whether the chord panel is shown: one choice per device, for every song. */
@@ -23,7 +23,7 @@ export function useChordPanelOpen() {
   const change = useCallback((next: boolean) => {
     setOpen(next);
     try {
-      localStorage.setItem(PANEL_KEY, next ? 'open' : 'hidden');
+      localStorage.setItem(PANEL_KEY, next ? "open" : "hidden");
     } catch {
       // storage can be unavailable in private mode
     }

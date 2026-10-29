@@ -1,5 +1,5 @@
-import { alphaTexNoteTokens, NOTE_RE } from './alphatex';
-import type { TabBlock, TabNote } from './tab';
+import { alphaTexNoteTokens, NOTE_RE } from "./alphatex";
+import type { TabBlock, TabNote } from "./tab";
 
 const MAX_FRET = 24;
 
@@ -7,7 +7,12 @@ type Place = { string: number; fret: number; unreachable?: true };
 /**
  * `avoid`: strings a dead note strikes after this beat, up to and including this note's last tie.
  */
-type Movable = { note: TabNote; index: number; pitch: number; avoid: ReadonlySet<number> };
+type Movable = {
+  note: TabNote;
+  index: number;
+  pitch: number;
+  avoid: ReadonlySet<number>;
+};
 
 /**
  * For every note (a tie included) whose next note (by position) on the same string is a tie, the
@@ -17,12 +22,15 @@ type Movable = { note: TabNote; index: number; pitch: number; avoid: ReadonlySet
  * by `${bar}.${beat}.${noteIndex}`.
  */
 function tieBeatByPosition(block: TabBlock): Map<string, number> {
-  const byString = new Map<number, { key: string; beat: number; tie: boolean }[]>();
+  const byString = new Map<
+    number,
+    { key: string; beat: number; tie: boolean }[]
+  >();
   let beatIndex = 0;
   block.bars.forEach((bar, b) => {
     bar.beats.forEach((beat, k) => {
       beat.notes.forEach((note, n) => {
-        if (note.fret === 'x') {
+        if (note.fret === "x") {
           return;
         }
         const list = byString.get(note.string) ?? [];
@@ -71,18 +79,24 @@ export function refretBlock(
   const placedOn = new Map<number, Place>();
   const tieBeat = tieBeatByPosition(block);
   const deadStrings = block.bars.flatMap((bar) =>
-    bar.beats.map((beat) => new Set(beat.notes.filter((n) => n.fret === 'x').map((n) => n.string))),
+    bar.beats.map(
+      (beat) =>
+        new Set(beat.notes.filter((n) => n.fret === "x").map((n) => n.string)),
+    ),
   );
   const heldStrings = new Set<number>();
   let unreachable = 0;
   let beatIndex = -1;
 
   const placeFixed = (note: TabNote, taken: Set<number>): TabNote => {
-    if (note.fret === 'x') {
+    if (note.fret === "x") {
       taken.add(note.string);
       return note;
     }
-    const held = placedOn.get(note.string) ?? { string: note.string, fret: note.fret };
+    const held = placedOn.get(note.string) ?? {
+      string: note.string,
+      fret: note.fret,
+    };
     taken.add(held.string);
     return {
       ...note,
@@ -110,7 +124,7 @@ export function refretBlock(
 
       // Dead notes and ties have fixed strings: place them before the movable notes.
       beat.notes.forEach((note, index) => {
-        if (note.fret === 'x' || note.tie) {
+        if (note.fret === "x" || note.tie) {
           placed[index] = placeFixed(note, taken);
         }
       });
@@ -118,11 +132,13 @@ export function refretBlock(
       const allStrings = Array.from({ length: count }, (_, i) => i + 1);
       const movable: Movable[] = [];
       beat.notes.forEach((note, index) => {
-        if (note.fret !== 'x' && !note.tie) {
+        if (note.fret !== "x" && !note.tie) {
           // A note with ties ahead keeps its string until the last of them: a dead note struck
           // on that string meanwhile (the last tie's beat included) would share it with a tie.
           const until = tieBeat.get(`${b}.${k}.${index}`) ?? beatIndex;
-          const avoid = new Set(deadStrings.slice(beatIndex + 1, until + 1).flatMap((s) => [...s]));
+          const avoid = new Set(
+            deadStrings.slice(beatIndex + 1, until + 1).flatMap((s) => [...s]),
+          );
           const pitch = open(note.string) + from + (note.fret as number);
           movable.push({ note, index, pitch, avoid });
         }
@@ -131,9 +147,10 @@ export function refretBlock(
       // Strings still ringing for an earlier note whose tie has not been placed yet: off limits
       // to everyone else until the tie claims them.
       const heldDestinations = new Set(
-        Array.from(heldStrings, (source) => placedOn.get(source)?.string).filter(
-          (string): string is number => string !== undefined,
-        ),
+        Array.from(
+          heldStrings,
+          (source) => placedOn.get(source)?.string,
+        ).filter((string): string is number => string !== undefined),
       );
       const freeStrings = allStrings.filter(
         (string) => !taken.has(string) && !heldDestinations.has(string),
@@ -155,7 +172,7 @@ export function refretBlock(
       // tie is placed; the last tie of a chain placed just now releases its string for anyone to
       // use from the next beat on.
       beat.notes.forEach((note, index) => {
-        if (note.fret === 'x') {
+        if (note.fret === "x") {
           return;
         }
         if (tieBeat.has(`${b}.${k}.${index}`)) {
@@ -169,7 +186,10 @@ export function refretBlock(
     }),
   }));
 
-  return { block: { ...block, bars: dropBrokenLegato(block, bars) }, unreachable };
+  return {
+    block: { ...block, bars: dropBrokenLegato(block, bars) },
+    unreachable,
+  };
 }
 
 /**
@@ -200,27 +220,41 @@ function bestAssignment(
       );
     const ownStringFree = usable.includes(note.string);
     const fallbacks = places
-      .filter((place) => !fits(place.fret) && (!ownStringFree || place.string === note.string))
+      .filter(
+        (place) =>
+          !fits(place.fret) && (!ownStringFree || place.string === note.string),
+      )
       .map((place) => ({ ...place, unreachable: true as const }));
     return [...places.filter((place) => fits(place.fret)), ...fallbacks];
   };
 
   const used = new Set<number>();
-  const assignment: (Place | null)[] = new Array(movable.length).fill(null);
+  const assignment: (Place | null)[] = Array.from(
+    { length: movable.length },
+    () => null,
+  );
   let bestLeft = Infinity;
   let bestCount = -1;
   let bestDistance = Infinity;
   let bestThickness = -Infinity;
   let bestAssignment: (Place | null)[] = [];
 
-  const recurse = (i: number, left: number, count: number, distance: number, thickness: number) => {
+  const recurse = (
+    i: number,
+    left: number,
+    count: number,
+    distance: number,
+    thickness: number,
+  ) => {
     if (i === movable.length) {
       const better =
         left < bestLeft ||
         (left === bestLeft &&
           (count > bestCount ||
             (count === bestCount && distance < bestDistance) ||
-            (count === bestCount && distance === bestDistance && thickness > bestThickness)));
+            (count === bestCount &&
+              distance === bestDistance &&
+              thickness > bestThickness)));
       if (better) {
         bestLeft = left;
         bestCount = count;
@@ -266,7 +300,7 @@ function bestAssignment(
 }
 
 /** Written-order list of `[before, after]` notes, so effects can look at the next note. */
-function pairs(before: TabBlock['bars'], after: TabBlock['bars']) {
+function pairs(before: TabBlock["bars"], after: TabBlock["bars"]) {
   return before.flatMap((bar, b) =>
     bar.beats.flatMap((beat, k) =>
       beat.notes.map((note, n) => ({
@@ -278,13 +312,18 @@ function pairs(before: TabBlock['bars'], after: TabBlock['bars']) {
   );
 }
 
-function dropBrokenLegato(original: TabBlock, bars: TabBlock['bars']): TabBlock['bars'] {
+function dropBrokenLegato(
+  original: TabBlock,
+  bars: TabBlock["bars"],
+): TabBlock["bars"] {
   const all = pairs(original.bars, bars);
   for (const [i, { before, after, at }] of all.entries()) {
     if (!before.effects.hammer && !before.effects.slide) {
       continue;
     }
-    const next = all.slice(i + 1).find((other) => other.before.string === before.string);
+    const next = all
+      .slice(i + 1)
+      .find((other) => other.before.string === before.string);
     // Nothing to slur to, or both still on one string: the mark stays.
     if (next && after.string !== next.after.string) {
       const { hammer: _hammer, slide: _slide, ...rest } = after.effects;
@@ -301,7 +340,10 @@ export function countUnreachable(block: TabBlock): number {
   return block.bars.reduce(
     (sum, bar) =>
       sum +
-      bar.beats.reduce((inBar, beat) => inBar + beat.notes.filter((n) => n.unreachable).length, 0),
+      bar.beats.reduce(
+        (inBar, beat) => inBar + beat.notes.filter((n) => n.unreachable).length,
+        0,
+      ),
     0,
   );
 }
@@ -316,9 +358,11 @@ function dropEffectWord(text: string, start: number, word: string): string {
   if (!match) {
     return text;
   }
-  const [whole, lead = '', inner = ''] = match;
-  const words = inner.split(/\s+/).filter((part) => part !== '' && part !== word);
-  const body = words.length > 0 ? `${lead}{${words.join(' ')}}` : '';
+  const [whole, lead = "", inner = ""] = match;
+  const words = inner
+    .split(/\s+/)
+    .filter((part) => part !== "" && part !== word);
+  const body = words.length > 0 ? `${lead}{${words.join(" ")}}` : "";
   return text.slice(0, start) + body + text.slice(start + whole.length);
 }
 
@@ -339,7 +383,10 @@ export function rewriteAlphaTex(
     tab.bars.flatMap((bar) => bar.beats.flatMap((beat) => beat.notes));
   const beforeNotes = flat(before);
   const afterNotes = flat(after);
-  if (tokens.length !== beforeNotes.length || afterNotes.some((note) => note.unreachable)) {
+  if (
+    tokens.length !== beforeNotes.length ||
+    afterNotes.some((note) => note.unreachable)
+  ) {
     return null;
   }
   const lines = [...source];
@@ -351,15 +398,16 @@ export function rewriteAlphaTex(
     if (!token || !note || !original || !match) {
       return null;
     }
-    const fret = match[1] === '-' || match[1] === 'x' ? match[1] : String(note.fret);
-    const duration = match[3] !== undefined ? `.${match[3]}` : '';
-    let text = lines[token.line] ?? '';
+    const fret =
+      match[1] === "-" || match[1] === "x" ? match[1] : String(note.fret);
+    const duration = match[3] !== undefined ? `.${match[3]}` : "";
+    let text = lines[token.line] ?? "";
     const tokenEnd = token.col + token.text.length;
     if (original.effects.hammer && !note.effects.hammer) {
-      text = dropEffectWord(text, tokenEnd, 'h');
+      text = dropEffectWord(text, tokenEnd, "h");
     }
     if (original.effects.slide && !note.effects.slide) {
-      text = dropEffectWord(text, tokenEnd, 'sl');
+      text = dropEffectWord(text, tokenEnd, "sl");
     }
     lines[token.line] =
       `${text.slice(0, token.col)}${fret}.${note.string}${duration}${text.slice(tokenEnd)}`;

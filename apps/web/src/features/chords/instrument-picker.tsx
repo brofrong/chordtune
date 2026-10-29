@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { getInstrument, type InstrumentId } from '@chordtune/audio';
-import { useTranslations } from 'next-intl';
+import { getInstrument, type InstrumentId } from "@chordtune/audio";
+import { useTranslations } from "next-intl";
 
 import {
   Select,
@@ -9,9 +9,10 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { CHORD_INSTRUMENTS } from './identify';
+} from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+
+import { CHORD_INSTRUMENTS } from "./identify";
 
 /** Guitar, bass or ukulele and its tuning — the same setting as the tuner's. */
 export function InstrumentPicker({
@@ -23,12 +24,15 @@ export function InstrumentPicker({
   tuningId: string;
   onChange: (patch: { instrument: InstrumentId; tuningId: string }) => void;
 }) {
-  const t = useTranslations('tuner');
+  const t = useTranslations("tuner");
   const tunings = getInstrument(instrument).tunings;
   const tuningLabel = (id: string) =>
     // keys are generated from the tuning catalogue, which the message files mirror
-    t(`tunings.${instrument}.${id}` as 'tunings.guitar.standard');
-  const items = tunings.map((tuning) => ({ value: tuning.id, label: tuningLabel(tuning.id) }));
+    t(`tunings.${instrument}.${id}` as "tunings.guitar.standard");
+  const items = tunings.map((tuning) => ({
+    value: tuning.id,
+    label: tuningLabel(tuning.id),
+  }));
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -41,7 +45,7 @@ export function InstrumentPicker({
           if (next) {
             onChange({
               instrument: next,
-              tuningId: getInstrument(next).tunings[0]?.id ?? 'standard',
+              tuningId: getInstrument(next).tunings[0]?.id ?? "standard",
             });
           }
         }}
@@ -55,7 +59,9 @@ export function InstrumentPicker({
       <Select
         value={tuningId}
         items={items}
-        onValueChange={(value) => value && onChange({ instrument, tuningId: String(value) })}
+        onValueChange={(value) =>
+          value && onChange({ instrument, tuningId: String(value) })
+        }
       >
         <SelectTrigger className="h-9 min-w-36">
           <SelectValue />

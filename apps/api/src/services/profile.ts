@@ -1,9 +1,13 @@
-import { TRPCError } from '@trpc/server';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { TRPCError } from "@trpc/server";
+import { and, desc, eq, sql } from "drizzle-orm";
 
-import type { Database } from '../db';
-import { arrangement, user } from '../db/schema';
-import { type ArrangementListItem, toListItem, WITH_DETAILS } from './arrangements';
+import type { Database } from "../db";
+import { arrangement, user } from "../db/schema";
+import {
+  type ArrangementListItem,
+  toListItem,
+  WITH_DETAILS,
+} from "./arrangements";
 
 export type Profile = {
   id: string;
@@ -16,7 +20,7 @@ export type Profile = {
 };
 
 export type ProfileArrangement = ArrangementListItem & {
-  status: 'draft' | 'published';
+  status: "draft" | "published";
   createdAt: Date;
 };
 
@@ -26,7 +30,7 @@ async function toProfile(
   viewerId: string | undefined,
 ): Promise<Profile> {
   if (!row?.username) {
-    throw new TRPCError({ code: 'NOT_FOUND' });
+    throw new TRPCError({ code: "NOT_FOUND" });
   }
   const [stats] = await db
     .select({
@@ -35,7 +39,12 @@ async function toProfile(
       saves: sql<number>`coalesce(sum(${arrangement.saveCount}), 0)::int`,
     })
     .from(arrangement)
-    .where(and(eq(arrangement.authorId, row.id), eq(arrangement.status, 'published')));
+    .where(
+      and(
+        eq(arrangement.authorId, row.id),
+        eq(arrangement.status, "published"),
+      ),
+    );
   return {
     id: row.id,
     username: row.username,
@@ -47,13 +56,24 @@ async function toProfile(
   };
 }
 
-export async function profileById(db: Database, userId: string, viewerId?: string) {
+export async function profileById(
+  db: Database,
+  userId: string,
+  viewerId?: string,
+) {
   const [row] = await db.select().from(user).where(eq(user.id, userId));
   return toProfile(db, row, viewerId);
 }
 
-export async function profileByUsername(db: Database, username: string, viewerId?: string) {
-  const [row] = await db.select().from(user).where(eq(user.username, username.toLowerCase()));
+export async function profileByUsername(
+  db: Database,
+  username: string,
+  viewerId?: string,
+) {
+  const [row] = await db
+    .select()
+    .from(user)
+    .where(eq(user.username, username.toLowerCase()));
   return toProfile(db, row, viewerId);
 }
 
@@ -75,7 +95,8 @@ async function inOrder(db: Database, ids: string[]) {
  * is Postgres's own text with microseconds: a JS `Date` keeps only milliseconds, and two rows in the
  * same millisecond would be skipped or repeated across a page boundary.
  */
-const CURSOR_TIME = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d{1,6})?$/;
+const CURSOR_TIME =
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d{1,6})?$/;
 
 /** The shape alone lets through `2026-02-30`, which Postgres would reject with a 500. */
 function isCursorTime(text: string): boolean {
@@ -91,7 +112,9 @@ function isCursorTime(text: string): boolean {
     number,
     number,
   ];
-  const date = new Date(Date.UTC(year, month - 1, day, hours, minutes, seconds));
+  const date = new Date(
+    Date.UTC(year, month - 1, day, hours, minutes, seconds),
+  );
   return (
     date.getUTCFullYear() === year &&
     date.getUTCMonth() === month - 1 &&
@@ -106,19 +129,24 @@ const createdAtText = sql<string>`to_char(${arrangement.createdAt}, 'YYYY-MM-DD"
 
 export async function profileArrangements(
   db: Database,
-  params: { userId: string; viewerId?: string; cursor?: string | null; limit?: number },
+  params: {
+    userId: string;
+    viewerId?: string;
+    cursor?: string | null;
+    limit?: number;
+  },
 ) {
   const { userId, viewerId, cursor, limit = 20 } = params;
-  const [cursorTime, cursorId] = cursor ? cursor.split('|') : [];
+  const [cursorTime, cursorId] = cursor ? cursor.split("|") : [];
   if (cursor && !(cursorTime && isCursorTime(cursorTime) && cursorId)) {
-    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid cursor' });
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid cursor" });
   }
 
   // The relational `where`'s `OR` shape isn't honoured by this Drizzle RC for mixed-column ties,
   // so the cursor page is found with the query builder and the full rows are loaded by id after.
   const conditions = [eq(arrangement.authorId, userId)];
   if (viewerId !== userId) {
-    conditions.push(eq(arrangement.status, 'published'));
+    conditions.push(eq(arrangement.status, "published"));
   }
   if (cursorTime && cursorId) {
     conditions.push(
@@ -139,13 +167,12 @@ export async function profileArrangements(
   const page = rows.slice(0, limit);
   const last = idRows[limit - 1];
   return {
-    items: page.map(
-      (row): ProfileArrangement => ({
-        ...toListItem(row),
-        status: row.status,
-        createdAt: row.createdAt,
-      }),
-    ),
-    nextCursor: idRows.length > limit && last ? `${last.createdAt}|${last.id}` : null,
+    items: page.map((row): ProfileArrangement => ({
+      ...toListItem(row),
+      status: row.status,
+      createdAt: row.createdAt,
+    })),
+    nextCursor:
+      idRows.length > limit && last ? `${last.createdAt}|${last.id}` : null,
   };
 }

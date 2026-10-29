@@ -1,5 +1,5 @@
-import { synthesizeNote } from '../guitar-synth';
-import { getAudioContext } from './audio-context';
+import { synthesizeNote } from "../guitar-synth";
+import { getAudioContext } from "./audio-context";
 
 let current: AudioBufferSourceNode | null = null;
 const cache = new Map<string, AudioBuffer>();
@@ -14,7 +14,9 @@ export async function playReferenceTone(frequency: number): Promise<void> {
   const key = `${context.sampleRate}:${frequency.toFixed(3)}`;
   let buffer = cache.get(key);
   if (!buffer) {
-    const samples = synthesizeNote(frequency, { sampleRate: context.sampleRate });
+    const samples = synthesizeNote(frequency, {
+      sampleRate: context.sampleRate,
+    });
     buffer = context.createBuffer(1, samples.length, context.sampleRate);
     buffer.copyToChannel(samples, 0);
     cache.set(key, buffer);

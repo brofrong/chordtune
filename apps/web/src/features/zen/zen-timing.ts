@@ -1,5 +1,10 @@
-import { eventSeconds } from '@chordtune/audio';
-import { type Rhythm, type SongDoc, tabBeats, timeline } from '@chordtune/chord-sheet';
+import { eventSeconds } from "@chordtune/audio";
+import {
+  type Rhythm,
+  type SongDoc,
+  tabBeats,
+  timeline,
+} from "@chordtune/chord-sheet";
 
 /** A line that has chords, with when it plays (seconds from the start). */
 export type ZenLine = {
@@ -19,7 +24,11 @@ export type ZenLine = {
  * unless `|` splits them), in the tempo and time signature of their rhythm. Lines without
  * chords take no time; an alphaTex block is one line whose «chords» are its beats.
  */
-export function zenLines(doc: SongDoc, rhythms: Rhythm[], bpm: number): ZenLine[] {
+export function zenLines(
+  doc: SongDoc,
+  rhythms: Rhythm[],
+  bpm: number,
+): ZenLine[] {
   const events = timeline(doc, rhythms);
   const seconds = eventSeconds(events, rhythms, bpm);
   const lines: ZenLine[] = [];
@@ -46,7 +55,7 @@ export function zenLines(doc: SongDoc, rhythms: Rhythm[], bpm: number): ZenLine[
       lines.push(line);
     }
     line.end = Math.max(line.end, span.end);
-    if (event.kind === 'tab') {
+    if (event.kind === "tab") {
       const quarterSec = 60 / (event.tempo ?? bpm);
       tabBeats(event.block).forEach((beat, index) => {
         line.chordStarts.push(span.start + beat.start * quarterSec);
@@ -60,7 +69,12 @@ export function zenLines(doc: SongDoc, rhythms: Rhythm[], bpm: number): ZenLine[
   return lines;
 }
 
-export type ZenPosition = { index: number; progress: number; chord: number; done: boolean };
+export type ZenPosition = {
+  index: number;
+  progress: number;
+  chord: number;
+  done: boolean;
+};
 
 /** Which line plays at `t` seconds, how far into it, and which of its chords. */
 export function zenPosition(lines: ZenLine[], t: number): ZenPosition {
@@ -81,7 +95,9 @@ export function zenPosition(lines: ZenLine[], t: number): ZenPosition {
   }
   const line = lines[lo] as ZenLine;
   const progress =
-    line.end > line.start ? Math.max(0, (t - line.start) / (line.end - line.start)) : 1;
+    line.end > line.start
+      ? Math.max(0, (t - line.start) / (line.end - line.start))
+      : 1;
   const chord = Math.max(
     0,
     line.chordStarts.findLastIndex((start) => start <= t),
@@ -109,7 +125,11 @@ export type RowGlide = { index: number; progress: number };
  * the next row's start (or `total`, for the last row) — fed to `zenOffset` the same as a line's,
  * so a multi-row tab block glides row to row instead of snapping when the active one changes.
  */
-export function zenRowGlide(starts: readonly number[], total: number, quarters: number): RowGlide {
+export function zenRowGlide(
+  starts: readonly number[],
+  total: number,
+  quarters: number,
+): RowGlide {
   let index = 0;
   for (let i = 1; i < starts.length; i++) {
     if ((starts[i] ?? Number.POSITIVE_INFINITY) <= quarters) {
@@ -118,6 +138,7 @@ export function zenRowGlide(starts: readonly number[], total: number, quarters: 
   }
   const from = starts[index] ?? 0;
   const to = starts[index + 1] ?? total;
-  const progress = to > from ? Math.min(1, Math.max(0, (quarters - from) / (to - from))) : 1;
+  const progress =
+    to > from ? Math.min(1, Math.max(0, (quarters - from) / (to - from))) : 1;
   return { index, progress };
 }

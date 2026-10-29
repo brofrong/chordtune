@@ -1,5 +1,5 @@
-import { voicingsFor } from '@chordtune/audio';
-import type { Shape } from '@chordtune/chord-sheet';
+import { voicingsFor } from "@chordtune/audio";
+import type { Shape } from "@chordtune/chord-sheet";
 
 /** Shapes to page through for a chord: the author's first, then the suggested ones without it. */
 export function chordVariants(
@@ -7,7 +7,9 @@ export function chordVariants(
   strings: readonly number[],
   authorShape?: Shape,
 ): Shape[] {
-  const suggested = voicingsFor(chord, strings).map((voicing) => [...voicing.frets]);
+  const suggested = voicingsFor(chord, strings).map((voicing) => [
+    ...voicing.frets,
+  ]);
   if (!authorShape) {
     return suggested;
   }

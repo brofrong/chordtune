@@ -87,19 +87,28 @@ AST (`packages/chord-sheet/src/types.ts`):
 
 ```ts
 export type Item =
-  | { type: 'chord'; chord: string } // raw, как написано
-  | { type: 'text'; text: string }
-  | { type: 'bar' }
-  | { type: 'rhythm'; key: string }
-  | { type: 'repeat'; times: number };
+  | { type: "chord"; chord: string } // raw, как написано
+  | { type: "text"; text: string }
+  | { type: "bar" }
+  | { type: "rhythm"; key: string }
+  | { type: "repeat"; times: number };
 
 export type Line =
-  | { type: 'line'; items: Item[] } // строка без chord/bar/rhythm/repeat = обычный текст
-  | { type: 'tab'; lines: string[] };
+  | { type: "line"; items: Item[] } // строка без chord/bar/rhythm/repeat = обычный текст
+  | { type: "tab"; lines: string[] };
 
-export type Section = { label: string | null; rhythm: string | null; lines: Line[] };
+export type Section = {
+  label: string | null;
+  rhythm: string | null;
+  lines: Line[];
+};
 export type SongDoc = { meta: Record<string, string>; sections: Section[] };
-export type Diagnostic = { line: number; col: number; severity: 'warning' | 'error'; message: string };
+export type Diagnostic = {
+  line: number;
+  col: number;
+  severity: "warning" | "error";
+  message: string;
+};
 ```
 
 Строки до первого `[…]` попадают в раздел с `label: null`.
@@ -131,14 +140,18 @@ G B C Cm x4
 ## 2. Ритм (зафиксировано)
 
 ```ts
-export type Stroke = 'D' | 'U' | 'd' | 'u' | 'x'; // ↓ ↑ ⇣(глушёный вниз) ⇡ x(удар с глушением)
-export type StringRef = 'B' | "B'" | 1 | 2 | 3 | 4 | 5 | 6; // B = бас аккорда, B' = чередующийся бас
-export type Step = { stroke?: Stroke; strings?: StringRef[]; accent?: boolean } | null; // null = пауза
+export type Stroke = "D" | "U" | "d" | "u" | "x"; // ↓ ↑ ⇣(глушёный вниз) ⇡ x(удар с глушением)
+export type StringRef = "B" | "B'" | 1 | 2 | 3 | 4 | 5 | 6; // B = бас аккорда, B' = чередующийся бас
+export type Step = {
+  stroke?: Stroke;
+  strings?: StringRef[];
+  accent?: boolean;
+} | null; // null = пауза
 export type Rhythm = {
   key: string; // 'A', 'B', …
   name: string;
-  kind: 'strum' | 'pick';
-  time: '4/4' | '3/4' | '6/8';
+  kind: "strum" | "pick";
+  time: "4/4" | "3/4" | "6/8";
   steps: Step[]; // равномерно на такт; длина — любая 1..32 (обычно 4, 6, 8, 12, 16)
 };
 ```
@@ -152,18 +165,18 @@ export type Rhythm = {
 **Пресеты** (`src/rhythm-presets.ts`, `id`, `name` для ru; en-названия — в i18n web по `id`).
 Штрихи шестёрки и восьмёрки взяты из заметок пользователя (самые частые записи):
 
-| id | name | kind | time | steps |
-| --- | --- | --- | --- | --- |
-| `down-4` | Вниз по долям | strum | 4/4 | `D D D D` |
-| `four` | Четвёрка | strum | 4/4 | `D U D U`, акцент на 1 и 3 |
-| `six` | Шестёрка | strum | 4/4 | `D - D U - U D U` |
-| `six-muted` | Шестёрка с глушением | strum | 4/4 | `D - x U - U x U` |
-| `eight` | Восьмёрка | strum | 4/4 | `D D U U D D D U` |
-| `waltz` | Вальс | strum | 3/4 | `D - D U D U` |
-| `pick-four` | Перебор «четвёрка» | pick | 4/4 | `B 3 2 3 B 3 2 3` |
-| `pick-eight` | Перебор «восьмёрка» | pick | 4/4 | `B 3 2 3 1 3 2 3` |
-| `pick-three` | Перебор «тройка» | pick | 3/4 | `B 3 2 1 2 3` |
-| `pinch` | Щипок | pick | 4/4 | `B [1,2,3] B' [1,2,3]` |
+| id           | name                 | kind  | time | steps                      |
+| ------------ | -------------------- | ----- | ---- | -------------------------- |
+| `down-4`     | Вниз по долям        | strum | 4/4  | `D D D D`                  |
+| `four`       | Четвёрка             | strum | 4/4  | `D U D U`, акцент на 1 и 3 |
+| `six`        | Шестёрка             | strum | 4/4  | `D - D U - U D U`          |
+| `six-muted`  | Шестёрка с глушением | strum | 4/4  | `D - x U - U x U`          |
+| `eight`      | Восьмёрка            | strum | 4/4  | `D D U U D D D U`          |
+| `waltz`      | Вальс                | strum | 3/4  | `D - D U D U`              |
+| `pick-four`  | Перебор «четвёрка»   | pick  | 4/4  | `B 3 2 3 B 3 2 3`          |
+| `pick-eight` | Перебор «восьмёрка»  | pick  | 4/4  | `B 3 2 3 1 3 2 3`          |
+| `pick-three` | Перебор «тройка»     | pick  | 3/4  | `B 3 2 1 2 3`              |
+| `pinch`      | Щипок                | pick  | 4/4  | `B [1,2,3] B' [1,2,3]`     |
 
 **Разбор записи боя** `parseStrumNotation(s)`: `↓`→D, `↑`→U, `⇣`→d, `⇡`→u, `x`/`×`→x,
 `·`/`-`→пауза, `\↓/` → D с акцентом; пробелы игнорируются. Если последовательность штрихов (без пауз)
@@ -228,7 +241,7 @@ Files: `src/chords-over-lyrics.ts` + тест.
 
 - `toChordsOverLyrics(doc): string`, `fromChordsOverLyrics(text): { doc, diagnostics }`,
   `isChordLine(line): boolean`.
-- Тесты: `fromChordsOverLyrics` на блоке ```` ```chords ```` из Creep → проверить позиции аккордов
+- Тесты: `fromChordsOverLyrics` на блоке ` ```chords ` из Creep → проверить позиции аккордов
   в первой строке куплета; `toChordsOverLyrics(fromChordsOverLyrics(x))` стабилен после 1-го прохода
   на всех 5 фикстурах; табы из Кошки становятся tab-блоком; `E C#m G# A }x4` → 4 аккорда + repeat 4.
 
@@ -246,11 +259,19 @@ Files: `src/import-obsidian.ts` + тест на `fixtures/obsidian/*.md`.
 
 ```ts
 export type ImportedSong = {
-  artist: string; title: string; content: string; // content — во внутреннем формате
-  rhythms: Rhythm[]; capo: number | null; tempo: number | null; notes: string;
+  artist: string;
+  title: string;
+  content: string; // content — во внутреннем формате
+  rhythms: Rhythm[];
+  capo: number | null;
+  tempo: number | null;
+  notes: string;
   diagnostics: Diagnostic[];
 };
-export function importObsidian(markdown: string, fileName?: string): ImportedSong;
+export function importObsidian(
+  markdown: string,
+  fileName?: string,
+): ImportedSong;
 ```
 
 - Артист/название: первая строка `#Артист - Название` / `# Артист — Название` (разделители `-`, `—`,
@@ -262,7 +283,7 @@ export function importObsidian(markdown: string, fileName?: string): ImportedSon
 - Разделы: `[Куплет 1]` как есть; строка `Куплет 1:`/`Припев:`/`Вступление:`/`Проигрыш:`/`Бридж:`/
   `Кода:`/`Аутро:`/`Интро:` (регистр любой, номер необязателен) → `[…]`; `Вступление: F#m E Bm` →
   раздел + строка аккордов.
-- Содержимое: только блок(и) ```` ```chords ````, конвертация через `fromChordsOverLyrics`.
+- Содержимое: только блок(и) ` ```chords `, конвертация через `fromChordsOverLyrics`.
   Всё прочее (jtab-блоки, `**Проигрыш**`, `src: […](…)`) → `notes`.
 - Ожидания по фикстурам: Creep — 4 аккорда G B C Cm, ритма нет; Кошка — Dm A# F A7, tab-блок;
   Where Is My Mind — паттерн из `↓↓\↓/↓↑…` с акцентами, повтор ×4 во вступлении; Гореть — паттерн
@@ -314,7 +335,10 @@ Files: `packages/audio/src/browser/strum-player.ts`, экспорт из `src/br
 
 ```ts
 export type StrumPlayer = {
-  play(notes: ScheduledNote[], opts: { loopSec?: number; onTick?: (sec: number) => void }): Promise<void>;
+  play(
+    notes: ScheduledNote[],
+    opts: { loopSec?: number; onTick?: (sec: number) => void },
+  ): Promise<void>;
   stop(): void;
 };
 export function createStrumPlayer(): StrumPlayer;
@@ -346,12 +370,12 @@ export function createStrumPlayer(): StrumPlayer;
 - `.env.example` / `env.ts`: `MEILI_URL=http://localhost:7700`, `MEILI_KEY=…`.
 - Зависимость `meilisearch` в `apps/api`.
 - `src/search/index.ts`: интерфейс `SearchIndex { upsertArrangement, upsertArtist, searchArtists,
-  searchSongs(artistId, q), search(q), reindexAll }` + реализация на Meili + `noopSearch` для тестов.
+searchSongs(artistId, q), search(q), reindexAll }` + реализация на Meili + `noopSearch` для тестов.
 - Индекс `artists`: `{ id, name, nameTranslit, songCount }`, searchable `[name, nameTranslit]`.
 - Индекс `arrangements`: `{ id, songId, songSlug, artistId, artist, artistTranslit, title,
-  titleTranslit, lyrics, chords }`; `searchableAttributes: [artist, artistTranslit, title,
-  titleTranslit, lyrics]` (порядок = вес: текст песни слабейший), `filterableAttributes:
-  [artistId, chords]`. `lyrics` — текст без аккордов (из AST).
+titleTranslit, lyrics, chords }`; `searchableAttributes: [artist, artistTranslit, title,
+titleTranslit, lyrics]` (порядок = вес: текст песни слабейший), `filterableAttributes:
+[artistId, chords]`. `lyrics` — текст без аккордов (из AST).
 - `src/lib/translit.ts`: кириллица ↔ латиница (`лумен` ↔ `lumen`, `нойз` → `noiz`; для латиницы
   → кириллица простая таблица `sh→ш, ch→ч, zh→ж, …`). Тест.
 - `src/scripts/reindex.ts`, скрипт `search:reindex` в `apps/api/package.json`.
@@ -367,7 +391,7 @@ export function createStrumPlayer(): StrumPlayer;
 - `songs.list()` → последние 20 разборов из Postgres.
 - `arrangements.byId({ id })`, `arrangements.bySlug({ artistSlug, songSlug })` — public.
 - `arrangements.create(input)` — protected; zod: `artist: { id } | { name }`, `song: { id } |
-  { title }`, `content ≤ 50_000`, `rhythms ≤ 16` (`z.custom(isRhythm)`), capo 0–12, tempo 30–300, key.
+{ title }`, `content ≤ 50_000`, `rhythms ≤ 16` (`z.custom(isRhythm)`), capo 0–12, tempo 30–300, key.
   Сервис `src/services/save-arrangement.ts`: транзакция, поиск исполнителя по `lower(name)` перед
   созданием, `parse`+`validate` (error → `BAD_REQUEST`), `chords = chordList(doc)`.
 - `arrangements.update` — только автор (`FORBIDDEN`).
@@ -405,7 +429,7 @@ export function createStrumPlayer(): StrumPlayer;
 - Переключатель «Текст | Визуальный» (ToggleGroup). Текст → визуальный: `fromChordsOverLyrics`;
   при error-диагностиках показать строку и не переключать.
 - Текстовый: моноширинный `<textarea>`, подсветка ошибок списком под полем. Вставка (`onPaste`), если
-  текст похож на Obsidian (`#…` заголовок, ```` ```chords ````, `Бой:`), → `importObsidian`, заполнить
+  текст похож на Obsidian (`#…` заголовок, ` ```chords `, `Бой:`), → `importObsidian`, заполнить
   форму целиком.
 - Визуальный: строки, каждая буква — кнопка; тап → `chord-palette` (Popover: аккорды песни, поле
   ввода с `parseChord`, кнопки `|`, `@A…`, `×N`, удалить). Чип аккорда над буквой; перетаскивание

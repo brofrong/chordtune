@@ -1,40 +1,43 @@
-'use client';
+"use client";
 
-import { AudioLines, Bookmark, Grid3x3, ListMusic } from 'lucide-react';
-import { motion } from 'motion/react';
-import { useLocale, useTranslations } from 'next-intl';
+import { AudioLines, Bookmark, Grid3x3, ListMusic } from "lucide-react";
+import { motion } from "motion/react";
+import { useLocale, useTranslations } from "next-intl";
 
-import { AppUpdateBanner } from '@/components/app-update-banner';
-import { AccountButton } from '@/features/auth/account-button';
-import { Link, usePathname } from '@/i18n/navigation';
-import { type Locale, routing } from '@/i18n/routing';
-import { rememberLocale } from '@/lib/locale-preference';
-import { spring } from '@/lib/motion';
-import { cn } from '@/lib/utils';
+import { AppUpdateBanner } from "@/components/app-update-banner";
+import { AccountButton } from "@/features/auth/account-button";
+import { Link, usePathname } from "@/i18n/navigation";
+import { type Locale, routing } from "@/i18n/routing";
+import { rememberLocale } from "@/lib/locale-preference";
+import { spring } from "@/lib/motion";
+import { cn } from "@/lib/utils";
 
 const TABS = [
-  { href: '/', key: 'tuner', icon: AudioLines },
-  { href: '/songs', key: 'songs', icon: ListMusic },
-  { href: '/chords', key: 'chords', icon: Grid3x3 },
-  { href: '/library', key: 'library', icon: Bookmark },
+  { href: "/", key: "tuner", icon: AudioLines },
+  { href: "/songs", key: "songs", icon: ListMusic },
+  { href: "/chords", key: "chords", icon: Grid3x3 },
+  { href: "/library", key: "library", icon: Bookmark },
 ] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const t = useTranslations('app');
+  const t = useTranslations("app");
   const pathname = usePathname();
   const isActive = (href: string) =>
-    href === '/'
-      ? pathname === '/'
+    href === "/"
+      ? pathname === "/"
       : pathname === href ||
         pathname.startsWith(`${href}/`) ||
-        (href === '/songs' && pathname === '/song');
+        (href === "/songs" && pathname === "/song");
 
   return (
     <div className="flex min-h-dvh flex-col pt-[env(safe-area-inset-top)]">
       <header className="sticky top-0 z-30 border-border/60 border-b bg-background/70 backdrop-blur-xl">
         <div className="mx-auto flex h-13 max-w-5xl items-center gap-6 px-4">
-          <Link href="/" className="font-display font-semibold text-lg tracking-tight">
-            {t('name')}
+          <Link
+            href="/"
+            className="font-display font-semibold text-lg tracking-tight"
+          >
+            {t("name")}
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
             {TABS.map((tab) => {
@@ -43,10 +46,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Link
                   key={tab.key}
                   href={tab.href}
-                  aria-current={active ? 'page' : undefined}
+                  aria-current={active ? "page" : undefined}
                   className={cn(
-                    'relative rounded-lg px-3 py-1.5 text-muted-foreground text-sm transition-colors hover:text-foreground',
-                    active && 'text-foreground',
+                    "relative rounded-lg px-3 py-1.5 text-muted-foreground text-sm transition-colors hover:text-foreground",
+                    active && "text-foreground",
                   )}
                 >
                   {active && (
@@ -81,10 +84,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={tab.key}
                 href={tab.href}
-                aria-current={active ? 'page' : undefined}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  'relative flex flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] text-muted-foreground transition-colors',
-                  active && 'text-foreground',
+                  "relative flex flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] text-muted-foreground transition-colors",
+                  active && "text-foreground",
                 )}
               >
                 {active && (
@@ -94,7 +97,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     className="absolute inset-0 rounded-2xl bg-surface-2"
                   />
                 )}
-                <Icon className={cn('relative size-5', active && 'text-primary')} />
+                <Icon
+                  className={cn("relative size-5", active && "text-primary")}
+                />
                 <span className="relative">{t(`nav.${tab.key}`)}</span>
               </Link>
             );
@@ -108,12 +113,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 }
 
 function LocaleSwitcher({ className }: { className?: string }) {
-  const t = useTranslations('app');
+  const t = useTranslations("app");
   const locale = useLocale();
   const pathname = usePathname();
 
   return (
-    <nav aria-label={t('language')} className={cn('flex gap-0.5', className)}>
+    <nav aria-label={t("language")} className={cn("flex gap-0.5", className)}>
       {routing.locales.map((item: Locale) => (
         <Link
           key={item}
@@ -121,8 +126,8 @@ function LocaleSwitcher({ className }: { className?: string }) {
           locale={item}
           onClick={() => rememberLocale(item)}
           className={cn(
-            'rounded px-1.5 py-0.5 text-muted-foreground text-xs uppercase transition-colors hover:text-foreground',
-            item === locale && 'bg-muted text-foreground',
+            "rounded px-1.5 py-0.5 text-muted-foreground text-xs uppercase transition-colors hover:text-foreground",
+            item === locale && "bg-muted text-foreground",
           )}
         >
           {item}

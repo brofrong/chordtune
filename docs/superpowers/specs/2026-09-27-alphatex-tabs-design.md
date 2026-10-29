@@ -90,7 +90,12 @@
 Новые типы:
 
 ```ts
-type TabNote = { string: number; fret: number | 'x'; tie: boolean; effects: NoteEffects };
+type TabNote = {
+  string: number;
+  fret: number | "x";
+  tie: boolean;
+  effects: NoteEffects;
+};
 type TabBeat = {
   /** Длина в четвертях с учётом точки и триоли. */
   quarters: number;
@@ -103,7 +108,11 @@ type TabBeat = {
   palmMute: boolean;
   letRing: boolean;
 };
-type TabBar = { beats: TabBeat[]; repeatOpen: boolean; repeatClose: number | null };
+type TabBar = {
+  beats: TabBeat[];
+  repeatOpen: boolean;
+  repeatClose: number | null;
+};
 type TabBlock = {
   tempo: number | null;
   time: [number, number];

@@ -1,9 +1,9 @@
-import type { PgAsyncDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
+import type { PgAsyncDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 
-import { env } from '../env';
-import { relations } from './schema';
+import { env } from "../env";
+import { relations } from "./schema";
 
 const client = postgres(env.DATABASE_URL, { max: 10 });
 

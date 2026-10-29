@@ -1,4 +1,4 @@
-export type BlockMeta = 'tempo' | 'ts';
+export type BlockMeta = "tempo" | "ts";
 
 /** A command's own text: the keyword and, right after it, its argument if any — captured so a
  *  half-typed value (`\tempo 1`) round-trips, and so whatever else shares its line is untouched. */
@@ -20,11 +20,14 @@ const META_COMMAND_RE =
 function metaEnd(source: readonly string[]): { line: number; col: number } {
   for (let line = 0; line < source.length; line++) {
     let col = 0;
-    for (let match = META_COMMAND_RE.exec((source[line] ?? '').slice(col)); match; ) {
+    for (
+      let match = META_COMMAND_RE.exec((source[line] ?? "").slice(col));
+      match;
+    ) {
       col += match[0].length;
-      match = META_COMMAND_RE.exec((source[line] ?? '').slice(col));
+      match = META_COMMAND_RE.exec((source[line] ?? "").slice(col));
     }
-    if ((source[line] ?? '').slice(col).trim() !== '') {
+    if ((source[line] ?? "").slice(col).trim() !== "") {
       return { line, col };
     }
   }
@@ -32,14 +35,17 @@ function metaEnd(source: readonly string[]): { line: number; col: number } {
 }
 
 /** The argument of `\tempo` / `\ts` in a block's leading metadata, as written. */
-export function readBlockMeta(source: readonly string[], command: BlockMeta): string | null {
+export function readBlockMeta(
+  source: readonly string[],
+  command: BlockMeta,
+): string | null {
   const end = metaEnd(source);
   for (let i = 0; i <= end.line && i < source.length; i++) {
-    const line = source[i] ?? '';
+    const line = source[i] ?? "";
     const text = i === end.line ? line.slice(0, end.col) : line;
     const match = COMMAND_RE[command].exec(text);
     if (match) {
-      return match[1] ?? '';
+      return match[1] ?? "";
     }
   }
   return null;
@@ -58,7 +64,7 @@ export function setBlockMeta(
 ): string[] {
   const end = metaEnd(source);
   for (let i = 0; i <= end.line && i < source.length; i++) {
-    const line = source[i] ?? '';
+    const line = source[i] ?? "";
     const text = i === end.line ? line.slice(0, end.col) : line;
     const match = COMMAND_RE[command].exec(text);
     if (!match) {
@@ -68,16 +74,20 @@ export function setBlockMeta(
     const matchEnd = start + match[0].length;
     const lines = [...source];
     if (value !== null) {
-      lines[i] = `${line.slice(0, start)}\\${command} ${value}${line.slice(matchEnd)}`;
+      lines[i] =
+        `${line.slice(0, start)}\\${command} ${value}${line.slice(matchEnd)}`;
       return lines;
     }
     // Eat one run of adjacent spaces so removal doesn't leave a double space or an orphan one.
     const beforeRaw = line.slice(0, start);
-    const before = beforeRaw.replace(/[ \t]+$/, '');
+    const before = beforeRaw.replace(/[ \t]+$/, "");
     const afterRaw = line.slice(matchEnd);
-    const after = before.length === beforeRaw.length ? afterRaw.replace(/^[ \t]+/, '') : afterRaw;
+    const after =
+      before.length === beforeRaw.length
+        ? afterRaw.replace(/^[ \t]+/, "")
+        : afterRaw;
     const newLine = before + after;
-    if (newLine.trim() === '') {
+    if (newLine.trim() === "") {
       lines.splice(i, 1);
     } else {
       lines[i] = newLine;

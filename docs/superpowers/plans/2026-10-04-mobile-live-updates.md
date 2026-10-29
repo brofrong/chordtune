@@ -34,42 +34,52 @@
 ### Task 1: Native fingerprint
 
 **Files:**
+
 - Create: `scripts/native-fingerprint.ts`
 - Test: `scripts/native-fingerprint.test.ts`
 
 **Interfaces:**
+
 - Produces: `fingerprintOf(inputs: { capacitorConfig: string; androidManifest: string; plugins: Record<string, string> }): string` (64 hex chars) and `nativeFingerprint(webDir: string): string`.
 
 - [ ] **Step 1: Write the failing tests**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
-import { join } from 'node:path';
+import { describe, expect, test } from "bun:test";
+import { join } from "node:path";
 
-import { fingerprintOf, nativeFingerprint } from './native-fingerprint';
+import { fingerprintOf, nativeFingerprint } from "./native-fingerprint";
 
 const base = {
-  capacitorConfig: 'config',
-  androidManifest: '<manifest/>',
-  plugins: { '@capacitor/core': '8.5.2', '@capacitor/haptics': '8.0.2' },
+  capacitorConfig: "config",
+  androidManifest: "<manifest/>",
+  plugins: { "@capacitor/core": "8.5.2", "@capacitor/haptics": "8.0.2" },
 };
 
-describe('fingerprintOf', () => {
-  test('is a stable sha256', () => {
+describe("fingerprintOf", () => {
+  test("is a stable sha256", () => {
     expect(fingerprintOf(base)).toMatch(/^[0-9a-f]{64}$/);
     expect(fingerprintOf(base)).toBe(fingerprintOf({ ...base }));
   });
 
-  test('does not depend on the order plugins are listed in', () => {
-    const reversed = { '@capacitor/haptics': '8.0.2', '@capacitor/core': '8.5.2' };
-    expect(fingerprintOf({ ...base, plugins: reversed })).toBe(fingerprintOf(base));
+  test("does not depend on the order plugins are listed in", () => {
+    const reversed = {
+      "@capacitor/haptics": "8.0.2",
+      "@capacitor/core": "8.5.2",
+    };
+    expect(fingerprintOf({ ...base, plugins: reversed })).toBe(
+      fingerprintOf(base),
+    );
   });
 
-  test('changes with a plugin version, a new plugin, the config or the Android manifest', () => {
+  test("changes with a plugin version, a new plugin, the config or the Android manifest", () => {
     const changed = [
-      { ...base, plugins: { ...base.plugins, '@capacitor/haptics': '8.0.3' } },
-      { ...base, plugins: { ...base.plugins, '@capgo/capacitor-updater': '8.52.1' } },
-      { ...base, capacitorConfig: 'config2' },
+      { ...base, plugins: { ...base.plugins, "@capacitor/haptics": "8.0.3" } },
+      {
+        ...base,
+        plugins: { ...base.plugins, "@capgo/capacitor-updater": "8.52.1" },
+      },
+      { ...base, capacitorConfig: "config2" },
       { ...base, androidManifest: '<manifest a="1"/>' },
     ];
     for (const inputs of changed) {
@@ -77,16 +87,20 @@ describe('fingerprintOf', () => {
     }
   });
 
-  test('does not mix up inputs that only differ in where a boundary falls', () => {
-    expect(fingerprintOf({ ...base, capacitorConfig: 'ab', androidManifest: 'c' })).not.toBe(
-      fingerprintOf({ ...base, capacitorConfig: 'a', androidManifest: 'bc' }),
+  test("does not mix up inputs that only differ in where a boundary falls", () => {
+    expect(
+      fingerprintOf({ ...base, capacitorConfig: "ab", androidManifest: "c" }),
+    ).not.toBe(
+      fingerprintOf({ ...base, capacitorConfig: "a", androidManifest: "bc" }),
     );
   });
 });
 
-describe('nativeFingerprint', () => {
-  test('reads the web app in this repository', () => {
-    expect(nativeFingerprint(join(import.meta.dir, '../apps/web'))).toMatch(/^[0-9a-f]{64}$/);
+describe("nativeFingerprint", () => {
+  test("reads the web app in this repository", () => {
+    expect(nativeFingerprint(join(import.meta.dir, "../apps/web"))).toMatch(
+      /^[0-9a-f]{64}$/,
+    );
   });
 });
 ```
@@ -96,39 +110,50 @@ describe('nativeFingerprint', () => {
 - [ ] **Step 3: Implement**
 
 ```ts
-import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
-import { join } from 'node:path';
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { join } from "node:path";
 
-type Inputs = { capacitorConfig: string; androidManifest: string; plugins: Record<string, string> };
+type Inputs = {
+  capacitorConfig: string;
+  androidManifest: string;
+  plugins: Record<string, string>;
+};
 
 /**
  * Identifies the native layer a web bundle was built against. A live update only goes to an app
  * whose shell has the same fingerprint; anything else needs a new APK.
  */
-export function fingerprintOf({ capacitorConfig, androidManifest, plugins }: Inputs): string {
+export function fingerprintOf({
+  capacitorConfig,
+  androidManifest,
+  plugins,
+}: Inputs): string {
   const parts = [
-    ['capacitor.config.ts', capacitorConfig],
-    ['AndroidManifest.xml', androidManifest],
+    ["capacitor.config.ts", capacitorConfig],
+    ["AndroidManifest.xml", androidManifest],
     ...Object.entries(plugins).sort(([a], [b]) => a.localeCompare(b)),
   ];
   // JSON keeps the boundaries between inputs unambiguous.
-  return createHash('sha256').update(JSON.stringify(parts)).digest('hex');
+  return createHash("sha256").update(JSON.stringify(parts)).digest("hex");
 }
 
 /** The fingerprint of the web app in `webDir`, with plugin versions as installed. */
 export function nativeFingerprint(webDir: string): string {
-  const pkg = JSON.parse(readFileSync(join(webDir, 'package.json'), 'utf8'));
-  const require = createRequire(join(webDir, 'package.json'));
+  const pkg = JSON.parse(readFileSync(join(webDir, "package.json"), "utf8"));
+  const require = createRequire(join(webDir, "package.json"));
   const plugins = Object.fromEntries(
     Object.keys(pkg.dependencies ?? {})
       .filter((name) => /^@(capacitor|capgo)\//.test(name))
       .map((name) => [name, require(`${name}/package.json`).version as string]),
   );
   return fingerprintOf({
-    capacitorConfig: readFileSync(join(webDir, 'capacitor.config.ts'), 'utf8'),
-    androidManifest: readFileSync(join(webDir, 'android/app/src/main/AndroidManifest.xml'), 'utf8'),
+    capacitorConfig: readFileSync(join(webDir, "capacitor.config.ts"), "utf8"),
+    androidManifest: readFileSync(
+      join(webDir, "android/app/src/main/AndroidManifest.xml"),
+      "utf8",
+    ),
     plugins,
   });
 }
@@ -142,10 +167,12 @@ export function nativeFingerprint(webDir: string): string {
 ### Task 2: Update decision
 
 **Files:**
+
 - Create: `apps/web/src/lib/app-update.ts`
 - Test: `apps/web/src/lib/app-update.test.ts`
 
 **Interfaces:**
+
 - Produces:
   - `type UpdateManifest = { version: string; url: string; checksum: string; nativeFingerprint: string }`
   - `parseManifest(value: unknown): UpdateManifest | null`
@@ -158,72 +185,113 @@ export function nativeFingerprint(webDir: string): string {
 - [ ] **Step 1: Write the failing tests**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 
-import { decideUpdate, parseManifest, parsePending, settlePending } from './app-update';
+import {
+  decideUpdate,
+  parseManifest,
+  parsePending,
+  settlePending,
+} from "./app-update";
 
-const manifest = { version: '0.2.0', url: '/mobile/0.2.0.zip', checksum: 'a'.repeat(64), nativeFingerprint: 'f1' };
-const own = { version: '0.1.1', fingerprint: 'f1', failed: [] as string[] };
+const manifest = {
+  version: "0.2.0",
+  url: "/mobile/0.2.0.zip",
+  checksum: "a".repeat(64),
+  nativeFingerprint: "f1",
+};
+const own = { version: "0.1.1", fingerprint: "f1", failed: [] as string[] };
 
-describe('parseManifest', () => {
-  test('accepts a complete manifest', () => {
+describe("parseManifest", () => {
+  test("accepts a complete manifest", () => {
     expect(parseManifest(manifest)).toEqual(manifest);
   });
 
-  test('rejects anything else, such as an HTML page or a partial object', () => {
-    for (const value of [null, 'html', 42, {}, { ...manifest, version: 1 }, { ...manifest, checksum: undefined }]) {
+  test("rejects anything else, such as an HTML page or a partial object", () => {
+    for (const value of [
+      null,
+      "html",
+      42,
+      {},
+      { ...manifest, version: 1 },
+      { ...manifest, checksum: undefined },
+    ]) {
       expect(parseManifest(value)).toBeNull();
     }
   });
 });
 
-describe('decideUpdate', () => {
-  test('nothing to do without a manifest or for the same version', () => {
-    expect(decideUpdate({ ...own, manifest: null })).toEqual({ kind: 'none' });
-    expect(decideUpdate({ ...own, manifest: { ...manifest, version: '0.1.1' } })).toEqual({ kind: 'none' });
+describe("decideUpdate", () => {
+  test("nothing to do without a manifest or for the same version", () => {
+    expect(decideUpdate({ ...own, manifest: null })).toEqual({ kind: "none" });
+    expect(
+      decideUpdate({ ...own, manifest: { ...manifest, version: "0.1.1" } }),
+    ).toEqual({ kind: "none" });
   });
 
-  test('a newer version with the same native layer downloads', () => {
-    expect(decideUpdate({ ...own, manifest })).toEqual({ kind: 'download', manifest });
+  test("a newer version with the same native layer downloads", () => {
+    expect(decideUpdate({ ...own, manifest })).toEqual({
+      kind: "download",
+      manifest,
+    });
   });
 
-  test('an older version downloads too, so the app follows a server rollback', () => {
-    const older = { ...manifest, version: '0.1.0' };
-    expect(decideUpdate({ ...own, manifest: older })).toEqual({ kind: 'download', manifest: older });
+  test("an older version downloads too, so the app follows a server rollback", () => {
+    const older = { ...manifest, version: "0.1.0" };
+    expect(decideUpdate({ ...own, manifest: older })).toEqual({
+      kind: "download",
+      manifest: older,
+    });
   });
 
-  test('another native layer needs a new APK', () => {
-    expect(decideUpdate({ ...own, manifest: { ...manifest, nativeFingerprint: 'f2' } })).toEqual({ kind: 'needs-native' });
+  test("another native layer needs a new APK", () => {
+    expect(
+      decideUpdate({
+        ...own,
+        manifest: { ...manifest, nativeFingerprint: "f2" },
+      }),
+    ).toEqual({ kind: "needs-native" });
   });
 
-  test('a version that failed on this device is not tried again', () => {
-    expect(decideUpdate({ ...own, failed: ['0.2.0'], manifest })).toEqual({ kind: 'none' });
-  });
-});
-
-describe('settlePending', () => {
-  test('nothing pending, nothing failed', () => {
-    expect(settlePending(null, '0.1.1')).toEqual({ failed: null });
-  });
-
-  test('running the pending version means it worked', () => {
-    expect(settlePending({ version: '0.2.0', from: '0.1.1' }, '0.2.0')).toEqual({ failed: null });
-  });
-
-  test('running the version that scheduled it means the plugin rolled it back', () => {
-    expect(settlePending({ version: '0.2.0', from: '0.1.1' }, '0.1.1')).toEqual({ failed: '0.2.0' });
-  });
-
-  test('running anything else, such as a newly installed APK, clears it without blame', () => {
-    expect(settlePending({ version: '0.2.0', from: '0.1.1' }, '0.3.0')).toEqual({ failed: null });
+  test("a version that failed on this device is not tried again", () => {
+    expect(decideUpdate({ ...own, failed: ["0.2.0"], manifest })).toEqual({
+      kind: "none",
+    });
   });
 });
 
-describe('parsePending', () => {
-  test('reads what was stored and ignores garbage', () => {
-    expect(parsePending({ version: '0.2.0', from: '0.1.1' })).toEqual({ version: '0.2.0', from: '0.1.1' });
-    expect(parsePending({ version: '0.2.0' })).toBeNull();
-    expect(parsePending('x')).toBeNull();
+describe("settlePending", () => {
+  test("nothing pending, nothing failed", () => {
+    expect(settlePending(null, "0.1.1")).toEqual({ failed: null });
+  });
+
+  test("running the pending version means it worked", () => {
+    expect(settlePending({ version: "0.2.0", from: "0.1.1" }, "0.2.0")).toEqual(
+      { failed: null },
+    );
+  });
+
+  test("running the version that scheduled it means the plugin rolled it back", () => {
+    expect(settlePending({ version: "0.2.0", from: "0.1.1" }, "0.1.1")).toEqual(
+      { failed: "0.2.0" },
+    );
+  });
+
+  test("running anything else, such as a newly installed APK, clears it without blame", () => {
+    expect(settlePending({ version: "0.2.0", from: "0.1.1" }, "0.3.0")).toEqual(
+      { failed: null },
+    );
+  });
+});
+
+describe("parsePending", () => {
+  test("reads what was stored and ignores garbage", () => {
+    expect(parsePending({ version: "0.2.0", from: "0.1.1" })).toEqual({
+      version: "0.2.0",
+      from: "0.1.1",
+    });
+    expect(parsePending({ version: "0.2.0" })).toBeNull();
+    expect(parsePending("x")).toBeNull();
   });
 });
 ```
@@ -244,29 +312,42 @@ export type UpdateManifest = {
 };
 
 export type UpdateDecision =
-  | { kind: 'none' }
-  | { kind: 'download'; manifest: UpdateManifest }
-  | { kind: 'needs-native' };
+  | { kind: "none" }
+  | { kind: "download"; manifest: UpdateManifest }
+  | { kind: "needs-native" };
 
 /** An update scheduled with `next()`: `from` is the version that scheduled it. */
 export type PendingUpdate = { version: string; from: string };
 
-function isRecordOf<K extends string>(value: unknown, keys: readonly K[]): value is Record<K, string> {
+function isRecordOf<K extends string>(
+  value: unknown,
+  keys: readonly K[],
+): value is Record<K, string> {
   return (
-    typeof value === 'object' &&
+    typeof value === "object" &&
     value !== null &&
-    keys.every((key) => typeof (value as Record<string, unknown>)[key] === 'string')
+    keys.every(
+      (key) => typeof (value as Record<string, unknown>)[key] === "string",
+    )
   );
 }
 
 export function parseManifest(value: unknown): UpdateManifest | null {
-  if (!isRecordOf(value, ['version', 'url', 'checksum', 'nativeFingerprint'] as const)) return null;
+  if (
+    !isRecordOf(value, [
+      "version",
+      "url",
+      "checksum",
+      "nativeFingerprint",
+    ] as const)
+  )
+    return null;
   const { version, url, checksum, nativeFingerprint } = value;
   return { version, url, checksum, nativeFingerprint };
 }
 
 export function parsePending(value: unknown): PendingUpdate | null {
-  if (!isRecordOf(value, ['version', 'from'] as const)) return null;
+  if (!isRecordOf(value, ["version", "from"] as const)) return null;
   return { version: value.version, from: value.from };
 }
 
@@ -285,19 +366,32 @@ export function decideUpdate({
   fingerprint: string;
   failed: readonly string[];
 }): UpdateDecision {
-  if (!manifest || manifest.version === version || failed.includes(manifest.version)) {
-    return { kind: 'none' };
+  if (
+    !manifest ||
+    manifest.version === version ||
+    failed.includes(manifest.version)
+  ) {
+    return { kind: "none" };
   }
-  if (manifest.nativeFingerprint !== fingerprint) return { kind: 'needs-native' };
-  return { kind: 'download', manifest };
+  if (manifest.nativeFingerprint !== fingerprint)
+    return { kind: "needs-native" };
+  return { kind: "download", manifest };
 }
 
 /**
  * Called by a bundle once it is known to work. Starting as the version that scheduled the update
  * means the plugin rolled the update back; any other version (a new APK) says nothing about it.
  */
-export function settlePending(pending: PendingUpdate | null, version: string): { failed: string | null } {
-  return { failed: pending && pending.from === version && pending.version !== version ? pending.version : null };
+export function settlePending(
+  pending: PendingUpdate | null,
+  version: string,
+): { failed: string | null } {
+  return {
+    failed:
+      pending && pending.from === version && pending.version !== version
+        ? pending.version
+        : null,
+  };
 }
 ```
 
@@ -309,11 +403,13 @@ export function settlePending(pending: PendingUpdate | null, version: string): {
 ### Task 3: Mobile bundle script
 
 **Files:**
+
 - Create: `scripts/mobile-bundle.ts`
 - Test: `scripts/mobile-bundle.test.ts`
 - Modify: root `package.json` (devDependency `fflate`)
 
 **Interfaces:**
+
 - Consumes: `nativeFingerprint(webDir)` (Task 1), `type UpdateManifest` (Task 2).
 - Produces: `writeMobileBundle({ exportDir, publicDir, version, nativeFingerprint }): UpdateManifest`; CLI `bun scripts/mobile-bundle.ts <publicDir>` (export from `apps/web/out`, version from root `package.json`).
 
@@ -322,45 +418,58 @@ export function settlePending(pending: PendingUpdate | null, version: string): {
 - [ ] **Step 2: Write the failing test**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
-import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { strFromU8, unzipSync } from 'fflate';
+import { describe, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-import { writeMobileBundle } from './mobile-bundle';
+import { strFromU8, unzipSync } from "fflate";
 
-describe('writeMobileBundle', () => {
-  test('zips the export with index.html at the root and describes it in update.json', () => {
-    const root = mkdtempSync(join(tmpdir(), 'mobile-bundle-'));
-    const exportDir = join(root, 'out');
-    mkdirSync(join(exportDir, 'ru'), { recursive: true });
-    writeFileSync(join(exportDir, 'index.html'), '<html>root</html>');
-    writeFileSync(join(exportDir, 'ru/index.html'), '<html>ru</html>');
-    const publicDir = join(root, 'public');
+import { writeMobileBundle } from "./mobile-bundle";
 
-    const manifest = writeMobileBundle({ exportDir, publicDir, version: '0.2.0', nativeFingerprint: 'f1' });
+describe("writeMobileBundle", () => {
+  test("zips the export with index.html at the root and describes it in update.json", () => {
+    const root = mkdtempSync(join(tmpdir(), "mobile-bundle-"));
+    const exportDir = join(root, "out");
+    mkdirSync(join(exportDir, "ru"), { recursive: true });
+    writeFileSync(join(exportDir, "index.html"), "<html>root</html>");
+    writeFileSync(join(exportDir, "ru/index.html"), "<html>ru</html>");
+    const publicDir = join(root, "public");
 
-    const zip = readFileSync(join(publicDir, 'mobile/0.2.0.zip'));
-    const files = unzipSync(new Uint8Array(zip));
-    expect(Object.keys(files).sort()).toEqual(['index.html', 'ru/index.html']);
-    expect(strFromU8(files['ru/index.html'])).toBe('<html>ru</html>');
-    expect(manifest).toEqual({
-      version: '0.2.0',
-      url: '/mobile/0.2.0.zip',
-      checksum: createHash('sha256').update(zip).digest('hex'),
-      nativeFingerprint: 'f1',
+    const manifest = writeMobileBundle({
+      exportDir,
+      publicDir,
+      version: "0.2.0",
+      nativeFingerprint: "f1",
     });
-    expect(JSON.parse(readFileSync(join(publicDir, 'mobile/update.json'), 'utf8'))).toEqual(manifest);
+
+    const zip = readFileSync(join(publicDir, "mobile/0.2.0.zip"));
+    const files = unzipSync(new Uint8Array(zip));
+    expect(Object.keys(files).sort()).toEqual(["index.html", "ru/index.html"]);
+    expect(strFromU8(files["ru/index.html"])).toBe("<html>ru</html>");
+    expect(manifest).toEqual({
+      version: "0.2.0",
+      url: "/mobile/0.2.0.zip",
+      checksum: createHash("sha256").update(zip).digest("hex"),
+      nativeFingerprint: "f1",
+    });
+    expect(
+      JSON.parse(readFileSync(join(publicDir, "mobile/update.json"), "utf8")),
+    ).toEqual(manifest);
   });
 
-  test('refuses an export without index.html, which the plugin could not start', () => {
-    const root = mkdtempSync(join(tmpdir(), 'mobile-bundle-'));
-    mkdirSync(join(root, 'out'));
+  test("refuses an export without index.html, which the plugin could not start", () => {
+    const root = mkdtempSync(join(tmpdir(), "mobile-bundle-"));
+    mkdirSync(join(root, "out"));
     expect(() =>
-      writeMobileBundle({ exportDir: join(root, 'out'), publicDir: join(root, 'public'), version: '0.2.0', nativeFingerprint: 'f1' }),
-    ).toThrow('index.html');
+      writeMobileBundle({
+        exportDir: join(root, "out"),
+        publicDir: join(root, "public"),
+        version: "0.2.0",
+        nativeFingerprint: "f1",
+      }),
+    ).toThrow("index.html");
   });
 });
 ```
@@ -370,13 +479,20 @@ describe('writeMobileBundle', () => {
 - [ ] **Step 4: Implement**
 
 ```ts
-import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
-import { zipSync } from 'fflate';
+import { createHash } from "node:crypto";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
+import { join, relative } from "node:path";
 
-import type { UpdateManifest } from '../apps/web/src/lib/app-update';
-import { nativeFingerprint } from './native-fingerprint';
+import { zipSync } from "fflate";
+
+import type { UpdateManifest } from "../apps/web/src/lib/app-update";
+import { nativeFingerprint } from "./native-fingerprint";
 
 /**
  * Packs the Capacitor export into `<publicDir>/mobile/<version>.zip` and writes the manifest the
@@ -393,39 +509,47 @@ export function writeMobileBundle({
   version: string;
   nativeFingerprint: string;
 }): UpdateManifest {
-  if (!existsSync(join(exportDir, 'index.html'))) {
-    throw new Error(`${exportDir} has no index.html; build the Capacitor export first`);
+  if (!existsSync(join(exportDir, "index.html"))) {
+    throw new Error(
+      `${exportDir} has no index.html; build the Capacitor export first`,
+    );
   }
   const files: Record<string, Uint8Array> = {};
-  for (const entry of readdirSync(exportDir, { recursive: true, withFileTypes: true })) {
+  for (const entry of readdirSync(exportDir, {
+    recursive: true,
+    withFileTypes: true,
+  })) {
     if (entry.isFile()) {
       const path = join(entry.parentPath, entry.name);
-      files[relative(exportDir, path).split('\\').join('/')] = readFileSync(path);
+      files[relative(exportDir, path).split("\\").join("/")] =
+        readFileSync(path);
     }
   }
   const zip = zipSync(files);
-  const dir = join(publicDir, 'mobile');
+  const dir = join(publicDir, "mobile");
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, `${version}.zip`), zip);
   const manifest: UpdateManifest = {
     version,
     url: `/mobile/${version}.zip`,
-    checksum: createHash('sha256').update(zip).digest('hex'),
+    checksum: createHash("sha256").update(zip).digest("hex"),
     nativeFingerprint,
   };
-  writeFileSync(join(dir, 'update.json'), JSON.stringify(manifest));
+  writeFileSync(join(dir, "update.json"), JSON.stringify(manifest));
   return manifest;
 }
 
 if (import.meta.main) {
   const publicDir = process.argv[2];
-  if (!publicDir) throw new Error('usage: bun scripts/mobile-bundle.ts <publicDir>');
-  const root = join(import.meta.dir, '..');
-  const webDir = join(root, 'apps/web');
+  if (!publicDir)
+    throw new Error("usage: bun scripts/mobile-bundle.ts <publicDir>");
+  const root = join(import.meta.dir, "..");
+  const webDir = join(root, "apps/web");
   const manifest = writeMobileBundle({
-    exportDir: join(webDir, 'out'),
+    exportDir: join(webDir, "out"),
     publicDir,
-    version: JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version,
+    version: JSON.parse(readFileSync(join(root, "package.json"), "utf8"))
+      .version,
     nativeFingerprint: nativeFingerprint(webDir),
   });
   console.log(`Mobile bundle ${manifest.version} → ${publicDir}/mobile`);
@@ -439,10 +563,12 @@ if (import.meta.main) {
 ### Task 4: Build wiring (Next constants, Docker, CI)
 
 **Files:**
+
 - Modify: `apps/web/next.config.ts`
 - Modify: `Dockerfile`, `.dockerignore`, `.github/workflows/release.yml`
 
 **Interfaces:**
+
 - Consumes: `nativeFingerprint` (Task 1), CLI from Task 3.
 - Produces: `process.env.NEXT_PUBLIC_APP_VERSION`, `process.env.NEXT_PUBLIC_NATIVE_FINGERPRINT` in the Capacitor build.
 
@@ -496,8 +622,8 @@ and in the runtime stage `COPY --from=build /standalone ./web`.
 - [ ] **Step 4: workflow** — in the `docker` job's `build-push-action` add
 
 ```yaml
-          build-args: |
-            PUBLIC_URL=${{ vars.PUBLIC_URL }}
+build-args: |
+  PUBLIC_URL=${{ vars.PUBLIC_URL }}
 ```
 
 - [ ] **Step 5: Verify**
@@ -511,11 +637,13 @@ and in the runtime stage `COPY --from=build /standalone ./web`.
 ### Task 5: Plugin, update hook and banner
 
 **Files:**
+
 - Modify: `apps/web/package.json` (`@capgo/capacitor-updater`), `apps/web/capacitor.config.ts`, `apps/web/android/**` (regenerated by `cap sync`)
 - Create: `apps/web/src/lib/use-app-update.ts`, `apps/web/src/components/app-update-banner.tsx`
 - Modify: `apps/web/src/components/app-shell.tsx`, `apps/web/messages/ru.json`, `apps/web/messages/en.json`
 
 **Interfaces:**
+
 - Consumes: Task 2 functions; `API_URL` from `@/lib/api`.
 - Produces: `useAppUpdate(): { state: 'idle' | 'ready' | 'needs-native'; restart(): void; dismiss(): void }`, `<AppUpdateBanner />`.
 
@@ -538,26 +666,31 @@ and in the runtime stage `COPY --from=build /standalone ./web`.
 - [ ] **Step 3: `src/lib/use-app-update.ts`**
 
 ```ts
-'use client';
+"use client";
 
-import { Capacitor } from '@capacitor/core';
-import { CapacitorUpdater } from '@capgo/capacitor-updater';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Capacitor } from "@capacitor/core";
+import { CapacitorUpdater } from "@capgo/capacitor-updater";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { API_URL } from '@/lib/api';
-import { decideUpdate, parseManifest, parsePending, settlePending } from '@/lib/app-update';
+import { API_URL } from "@/lib/api";
+import {
+  decideUpdate,
+  parseManifest,
+  parsePending,
+  settlePending,
+} from "@/lib/app-update";
 
-const VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? '';
-const FINGERPRINT = process.env.NEXT_PUBLIC_NATIVE_FINGERPRINT ?? '';
+const VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "";
+const FINGERPRINT = process.env.NEXT_PUBLIC_NATIVE_FINGERPRINT ?? "";
 const MANIFEST_URL = `${API_URL}/mobile/update.json`;
-const PENDING_KEY = 'chordtune.update.pending';
-const FAILED_KEY = 'chordtune.update.failed';
+const PENDING_KEY = "chordtune.update.pending";
+const FAILED_KEY = "chordtune.update.failed";
 
-export type AppUpdateState = 'idle' | 'ready' | 'needs-native';
+export type AppUpdateState = "idle" | "ready" | "needs-native";
 
 function readJson(key: string): unknown {
   try {
-    return JSON.parse(localStorage.getItem(key) ?? 'null');
+    return JSON.parse(localStorage.getItem(key) ?? "null");
   } catch {
     return null;
   }
@@ -565,13 +698,22 @@ function readJson(key: string): unknown {
 
 function failedVersions(): string[] {
   const value = readJson(FAILED_KEY);
-  return Array.isArray(value) ? value.filter((item) => typeof item === 'string') : [];
+  return Array.isArray(value)
+    ? value.filter((item) => typeof item === "string")
+    : [];
 }
 
 /** Settles the update this bundle may have been started for; see `settlePending`. */
 function settle() {
-  const { failed } = settlePending(parsePending(readJson(PENDING_KEY)), VERSION);
-  if (failed) localStorage.setItem(FAILED_KEY, JSON.stringify([...failedVersions(), failed]));
+  const { failed } = settlePending(
+    parsePending(readJson(PENDING_KEY)),
+    VERSION,
+  );
+  if (failed)
+    localStorage.setItem(
+      FAILED_KEY,
+      JSON.stringify([...failedVersions(), failed]),
+    );
   localStorage.removeItem(PENDING_KEY);
 }
 
@@ -580,7 +722,7 @@ function settle() {
  * applied on `restart()` or, failing that, by the plugin when the app goes to the background.
  */
 export function useAppUpdate() {
-  const [state, setState] = useState<AppUpdateState>('idle');
+  const [state, setState] = useState<AppUpdateState>("idle");
   const dismissed = useRef(false);
 
   useEffect(() => {
@@ -592,17 +734,36 @@ export function useAppUpdate() {
       if (busy) return;
       busy = true;
       try {
-        const response = await fetch(MANIFEST_URL, { cache: 'no-store' });
-        const manifest = response.ok ? parseManifest(await response.json().catch(() => null)) : null;
-        const decision = decideUpdate({ manifest, version: VERSION, fingerprint: FINGERPRINT, failed: failedVersions() });
-        if (decision.kind === 'needs-native' && !dismissed.current) setState('needs-native');
-        if (decision.kind !== 'download' || downloaded.has(decision.manifest.version)) return;
+        const response = await fetch(MANIFEST_URL, { cache: "no-store" });
+        const manifest = response.ok
+          ? parseManifest(await response.json().catch(() => null))
+          : null;
+        const decision = decideUpdate({
+          manifest,
+          version: VERSION,
+          fingerprint: FINGERPRINT,
+          failed: failedVersions(),
+        });
+        if (decision.kind === "needs-native" && !dismissed.current)
+          setState("needs-native");
+        if (
+          decision.kind !== "download" ||
+          downloaded.has(decision.manifest.version)
+        )
+          return;
         const { version, url, checksum } = decision.manifest;
-        const bundle = await CapacitorUpdater.download({ version, checksum, url: new URL(url, MANIFEST_URL).href });
-        localStorage.setItem(PENDING_KEY, JSON.stringify({ version, from: VERSION }));
+        const bundle = await CapacitorUpdater.download({
+          version,
+          checksum,
+          url: new URL(url, MANIFEST_URL).href,
+        });
+        localStorage.setItem(
+          PENDING_KEY,
+          JSON.stringify({ version, from: VERSION }),
+        );
         await CapacitorUpdater.next({ id: bundle.id });
         downloaded.add(version);
-        if (!dismissed.current) setState('ready');
+        if (!dismissed.current) setState("ready");
       } catch {
         // Offline, server down or a failed download: try again on the next check.
       } finally {
@@ -616,10 +777,10 @@ export function useAppUpdate() {
       void check();
     });
     const onVisible = () => {
-      if (document.visibilityState === 'visible') void check();
+      if (document.visibilityState === "visible") void check();
     };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, []);
 
   const restart = useCallback(() => {
@@ -627,7 +788,7 @@ export function useAppUpdate() {
   }, []);
   const dismiss = useCallback(() => {
     dismissed.current = true;
-    setState('idle');
+    setState("idle");
   }, []);
 
   return { state, restart, dismiss };
@@ -641,26 +802,26 @@ export function useAppUpdate() {
 - [ ] **Step 5: `src/components/app-update-banner.tsx`** — fixed above the mobile tab bar, `motion` enter/exit like the toast, two actions:
 
 ```tsx
-'use client';
+"use client";
 
-import { RefreshCw } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
-import { useTranslations } from 'next-intl';
+import { RefreshCw } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useTranslations } from "next-intl";
 
-import { Button } from '@/components/ui/button';
-import { spring } from '@/lib/motion';
-import { useAppUpdate } from '@/lib/use-app-update';
+import { Button } from "@/components/ui/button";
+import { spring } from "@/lib/motion";
+import { useAppUpdate } from "@/lib/use-app-update";
 
-const RELEASES_URL = 'https://github.com/brofrong/chordtune/releases/latest';
+const RELEASES_URL = "https://github.com/brofrong/chordtune/releases/latest";
 
 /** Offers a downloaded live update, or a new APK when the native shell is too old for the server. */
 export function AppUpdateBanner() {
-  const t = useTranslations('update');
+  const t = useTranslations("update");
   const { state, restart, dismiss } = useAppUpdate();
 
   return (
     <AnimatePresence>
-      {state !== 'idle' && (
+      {state !== "idle" && (
         <motion.div
           role="status"
           initial={{ opacity: 0, y: 12 }}
@@ -671,18 +832,22 @@ export function AppUpdateBanner() {
         >
           <RefreshCw className="size-4 shrink-0 text-primary" />
           <span className="flex-1 font-medium text-sm">
-            {state === 'ready' ? t('ready') : t('nativeTitle')}
+            {state === "ready" ? t("ready") : t("nativeTitle")}
           </span>
           <Button variant="ghost" size="sm" onClick={dismiss}>
-            {t('later')}
+            {t("later")}
           </Button>
-          {state === 'ready' ? (
+          {state === "ready" ? (
             <Button size="sm" onClick={restart}>
-              {t('restart')}
+              {t("restart")}
             </Button>
           ) : (
-            <Button size="sm" render={<a href={RELEASES_URL} />} onClick={dismiss}>
-              {t('download')}
+            <Button
+              size="sm"
+              render={<a href={RELEASES_URL} />}
+              onClick={dismiss}
+            >
+              {t("download")}
             </Button>
           )}
         </motion.div>
@@ -705,6 +870,7 @@ export function AppUpdateBanner() {
 ### Task 6: Docs and end-to-end check
 
 **Files:**
+
 - Modify: `README.md` (Release and Docker sections)
 
 - [ ] **Step 1: README** — Docker: `--build-arg PUBLIC_URL=…` adds the mobile bundle. Release: after the server is updated, installed apps take the new web code on their next start or return; native changes need the APK, which the app offers.

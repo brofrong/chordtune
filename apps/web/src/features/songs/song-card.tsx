@@ -1,13 +1,14 @@
-'use client';
+"use client";
 
-import { Eye, Heart } from 'lucide-react';
-import { useState } from 'react';
+import { Eye, Heart } from "lucide-react";
+import { useState } from "react";
 
-import { songHref } from '@/features/song/links';
-import { Link } from '@/i18n/navigation';
-import { formatCount } from '@/lib/format';
-import type { ArrangementListItem } from '@/lib/trpc';
-import { coverColors, initials } from './cover';
+import { songHref } from "@/features/song/links";
+import { Link } from "@/i18n/navigation";
+import { formatCount } from "@/lib/format";
+import type { ArrangementListItem } from "@/lib/trpc";
+
+import { coverColors, initials } from "./cover";
 
 /** The artist's picture over its initials cover, which stays when there is none or it fails to load. */
 export function ArtistCover({
@@ -24,13 +25,13 @@ export function ArtistCover({
   return (
     <span
       aria-hidden
-      className={`relative flex shrink-0 items-center justify-center overflow-hidden font-bold text-sm text-white tracking-tight ${className ?? 'size-11 rounded-[13px]'}`}
+      className={`relative flex shrink-0 items-center justify-center overflow-hidden font-bold text-sm text-white tracking-tight ${className ?? "size-11 rounded-[13px]"}`}
       style={{ backgroundImage: `linear-gradient(135deg, ${from}, ${to})` }}
     >
       {initials(artist)}
       {picture && failed !== picture && (
         // A plain img: the static Capacitor export has no image optimizer.
-        // biome-ignore lint/performance/noImgElement: see above
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={picture}
           alt=""
@@ -44,7 +45,13 @@ export function ArtistCover({
 }
 
 /** A song in a list: cover, title, artist and compact counters — no chords. */
-export function SongCard({ item, badge }: { item: ArrangementListItem; badge?: React.ReactNode }) {
+export function SongCard({
+  item,
+  badge,
+}: {
+  item: ArrangementListItem;
+  badge?: React.ReactNode;
+}) {
   return (
     <Link
       href={songHref(item)}

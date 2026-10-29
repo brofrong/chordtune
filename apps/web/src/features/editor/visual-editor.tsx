@@ -1,38 +1,39 @@
-'use client';
+"use client";
 
 import {
   alphatexLine,
   chordKey,
   chordList,
-  type Item,
   isTempo,
+  type Item,
   joinLine,
   type Mark,
   type Rhythm,
   type SongDoc,
   splitLine,
-} from '@chordtune/chord-sheet';
-import { Pencil, Play, Plus, Square, Trash2 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useRef, useState } from 'react';
+} from "@chordtune/chord-sheet";
+import { Pencil, Play, Plus, Square, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import type { PlayingAt, SongSound } from '@/features/rhythm/playback';
-import type { StrumPlayerControls } from '@/features/rhythm/use-strum-player';
-import { TabView } from '@/features/song/line-view';
-import { MarkChip } from '@/features/song/mark-chip';
-import { TabEditorSheet } from '@/features/tab/tab-editor-sheet';
-import { TabStaff } from '@/features/tab/tab-staff';
-import { cn } from '@/lib/utils';
-import { ChordPalette } from './chord-palette';
+} from "@/components/ui/select";
+import type { PlayingAt, SongSound } from "@/features/rhythm/playback";
+import type { StrumPlayerControls } from "@/features/rhythm/use-strum-player";
+import { TabView } from "@/features/song/line-view";
+import { MarkChip } from "@/features/song/mark-chip";
+import { TabEditorSheet } from "@/features/tab/tab-editor-sheet";
+import { TabStaff } from "@/features/tab/tab-staff";
+import { cn } from "@/lib/utils";
+
+import { ChordPalette } from "./chord-palette";
 import {
   addSection,
   insertLine,
@@ -41,7 +42,7 @@ import {
   setLine,
   setLineItems,
   updateSection,
-} from './doc-edit';
+} from "./doc-edit";
 
 export type ActiveChord = PlayingAt | null;
 
@@ -54,7 +55,7 @@ type Target = {
   anchor: HTMLElement;
 };
 
-const NO_RHYTHM = '-';
+const NO_RHYTHM = "-";
 const DRAG_THRESHOLD_PX = 6;
 
 export function VisualEditor({
@@ -85,16 +86,22 @@ export function VisualEditor({
   onPlayTab: (section: number, line: number) => void;
   onEditVoicing: (chord: string) => void;
 }) {
-  const t = useTranslations('editor');
+  const t = useTranslations("editor");
   const [target, setTarget] = useState<Target | null>(null);
-  const [editingLine, setEditingLine] = useState<{ section: number; line: number } | null>(null);
-  const [editingTab, setEditingTab] = useState<{ section: number; line: number } | null>(null);
+  const [editingLine, setEditingLine] = useState<{
+    section: number;
+    line: number;
+  } | null>(null);
+  const [editingTab, setEditingTab] = useState<{
+    section: number;
+    line: number;
+  } | null>(null);
   const chords = useMemo(() => chordList(doc), [doc]);
   const rhythmKeys = rhythms.map((rhythm) => rhythm.key);
 
   const lineItems = (section: number, line: number): Item[] => {
     const found = doc.sections[section]?.lines[line];
-    return found?.type === 'line' ? found.items : [];
+    return found?.type === "line" ? found.items : [];
   };
 
   const editMarks = (
@@ -103,7 +110,9 @@ export function VisualEditor({
     edit: (text: string, marks: Mark[]) => Mark[],
   ) => {
     const { text, marks } = splitLine(lineItems(section, line));
-    onChange(setLineItems(doc, section, line, joinLine(text, edit(text, marks))));
+    onChange(
+      setLineItems(doc, section, line, joinLine(text, edit(text, marks))),
+    );
   };
 
   // `playingSection`/`playingTab` are positional ids: inserting or removing a line or a
@@ -118,31 +127,38 @@ export function VisualEditor({
     if (!target || target.mark === null) {
       return null;
     }
-    return splitLine(lineItems(target.section, target.line)).marks[target.mark]?.item ?? null;
+    return (
+      splitLine(lineItems(target.section, target.line)).marks[target.mark]
+        ?.item ?? null
+    );
   })();
 
   const rhythmItems = [
-    { value: NO_RHYTHM, label: t('noRhythm') },
+    { value: NO_RHYTHM, label: t("noRhythm") },
     ...rhythmKeys.map((key) => ({ value: key, label: `@${key}` })),
   ];
 
   return (
     <div className="flex flex-col gap-5">
-      <p className="text-muted-foreground text-xs">{t('visualHint')}</p>
+      <p className="text-muted-foreground text-xs">{t("visualHint")}</p>
       {doc.sections.length === 0 && (
-        <p className="text-muted-foreground text-sm">{t('emptyVisual')}</p>
+        <p className="text-muted-foreground text-sm">{t("emptyVisual")}</p>
       )}
       {doc.sections.map((section, sectionIndex) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: sections are positional
         <section key={sectionIndex} className="flex flex-col gap-2">
           <div className="flex items-center gap-1">
             <Input
-              value={section.label ?? ''}
-              placeholder={t('sectionLabel')}
-              aria-label={t('sectionLabel')}
+              value={section.label ?? ""}
+              placeholder={t("sectionLabel")}
+              aria-label={t("sectionLabel")}
               className="h-8 max-w-48 border-transparent bg-transparent px-1 font-medium dark:bg-transparent"
               onChange={(event) =>
-                onChange(updateSection(doc, sectionIndex, { label: event.target.value || null }))
+                onChange(
+                  updateSection(doc, sectionIndex, {
+                    label: event.target.value || null,
+                  }),
+                )
               }
             />
             {section.label !== null && (
@@ -173,13 +189,15 @@ export function VisualEditor({
               <SectionTempo
                 value={section.tempo}
                 songBpm={songBpm}
-                onChange={(tempo) => onChange(updateSection(doc, sectionIndex, { tempo }))}
+                onChange={(tempo) =>
+                  onChange(updateSection(doc, sectionIndex, { tempo }))
+                }
               />
             )}
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label={t('playSection')}
+              aria-label={t("playSection")}
               onClick={() => onPlaySection(sectionIndex)}
             >
               {playingSection === sectionIndex ? <Square /> : <Play />}
@@ -188,7 +206,7 @@ export function VisualEditor({
               variant="ghost"
               size="icon-sm"
               className="ml-auto text-muted-foreground"
-              aria-label={t('removeSection')}
+              aria-label={t("removeSection")}
               onClick={() => reorder(removeSection(doc, sectionIndex))}
             >
               <Trash2 />
@@ -197,16 +215,17 @@ export function VisualEditor({
 
           {section.lines.map((line, lineIndex) => {
             const key = `${sectionIndex}:${lineIndex}`;
-            if (line.type === 'tab') {
+            if (line.type === "tab") {
               return <TabView key={key} lines={line.lines} />;
             }
-            if (line.type === 'alphatex') {
+            if (line.type === "alphatex") {
               return (
                 <div key={key} className="group flex items-start gap-1">
                   <TabStaff
                     block={line.block}
                     activeBeat={
-                      active?.section === sectionIndex && active.line === lineIndex
+                      active?.section === sectionIndex &&
+                      active.line === lineIndex
                         ? active.beat
                         : null
                     }
@@ -216,7 +235,7 @@ export function VisualEditor({
                     variant="ghost"
                     size="icon-xs"
                     className="text-muted-foreground"
-                    aria-label={t('playTab')}
+                    aria-label={t("playTab")}
                     onClick={() => onPlayTab(sectionIndex, lineIndex)}
                   >
                     {playingTab === key ? <Square /> : <Play />}
@@ -225,8 +244,10 @@ export function VisualEditor({
                     variant="ghost"
                     size="icon-xs"
                     className="text-muted-foreground"
-                    aria-label={t('editTab')}
-                    onClick={() => setEditingTab({ section: sectionIndex, line: lineIndex })}
+                    aria-label={t("editTab")}
+                    onClick={() =>
+                      setEditingTab({ section: sectionIndex, line: lineIndex })
+                    }
                   >
                     <Pencil />
                   </Button>
@@ -234,25 +255,36 @@ export function VisualEditor({
                     variant="ghost"
                     size="icon-xs"
                     className="text-muted-foreground"
-                    aria-label={t('removeLine')}
-                    onClick={() => reorder(removeLine(doc, sectionIndex, lineIndex))}
+                    aria-label={t("removeLine")}
+                    onClick={() =>
+                      reorder(removeLine(doc, sectionIndex, lineIndex))
+                    }
                   >
                     <Trash2 />
                   </Button>
                 </div>
               );
             }
-            const editing = editingLine?.section === sectionIndex && editingLine.line === lineIndex;
+            const editing =
+              editingLine?.section === sectionIndex &&
+              editingLine.line === lineIndex;
             return (
               <div key={key} className="group flex items-start gap-1">
                 <div className="min-w-0 flex-1">
                   {editing ? (
                     <LineTextInput
                       initial={splitLine(line.items).text}
-                      placeholder={t('lineTextPlaceholder')}
+                      placeholder={t("lineTextPlaceholder")}
                       onDone={(text) => {
                         const { marks } = splitLine(line.items);
-                        onChange(setLineItems(doc, sectionIndex, lineIndex, joinLine(text, marks)));
+                        onChange(
+                          setLineItems(
+                            doc,
+                            sectionIndex,
+                            lineIndex,
+                            joinLine(text, marks),
+                          ),
+                        );
                         setEditingLine(null);
                       }}
                     />
@@ -261,12 +293,19 @@ export function VisualEditor({
                       lineKey={key}
                       items={line.items}
                       activeItem={
-                        active?.section === sectionIndex && active.line === lineIndex
+                        active?.section === sectionIndex &&
+                        active.line === lineIndex
                           ? active.item
                           : null
                       }
                       onTap={(pos, mark, anchor) =>
-                        setTarget({ section: sectionIndex, line: lineIndex, pos, mark, anchor })
+                        setTarget({
+                          section: sectionIndex,
+                          line: lineIndex,
+                          pos,
+                          mark,
+                          anchor,
+                        })
                       }
                       onMove={(mark, pos) =>
                         editMarks(sectionIndex, lineIndex, (_, marks) =>
@@ -280,8 +319,10 @@ export function VisualEditor({
                   variant="ghost"
                   size="icon-xs"
                   className="text-muted-foreground"
-                  aria-label={t('editLine')}
-                  onClick={() => setEditingLine({ section: sectionIndex, line: lineIndex })}
+                  aria-label={t("editLine")}
+                  onClick={() =>
+                    setEditingLine({ section: sectionIndex, line: lineIndex })
+                  }
                 >
                   <Pencil />
                 </Button>
@@ -289,8 +330,10 @@ export function VisualEditor({
                   variant="ghost"
                   size="icon-xs"
                   className="text-muted-foreground"
-                  aria-label={t('removeLine')}
-                  onClick={() => reorder(removeLine(doc, sectionIndex, lineIndex))}
+                  aria-label={t("removeLine")}
+                  onClick={() =>
+                    reorder(removeLine(doc, sectionIndex, lineIndex))
+                  }
                 >
                   <Trash2 />
                 </Button>
@@ -305,12 +348,17 @@ export function VisualEditor({
               className="text-muted-foreground"
               onClick={() => {
                 const at = section.lines.length;
-                reorder(insertLine(doc, sectionIndex, at, { type: 'line', items: [] }));
+                reorder(
+                  insertLine(doc, sectionIndex, at, {
+                    type: "line",
+                    items: [],
+                  }),
+                );
                 setEditingLine({ section: sectionIndex, line: at });
               }}
             >
               <Plus />
-              {t('addLine')}
+              {t("addLine")}
             </Button>
             <Button
               variant="ghost"
@@ -323,7 +371,7 @@ export function VisualEditor({
               }}
             >
               <Plus />
-              {t('addTab')}
+              {t("addTab")}
             </Button>
           </div>
         </section>
@@ -333,14 +381,18 @@ export function VisualEditor({
         variant="outline"
         size="sm"
         className="self-start"
-        onClick={() => reorder(addSection(doc, t('defaultSection')))}
+        onClick={() => reorder(addSection(doc, t("defaultSection")))}
       >
         <Plus />
-        {t('addSection')}
+        {t("addSection")}
       </Button>
 
       <ChordPalette
-        key={target ? `${target.section}:${target.line}:${target.pos}:${target.mark}` : 'closed'}
+        key={
+          target
+            ? `${target.section}:${target.line}:${target.pos}:${target.mark}`
+            : "closed"
+        }
         anchor={target?.anchor ?? null}
         chords={chords}
         rhythmKeys={rhythmKeys}
@@ -378,14 +430,24 @@ export function VisualEditor({
           const line = editingTab
             ? doc.sections[editingTab.section]?.lines[editingTab.line]
             : undefined;
-          return line?.type === 'alphatex' ? line.source : null;
+          return line?.type === "alphatex" ? line.source : null;
         })()}
-        bpm={(editingTab ? doc.sections[editingTab.section]?.tempo : null) ?? songBpm}
+        bpm={
+          (editingTab ? doc.sections[editingTab.section]?.tempo : null) ??
+          songBpm
+        }
         sound={sound}
         player={player}
         onSave={(source) => {
           if (editingTab) {
-            onChange(setLine(doc, editingTab.section, editingTab.line, alphatexLine(source)));
+            onChange(
+              setLine(
+                doc,
+                editingTab.section,
+                editingTab.line,
+                alphatexLine(source),
+              ),
+            );
           }
           setEditingTab(null);
         }}
@@ -394,7 +456,11 @@ export function VisualEditor({
             ? doc.sections[editingTab.section]?.lines[editingTab.line]
             : undefined;
           // A block that was added and never written is dropped.
-          if (editingTab && line?.type === 'alphatex' && line.source.length === 0) {
+          if (
+            editingTab &&
+            line?.type === "alphatex" &&
+            line.source.length === 0
+          ) {
             reorder(removeLine(doc, editingTab.section, editingTab.line));
           }
           setEditingTab(null);
@@ -422,7 +488,7 @@ function LineTextInput({
       onChange={(event) => setText(event.target.value)}
       onBlur={() => onDone(text)}
       onKeyDown={(event) => {
-        if (event.key === 'Enter') {
+        if (event.key === "Enter") {
           event.preventDefault();
           onDone(text);
         }
@@ -450,13 +516,22 @@ function LineEditor({
 }) {
   const { text, marks } = splitLine(items);
   // Item index of each mark, to match the playback highlight.
-  const markItems = items.flatMap((item, index) => (item.type === 'text' ? [] : [index]));
-  const [drag, setDrag] = useState<{ mark: number; over: number | null } | null>(null);
-  const dragStart = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  const markItems = items.flatMap((item, index) =>
+    item.type === "text" ? [] : [index],
+  );
+  const [drag, setDrag] = useState<{
+    mark: number;
+    over: number | null;
+  } | null>(null);
+  const dragStart = useRef<{ x: number; y: number; moved: boolean } | null>(
+    null,
+  );
   const suppressClick = useRef(false);
 
   const positionAt = (x: number, y: number): number | null => {
-    const cell = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-pos]');
+    const cell = document
+      .elementFromPoint(x, y)
+      ?.closest<HTMLElement>("[data-pos]");
     return cell?.dataset.line === lineKey ? Number(cell.dataset.pos) : null;
   };
 
@@ -466,13 +541,18 @@ function LineEditor({
     <div className="flex flex-wrap items-end">
       {positions.map((pos) => {
         const char = text[pos];
-        const here = marks.flatMap((mark, index) => (mark.pos === pos ? [index] : []));
+        const here = marks.flatMap((mark, index) =>
+          mark.pos === pos ? [index] : [],
+        );
         return (
           <span
             key={pos}
             data-pos={pos}
             data-line={lineKey}
-            className={cn('inline-flex flex-col rounded-sm', drag?.over === pos && 'bg-primary/15')}
+            className={cn(
+              "inline-flex flex-col rounded-sm",
+              drag?.over === pos && "bg-primary/15",
+            )}
           >
             <span className="flex min-h-5 items-end gap-0.5">
               {here.map((index) => {
@@ -485,22 +565,32 @@ function LineEditor({
                     key={index}
                     type="button"
                     className={cn(
-                      'touch-none select-none rounded outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                      drag?.mark === index && 'opacity-40',
+                      "touch-none select-none rounded outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      drag?.mark === index && "opacity-40",
                     )}
                     onPointerDown={(event) => {
                       event.currentTarget.setPointerCapture(event.pointerId);
-                      dragStart.current = { x: event.clientX, y: event.clientY, moved: false };
+                      dragStart.current = {
+                        x: event.clientX,
+                        y: event.clientY,
+                        moved: false,
+                      };
                     }}
                     onPointerMove={(event) => {
                       const start = dragStart.current;
                       if (!start) {
                         return;
                       }
-                      const distance = Math.hypot(event.clientX - start.x, event.clientY - start.y);
+                      const distance = Math.hypot(
+                        event.clientX - start.x,
+                        event.clientY - start.y,
+                      );
                       if (start.moved || distance > DRAG_THRESHOLD_PX) {
                         start.moved = true;
-                        setDrag({ mark: index, over: positionAt(event.clientX, event.clientY) });
+                        setDrag({
+                          mark: index,
+                          over: positionAt(event.clientX, event.clientY),
+                        });
                       }
                     }}
                     onPointerUp={(event) => {
@@ -527,7 +617,10 @@ function LineEditor({
                       onTap(pos, index, event.currentTarget);
                     }}
                   >
-                    <MarkChip item={mark.item} active={activeItem === markItems[index]} />
+                    <MarkChip
+                      item={mark.item}
+                      active={activeItem === markItems[index]}
+                    />
                   </button>
                 );
               })}
@@ -536,11 +629,11 @@ function LineEditor({
               type="button"
               onClick={(event) => onTap(pos, null, event.currentTarget)}
               className={cn(
-                'whitespace-pre rounded-sm leading-6 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring',
-                char === undefined && 'min-w-4 text-muted-foreground/50',
+                "whitespace-pre rounded-sm leading-6 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
+                char === undefined && "min-w-4 text-muted-foreground/50",
               )}
             >
-              {char === undefined ? '+' : char === ' ' ? ' ' : char}
+              {char === undefined ? "+" : char === " " ? " " : char}
             </button>
           </span>
         );
@@ -559,8 +652,8 @@ function SectionTempo({
   songBpm: number;
   onChange: (tempo: number | null) => void;
 }) {
-  const t = useTranslations('editor');
-  const shown = value === null ? '' : String(value);
+  const t = useTranslations("editor");
+  const shown = value === null ? "" : String(value);
   const [text, setText] = useState(shown);
   useEffect(() => setText(shown), [shown]);
 
@@ -581,13 +674,13 @@ function SectionTempo({
       <Input
         type="number"
         inputMode="numeric"
-        aria-label={t('sectionTempo')}
+        aria-label={t("sectionTempo")}
         placeholder={String(songBpm)}
         value={text}
         onChange={(event) => setText(event.target.value)}
         onBlur={commit}
         onKeyDown={(event) => {
-          if (event.key === 'Enter') {
+          if (event.key === "Enter") {
             commit();
           }
         }}

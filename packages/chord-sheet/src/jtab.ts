@@ -10,8 +10,8 @@ function barNotes(bar: string): string[] | null {
   }
   const notes: string[] = [];
   for (let i = 0; i < tokens.length; i += 2) {
-    const string = STRING_RE.exec(tokens[i] ?? '')?.[1];
-    const fret = tokens[i + 1] ?? '';
+    const string = STRING_RE.exec(tokens[i] ?? "")?.[1];
+    const fret = tokens[i + 1] ?? "";
     if (!string || !FRET_RE.test(fret)) {
       return null;
     }
@@ -26,12 +26,12 @@ function barNotes(bar: string): string[] | null {
  */
 export function jtabToAlphaTex(source: string): string[] | null {
   const rows = source
-    .split('\n')
+    .split("\n")
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) =>
       line
-        .split('|')
+        .split("|")
         .map((bar) => bar.trim())
         .filter(Boolean)
         .map(barNotes),
@@ -47,6 +47,6 @@ export function jtabToAlphaTex(source: string): string[] | null {
   }
   return rows.map(
     (row, index) =>
-      `${index === 0 ? `:${count} ` : ''}${row.map((bar) => (bar ?? []).join(' ')).join(' | ')} |`,
+      `${index === 0 ? `:${count} ` : ""}${row.map((bar) => (bar ?? []).join(" ")).join(" | ")} |`,
   );
 }

@@ -1,20 +1,21 @@
-'use client';
+"use client";
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
+import { useEffect, useRef, useState } from "react";
 
-import { useToast } from '@/components/toast';
-import { useAuthSheet } from '@/features/auth/auth-sheet';
-import { useSession } from '@/features/auth/use-session';
-import { authToken } from '@/lib/api';
-import { tapHaptic } from '@/lib/haptics';
-import { type ArrangementView, useTRPC } from '@/lib/trpc';
-import { viewerKey } from '@/lib/viewer-key';
-import { isNetworkError, playRoute } from './play-route';
+import { useToast } from "@/components/toast";
+import { useAuthSheet } from "@/features/auth/auth-sheet";
+import { useSession } from "@/features/auth/use-session";
+import { authToken } from "@/lib/api";
+import { tapHaptic } from "@/lib/haptics";
+import { type ArrangementView, useTRPC } from "@/lib/trpc";
+import { viewerKey } from "@/lib/viewer-key";
 
-type Stats = ArrangementView['stats'];
-type Me = NonNullable<ArrangementView['me']>;
+import { isNetworkError, playRoute } from "./play-route";
+
+type Stats = ArrangementView["stats"];
+type Me = NonNullable<ArrangementView["me"]>;
 
 export type SongActionHooks = {
   onSaved?: (arrangement: ArrangementView) => void;
@@ -32,8 +33,11 @@ const EMPTY_ME: Me = { liked: false, saved: false, played: 0 };
  * Likes, saves and plays with optimistic counters: the number changes at once, a failed
  * request puts it back and shows a toast. Guests get the sign-in sheet instead.
  */
-export function useSongActions(arrangement: ArrangementView, hooks: SongActionHooks = {}) {
-  const t = useTranslations('song');
+export function useSongActions(
+  arrangement: ArrangementView,
+  hooks: SongActionHooks = {},
+) {
+  const t = useTranslations("song");
   const trpc = useTRPC();
   const session = useSession();
   const openAuth = useAuthSheet();
@@ -41,7 +45,7 @@ export function useSongActions(arrangement: ArrangementView, hooks: SongActionHo
   const queryClient = useQueryClient();
   const [stats, setStats] = useState<Stats>(arrangement.stats);
   const [me, setMe] = useState<Me>(arrangement.me ?? EMPTY_ME);
-  const [pending, setPending] = useState<'like' | 'save' | null>(null);
+  const [pending, setPending] = useState<"like" | "save" | null>(null);
   const signedIn = Boolean(session.data?.user);
   const online = hooks.online ?? true;
 
@@ -71,14 +75,16 @@ export function useSongActions(arrangement: ArrangementView, hooks: SongActionHo
 
   /** Keep the cached song page and library in step, so coming back doesn't undo an action. */
   const remember = (patch: { stats?: Partial<Stats>; me?: Partial<Me> }) => {
-    queryClient.setQueryData(trpc.arrangements.byId.queryKey({ id: arrangement.id }), (cached) =>
-      cached
-        ? {
-            ...cached,
-            stats: { ...cached.stats, ...patch.stats },
-            me: cached.me ? { ...cached.me, ...patch.me } : cached.me,
-          }
-        : cached,
+    queryClient.setQueryData(
+      trpc.arrangements.byId.queryKey({ id: arrangement.id }),
+      (cached) =>
+        cached
+          ? {
+              ...cached,
+              stats: { ...cached.stats, ...patch.stats },
+              me: cached.me ? { ...cached.me, ...patch.me } : cached.me,
+            }
+          : cached,
     );
     void queryClient.invalidateQueries(trpc.library.pathFilter());
   };
@@ -110,17 +116,25 @@ export function useSongActions(arrangement: ArrangementView, hooks: SongActionHo
     }
     const next = !me.liked;
     tapHaptic();
-    setPending('like');
+    setPending("like");
     setMe((current) => ({ ...current, liked: next }));
-    setStats((current) => ({ ...current, likes: current.likes + (next ? 1 : -1) }));
+    setStats((current) => ({
+      ...current,
+      likes: current.likes + (next ? 1 : -1),
+    }));
     try {
-      const result = await (next ? like : unlike).mutateAsync({ id: arrangement.id });
+      const result = await (next ? like : unlike).mutateAsync({
+        id: arrangement.id,
+      });
       setStats((current) => ({ ...current, likes: result.likes }));
       remember({ stats: { likes: result.likes }, me: { liked: next } });
     } catch {
       setMe((current) => ({ ...current, liked: !next }));
-      setStats((current) => ({ ...current, likes: current.likes + (next ? -1 : 1) }));
-      toast(t('actionFailed'), 'error');
+      setStats((current) => ({
+        ...current,
+        likes: current.likes + (next ? -1 : 1),
+      }));
+      toast(t("actionFailed"), "error");
     } finally {
       setPending(null);
     }
@@ -132,11 +146,16 @@ export function useSongActions(arrangement: ArrangementView, hooks: SongActionHo
     }
     const next = !me.saved;
     tapHaptic();
-    setPending('save');
+    setPending("save");
     setMe((current) => ({ ...current, saved: next }));
-    setStats((current) => ({ ...current, saves: current.saves + (next ? 1 : -1) }));
+    setStats((current) => ({
+      ...current,
+      saves: current.saves + (next ? 1 : -1),
+    }));
     try {
-      const result = await (next ? save : unsave).mutateAsync({ id: arrangement.id });
+      const result = await (next ? save : unsave).mutateAsync({
+        id: arrangement.id,
+      });
       setStats((current) => ({ ...current, saves: result.saves }));
       remember({ stats: { saves: result.saves }, me: { saved: next } });
       if (next) {
@@ -146,8 +165,11 @@ export function useSongActions(arrangement: ArrangementView, hooks: SongActionHo
       }
     } catch {
       setMe((current) => ({ ...current, saved: !next }));
-      setStats((current) => ({ ...current, saves: current.saves + (next ? -1 : 1) }));
-      toast(t('actionFailed'), 'error');
+      setStats((current) => ({
+        ...current,
+        saves: current.saves + (next ? -1 : 1),
+      }));
+      toast(t("actionFailed"), "error");
       return false;
     } finally {
       setPending(null);
@@ -163,22 +185,25 @@ export function useSongActions(arrangement: ArrangementView, hooks: SongActionHo
       hasToken: Boolean(authToken.get()),
       canQueue: Boolean(hooks.queuePlayed),
     });
-    if (route === 'skip') {
+    if (route === "skip") {
       return;
     }
-    if (route === 'auth') {
+    if (route === "auth") {
       openAuth();
       return;
     }
     setMe((current) => ({ ...current, played: current.played + times }));
-    if (route === 'queue') {
+    if (route === "queue") {
       await hooks.queuePlayed?.(arrangement.id, times);
       return;
     }
     try {
       const result = await played.mutateAsync({ id: arrangement.id, times });
       // Responses to quick taps can arrive out of order; the count only grows.
-      setMe((current) => ({ ...current, played: Math.max(current.played, result.played) }));
+      setMe((current) => ({
+        ...current,
+        played: Math.max(current.played, result.played),
+      }));
       remember({ me: { played: result.played } });
     } catch (error) {
       if (isNetworkError(error) && hooks.queuePlayed) {
@@ -186,9 +211,18 @@ export function useSongActions(arrangement: ArrangementView, hooks: SongActionHo
         return;
       }
       setMe((current) => ({ ...current, played: current.played - times }));
-      toast(t('actionFailed'), 'error');
+      toast(t("actionFailed"), "error");
     }
   };
 
-  return { stats, me, pending, signedIn, online, toggleLike, toggleSave, addPlayed };
+  return {
+    stats,
+    me,
+    pending,
+    signedIn,
+    online,
+    toggleLike,
+    toggleSave,
+    addPlayed,
+  };
 }

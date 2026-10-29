@@ -38,10 +38,12 @@
 ### Task 1: `identify()` and the chords-tab instrument
 
 **Files:**
+
 - Create: `apps/web/src/features/chords/identify.ts`
 - Create: `apps/web/src/features/chords/identify.test.ts`
 
 **Interfaces:**
+
 - Consumes: `nameChord`, `noteName`, `shapeMidis`, `isReentrant` (chord-sheet); `INSTRUMENTS`, `findTuning`, `type InstrumentId`, `type Tuning` (audio).
 - Produces:
   - `type Identified = { kind: 'empty' } | { kind: 'note'; notes: string[] } | { kind: 'interval'; notes: string[]; semitones: number } | { kind: 'chord'; notes: string[]; names: string[] } | { kind: 'unknown'; notes: string[] }`.
@@ -55,84 +57,89 @@
 ```ts
 /// <reference types="bun" />
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 
-import { chordInstrument, identify } from './identify';
+import { chordInstrument, identify } from "./identify";
 
 const GUITAR = [40, 45, 50, 55, 59, 64];
 const BASS = [28, 33, 38, 43];
 const UKULELE = [67, 60, 64, 69];
 
-describe('identify', () => {
-  test('nothing pressed', () => {
-    expect(identify([null, null, null, null, null, null], GUITAR)).toEqual({ kind: 'empty' });
+describe("identify", () => {
+  test("nothing pressed", () => {
+    expect(identify([null, null, null, null, null, null], GUITAR)).toEqual({
+      kind: "empty",
+    });
   });
 
-  test('one note, even on two strings', () => {
+  test("one note, even on two strings", () => {
     // B string 5th fret and the open high E are the same E4.
-    expect(identify([null, null, null, null, 5, 0], GUITAR)).toEqual({ kind: 'note', notes: ['E'] });
+    expect(identify([null, null, null, null, 5, 0], GUITAR)).toEqual({
+      kind: "note",
+      notes: ["E"],
+    });
   });
 
-  test('a fifth is a power chord, other pairs are intervals', () => {
+  test("a fifth is a power chord, other pairs are intervals", () => {
     expect(identify([0, 2, null, null], BASS)).toEqual({
-      kind: 'chord',
-      notes: ['E', 'B'],
-      names: ['E5'],
+      kind: "chord",
+      notes: ["E", "B"],
+      names: ["E5"],
     });
     // E2 (6th string open) and G3 (4th string open): a minor third above E.
     expect(identify([0, null, null, 0, null, null], GUITAR)).toEqual({
-      kind: 'interval',
-      notes: ['E', 'G'],
+      kind: "interval",
+      notes: ["E", "G"],
       semitones: 3,
     });
     expect(identify([0, 1, null, null, null, null], GUITAR)).toEqual({
-      kind: 'interval',
-      notes: ['E', 'Bb'],
+      kind: "interval",
+      notes: ["E", "Bb"],
       semitones: 6,
     });
   });
 
-  test('chords: up to three names, notes from the lowest up', () => {
+  test("chords: up to three names, notes from the lowest up", () => {
     const am = identify([null, 0, 2, 2, 1, 0], GUITAR);
-    expect(am.kind).toBe('chord');
-    if (am.kind === 'chord') {
-      expect(am.names[0]).toBe('Am');
+    expect(am.kind).toBe("chord");
+    if (am.kind === "chord") {
+      expect(am.names[0]).toBe("Am");
       expect(am.names.length).toBeLessThanOrEqual(3);
-      expect(am.notes).toEqual(['A', 'E', 'C']);
+      expect(am.notes).toEqual(["A", "E", "C"]);
     }
   });
 
-  test('ukulele is re-entrant: Am, and no slash chords', () => {
+  test("ukulele is re-entrant: Am, and no slash chords", () => {
     const am = identify([2, 0, 0, 0], UKULELE);
-    expect(am.kind).toBe('chord');
-    if (am.kind === 'chord') {
-      expect(am.names[0]).toBe('Am');
-      expect(am.names.some((name) => name.includes('/'))).toBe(false);
+    expect(am.kind).toBe("chord");
+    if (am.kind === "chord") {
+      expect(am.names[0]).toBe("Am");
+      expect(am.names.some((name) => name.includes("/"))).toBe(false);
     }
   });
 
-  test('three notes of no known chord still list their notes', () => {
+  test("three notes of no known chord still list their notes", () => {
     // E2, Bb2, Eb3.
     expect(identify([0, 1, 1, null, null, null], GUITAR)).toEqual({
-      kind: 'unknown',
-      notes: ['E', 'Bb', 'Eb'],
+      kind: "unknown",
+      notes: ["E", "Bb", "Eb"],
     });
   });
 
-  test('frets past the last string are ignored', () => {
+  test("frets past the last string are ignored", () => {
     const am = identify([2, 0, 0, 0, 5, 5], UKULELE);
-    expect(am.kind === 'chord' && am.names[0]).toBe('Am');
+    expect(am.kind === "chord" && am.names[0]).toBe("Am");
   });
 });
 
-describe('chordInstrument', () => {
-  test('tuner setting as a tuning with strings', () => {
-    expect(chordInstrument('ukulele', 'standard').strings).toEqual(UKULELE);
-    expect(chordInstrument('bass', 'drop-d').strings).toEqual([26, 33, 38, 43]);
+describe("chordInstrument", () => {
+  test("tuner setting as a tuning with strings", () => {
+    expect(chordInstrument("ukulele", "standard").strings).toEqual(UKULELE);
+    expect(chordInstrument("bass", "drop-d").strings).toEqual([26, 33, 38, 43]);
   });
 
-  test('chromatic has no strings: guitar standard', () => {
-    expect(chordInstrument('chromatic', 'chromatic').strings).toEqual(GUITAR);
+  test("chromatic has no strings: guitar standard", () => {
+    expect(chordInstrument("chromatic", "chromatic").strings).toEqual(GUITAR);
   });
 });
 ```
@@ -145,46 +152,73 @@ Expected: FAIL — module missing.
 - [ ] **Step 3: Write `identify.ts`**
 
 ```ts
-import { findTuning, type InstrumentId, type Tuning } from '@chordtune/audio';
-import { isReentrant, nameChord, noteName, shapeMidis } from '@chordtune/chord-sheet';
+import { findTuning, type InstrumentId, type Tuning } from "@chordtune/audio";
+import {
+  isReentrant,
+  nameChord,
+  noteName,
+  shapeMidis,
+} from "@chordtune/chord-sheet";
 
 const MAX_NAMES = 3;
 
 export type Identified =
-  | { kind: 'empty' }
-  | { kind: 'note'; notes: string[] }
-  | { kind: 'interval'; notes: string[]; semitones: number }
-  | { kind: 'chord'; notes: string[]; names: string[] }
-  | { kind: 'unknown'; notes: string[] };
+  | { kind: "empty" }
+  | { kind: "note"; notes: string[] }
+  | { kind: "interval"; notes: string[]; semitones: number }
+  | { kind: "chord"; notes: string[]; names: string[] }
+  | { kind: "unknown"; notes: string[] };
 
 /** What pressed frets make: a note, an interval, a chord (with alternatives) or nothing known. */
-export function identify(frets: readonly (number | null)[], strings: readonly number[]): Identified {
-  const midis = shapeMidis(frets.slice(0, strings.length), strings).sort((a, b) => a - b);
+export function identify(
+  frets: readonly (number | null)[],
+  strings: readonly number[],
+): Identified {
+  const midis = shapeMidis(frets.slice(0, strings.length), strings).sort(
+    (a, b) => a - b,
+  );
   if (midis.length === 0) {
-    return { kind: 'empty' };
+    return { kind: "empty" };
   }
   const notes = [...new Set(midis.map(noteName))];
   if (notes.length === 1) {
-    return { kind: 'note', notes };
+    return { kind: "note", notes };
   }
-  const names = nameChord(midis, { ignoreBass: isReentrant(strings) }).slice(0, MAX_NAMES);
+  const names = nameChord(midis, { ignoreBass: isReentrant(strings) }).slice(
+    0,
+    MAX_NAMES,
+  );
   if (names.length > 0) {
-    return { kind: 'chord', notes, names };
+    return { kind: "chord", notes, names };
   }
   if (notes.length === 2) {
     const lowest = midis[0] ?? 0;
     const other = midis.find((midi) => (midi - lowest) % 12 !== 0) ?? lowest;
-    return { kind: 'interval', notes, semitones: (((other - lowest) % 12) + 12) % 12 };
+    return {
+      kind: "interval",
+      notes,
+      semitones: (((other - lowest) % 12) + 12) % 12,
+    };
   }
-  return { kind: 'unknown', notes };
+  return { kind: "unknown", notes };
 }
 
-export const CHORD_INSTRUMENTS: readonly InstrumentId[] = ['guitar', 'bass', 'ukulele'];
+export const CHORD_INSTRUMENTS: readonly InstrumentId[] = [
+  "guitar",
+  "bass",
+  "ukulele",
+];
 
 /** The tuner's instrument and tuning, as strings to press; chromatic falls back to guitar. */
-export function chordInstrument(instrument: InstrumentId, tuningId: string): Tuning {
+export function chordInstrument(
+  instrument: InstrumentId,
+  tuningId: string,
+): Tuning {
   // An unknown tuning id falls back to the instrument's first tuning (guitar: standard).
-  return findTuning(CHORD_INSTRUMENTS.includes(instrument) ? instrument : 'guitar', tuningId);
+  return findTuning(
+    CHORD_INSTRUMENTS.includes(instrument) ? instrument : "guitar",
+    tuningId,
+  );
 }
 ```
 
@@ -206,6 +240,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ### Task 2: The «Аккорды» tab
 
 **Files:**
+
 - Create: `apps/web/src/app/[locale]/chords/page.tsx`
 - Create: `apps/web/src/features/chords/chords-screen.tsx`
 - Create: `apps/web/src/features/chords/chord-finder.tsx`
@@ -215,6 +250,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 - Modify: `apps/web/messages/ru.json`, `apps/web/messages/en.json`
 
 **Interfaces:**
+
 - Consumes: `identify`, `chordInstrument`, `CHORD_INSTRUMENTS` (Task 1); `useTunerSettings` (`@/features/tuner/settings`); `Fretboard`, `ChordDiagram` (stage A); `voicingsFor`, `strumShape` (audio); `NOTE_NAMES`, `CHORD_SUFFIXES`, `parseChord`, `isChord` (chord-sheet); `useStrumPlayer` (`@/features/rhythm/use-strum-player`).
 - Produces: `<ChordsScreen />`, `<ChordFinder strings player />`, `<ChordSearch strings player />`, `<InstrumentPicker instrument tuningId onChange />`.
 
@@ -281,21 +317,23 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 `apps/web/src/app/[locale]/chords/page.tsx`:
 
 ```tsx
-import type { Metadata } from 'next';
-import { getTranslations } from 'next-intl/server';
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 
-import { ChordsScreen } from '@/features/chords/chords-screen';
-import { resolveLocale } from '@/i18n/params';
+import { ChordsScreen } from "@/features/chords/chords-screen";
+import { resolveLocale } from "@/i18n/params";
 
 export async function generateMetadata({
   params,
-}: PageProps<'/[locale]/chords'>): Promise<Metadata> {
+}: PageProps<"/[locale]/chords">): Promise<Metadata> {
   const locale = await resolveLocale(params);
-  const t = await getTranslations({ locale, namespace: 'chords' });
-  return { title: t('pageTitle') };
+  const t = await getTranslations({ locale, namespace: "chords" });
+  return { title: t("pageTitle") };
 }
 
-export default async function ChordsPage({ params }: PageProps<'/[locale]/chords'>) {
+export default async function ChordsPage({
+  params,
+}: PageProps<"/[locale]/chords">) {
   await resolveLocale(params);
   return <ChordsScreen />;
 }
@@ -305,10 +343,10 @@ export default async function ChordsPage({ params }: PageProps<'/[locale]/chords
 
 ```ts
 const TABS = [
-  { href: '/', key: 'tuner', icon: AudioLines },
-  { href: '/songs', key: 'songs', icon: ListMusic },
-  { href: '/chords', key: 'chords', icon: Grid3x3 },
-  { href: '/library', key: 'library', icon: Bookmark },
+  { href: "/", key: "tuner", icon: AudioLines },
+  { href: "/songs", key: "songs", icon: ListMusic },
+  { href: "/chords", key: "chords", icon: Grid3x3 },
+  { href: "/library", key: "library", icon: Bookmark },
 ] as const;
 ```
 
@@ -317,10 +355,10 @@ and the mobile nav grid `grid-cols-3` becomes `grid-cols-4`.
 - [ ] **Step 3: `instrument-picker.tsx`**
 
 ```tsx
-'use client';
+"use client";
 
-import { getInstrument, type InstrumentId } from '@chordtune/audio';
-import { useTranslations } from 'next-intl';
+import { getInstrument, type InstrumentId } from "@chordtune/audio";
+import { useTranslations } from "next-intl";
 
 import {
   Select,
@@ -328,9 +366,10 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { CHORD_INSTRUMENTS } from './identify';
+} from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+
+import { CHORD_INSTRUMENTS } from "./identify";
 
 /** Guitar, bass or ukulele and its tuning — the same setting as the tuner's. */
 export function InstrumentPicker({
@@ -342,12 +381,15 @@ export function InstrumentPicker({
   tuningId: string;
   onChange: (patch: { instrument: InstrumentId; tuningId: string }) => void;
 }) {
-  const t = useTranslations('tuner');
+  const t = useTranslations("tuner");
   const tunings = getInstrument(instrument).tunings;
   const tuningLabel = (id: string) =>
     // keys are generated from the tuning catalogue, which the message files mirror
-    t(`tunings.${instrument}.${id}` as 'tunings.guitar.standard');
-  const items = tunings.map((tuning) => ({ value: tuning.id, label: tuningLabel(tuning.id) }));
+    t(`tunings.${instrument}.${id}` as "tunings.guitar.standard");
+  const items = tunings.map((tuning) => ({
+    value: tuning.id,
+    label: tuningLabel(tuning.id),
+  }));
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -358,7 +400,10 @@ export function InstrumentPicker({
         onValueChange={(value) => {
           const next = CHORD_INSTRUMENTS.find((id) => id === value[0]);
           if (next) {
-            onChange({ instrument: next, tuningId: getInstrument(next).tunings[0]?.id ?? 'standard' });
+            onChange({
+              instrument: next,
+              tuningId: getInstrument(next).tunings[0]?.id ?? "standard",
+            });
           }
         }}
       >
@@ -371,7 +416,9 @@ export function InstrumentPicker({
       <Select
         value={tuningId}
         items={items}
-        onValueChange={(value) => value && onChange({ instrument, tuningId: String(value) })}
+        onValueChange={(value) =>
+          value && onChange({ instrument, tuningId: String(value) })
+        }
       >
         <SelectTrigger className="h-9 min-w-36">
           <SelectValue />
@@ -392,17 +439,18 @@ export function InstrumentPicker({
 - [ ] **Step 4: `chord-finder.tsx` («Определить»)**
 
 ```tsx
-'use client';
+"use client";
 
-import { strumShape } from '@chordtune/audio';
-import { Eraser } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { strumShape } from "@chordtune/audio";
+import { Eraser } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
 
-import { Button } from '@/components/ui/button';
-import type { StrumPlayerControls } from '@/features/rhythm/use-strum-player';
-import { Fretboard } from './fretboard';
-import { identify } from './identify';
+import { Button } from "@/components/ui/button";
+import type { StrumPlayerControls } from "@/features/rhythm/use-strum-player";
+
+import { Fretboard } from "./fretboard";
+import { identify } from "./identify";
 
 /** Press notes on the neck; the chord they make, its alternatives and its notes appear beside. */
 export function ChordFinder({
@@ -412,37 +460,54 @@ export function ChordFinder({
   strings: readonly number[];
   player: StrumPlayerControls;
 }) {
-  const t = useTranslations('chords');
-  const [frets, setFrets] = useState<(number | null)[]>(() => strings.map(() => null));
+  const t = useTranslations("chords");
+  const [frets, setFrets] = useState<(number | null)[]>(() =>
+    strings.map(() => null),
+  );
   const result = identify(frets, strings);
-  const play = () => void player.play('finder', strumShape(frets, strings));
+  const play = () => void player.play("finder", strumShape(frets, strings));
 
   return (
     <div className="flex flex-col gap-6 md:flex-row md:items-start">
       <Fretboard strings={strings} frets={frets} onChange={setFrets} />
       <div className="flex min-w-0 flex-1 flex-col gap-3">
-        {result.kind === 'empty' && (
-          <p className="text-muted-foreground text-sm">{t('identifyHint')}</p>
+        {result.kind === "empty" && (
+          <p className="text-muted-foreground text-sm">{t("identifyHint")}</p>
         )}
-        {result.kind === 'note' && (
-          <button type="button" onClick={play} className="text-left font-bold font-display text-5xl text-chord">
+        {result.kind === "note" && (
+          <button
+            type="button"
+            onClick={play}
+            className="text-left font-bold font-display text-5xl text-chord"
+          >
             {result.notes[0]}
           </button>
         )}
-        {result.kind === 'interval' && (
-          <button type="button" onClick={play} className="text-left font-bold font-display text-3xl">
-            {t(`intervals.${result.semitones}` as 'intervals.1')}
+        {result.kind === "interval" && (
+          <button
+            type="button"
+            onClick={play}
+            className="text-left font-bold font-display text-3xl"
+          >
+            {t(`intervals.${result.semitones}` as "intervals.1")}
           </button>
         )}
-        {result.kind === 'chord' && (
+        {result.kind === "chord" && (
           <>
-            <button type="button" onClick={play} className="text-left font-bold font-display text-5xl text-chord">
+            <button
+              type="button"
+              onClick={play}
+              className="text-left font-bold font-display text-5xl text-chord"
+            >
               {result.names[0]}
             </button>
             {result.names.length > 1 && (
               <div className="flex flex-wrap gap-1.5">
                 {result.names.slice(1).map((name) => (
-                  <span key={name} className="rounded-full bg-surface-2 px-2.5 py-0.5 font-semibold text-sm">
+                  <span
+                    key={name}
+                    className="rounded-full bg-surface-2 px-2.5 py-0.5 font-semibold text-sm"
+                  >
                     {name}
                   </span>
                 ))}
@@ -450,18 +515,22 @@ export function ChordFinder({
             )}
           </>
         )}
-        {result.kind === 'unknown' && <p className="font-semibold text-lg">{t('unknown')}</p>}
-        {result.kind !== 'empty' && (
-          <p className="text-muted-foreground text-sm">{t('notes', { notes: result.notes.join(' ') })}</p>
+        {result.kind === "unknown" && (
+          <p className="font-semibold text-lg">{t("unknown")}</p>
+        )}
+        {result.kind !== "empty" && (
+          <p className="text-muted-foreground text-sm">
+            {t("notes", { notes: result.notes.join(" ") })}
+          </p>
         )}
         <Button
           variant="outline"
           className="self-start"
-          disabled={result.kind === 'empty'}
+          disabled={result.kind === "empty"}
           onClick={() => setFrets(strings.map(() => null))}
         >
           <Eraser />
-          {t('clear')}
+          {t("clear")}
         </Button>
       </div>
     </div>
@@ -472,17 +541,23 @@ export function ChordFinder({
 - [ ] **Step 5: `chord-search.tsx` («Найти»)**
 
 ```tsx
-'use client';
+"use client";
 
-import { strumShape, voicingsFor } from '@chordtune/audio';
-import { CHORD_SUFFIXES, isChord, NOTE_NAMES, parseChord } from '@chordtune/chord-sheet';
-import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { strumShape, voicingsFor } from "@chordtune/audio";
+import {
+  CHORD_SUFFIXES,
+  isChord,
+  NOTE_NAMES,
+  parseChord,
+} from "@chordtune/chord-sheet";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
 
-import { Input } from '@/components/ui/input';
-import type { StrumPlayerControls } from '@/features/rhythm/use-strum-player';
-import { cn } from '@/lib/utils';
-import { ChordDiagram } from './chord-diagram';
+import { Input } from "@/components/ui/input";
+import type { StrumPlayerControls } from "@/features/rhythm/use-strum-player";
+import { cn } from "@/lib/utils";
+
+import { ChordDiagram } from "./chord-diagram";
 
 const SEARCH_LIMIT = 12;
 
@@ -494,13 +569,15 @@ export function ChordSearch({
   strings: readonly number[];
   player: StrumPlayerControls;
 }) {
-  const t = useTranslations('chords');
-  const [query, setQuery] = useState('Am');
+  const t = useTranslations("chords");
+  const [query, setQuery] = useState("Am");
   const chord = query.trim();
   const parsed = parseChord(chord);
-  const root = parsed?.root ?? 'C';
-  const suffix = parsed?.suffix ?? '';
-  const shapes = isChord(chord) ? voicingsFor(chord, strings, { limit: SEARCH_LIMIT }) : [];
+  const root = parsed?.root ?? "C";
+  const suffix = parsed?.suffix ?? "";
+  const shapes = isChord(chord)
+    ? voicingsFor(chord, strings, { limit: SEARCH_LIMIT })
+    : [];
 
   const chip = (label: string, active: boolean, onClick: () => void) => (
     <button
@@ -509,8 +586,8 @@ export function ChordSearch({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        'rounded-full px-2.5 py-1 font-semibold text-sm ring-1 ring-border',
-        active && 'bg-chord text-background ring-chord',
+        "rounded-full px-2.5 py-1 font-semibold text-sm ring-1 ring-border",
+        active && "bg-chord text-background ring-chord",
       )}
     >
       {label}
@@ -521,8 +598,8 @@ export function ChordSearch({
     <div className="flex flex-col gap-4">
       <Input
         value={query}
-        aria-invalid={chord !== '' && !isChord(chord)}
-        placeholder={t('searchPlaceholder')}
+        aria-invalid={chord !== "" && !isChord(chord)}
+        placeholder={t("searchPlaceholder")}
         autoCapitalize="characters"
         autoCorrect="off"
         spellCheck={false}
@@ -530,29 +607,35 @@ export function ChordSearch({
         onChange={(event) => setQuery(event.target.value)}
       />
       <div className="flex flex-wrap gap-1.5">
-        {NOTE_NAMES.map((name) => chip(name, parsed?.root === name, () => setQuery(name + suffix)))}
+        {NOTE_NAMES.map((name) =>
+          chip(name, parsed?.root === name, () => setQuery(name + suffix)),
+        )}
       </div>
       <div className="flex flex-wrap gap-1.5">
         {CHORD_SUFFIXES.map((quality) =>
-          chip(root + quality, parsed !== null && suffix === quality, () => setQuery(root + quality)),
+          chip(root + quality, parsed !== null && suffix === quality, () =>
+            setQuery(root + quality),
+          ),
         )}
       </div>
-      {chord !== '' && !isChord(chord) ? (
-        <p className="text-muted-foreground text-sm">{t('notAChord')}</p>
+      {chord !== "" && !isChord(chord) ? (
+        <p className="text-muted-foreground text-sm">{t("notAChord")}</p>
       ) : shapes.length === 0 ? (
-        <p className="text-muted-foreground text-sm">{t('noShape')}</p>
+        <p className="text-muted-foreground text-sm">{t("noShape")}</p>
       ) : (
         <section className="flex flex-col gap-2">
           <h2 className="text-muted-foreground text-xs uppercase tracking-wide">
-            {t('shapesFor', { chord })}
+            {t("shapesFor", { chord })}
           </h2>
           <div className="flex flex-wrap gap-2">
             {shapes.map(({ frets }) => (
               <button
                 key={frets.join()}
                 type="button"
-                aria-label={t('play', { chord })}
-                onClick={() => void player.play('search', strumShape(frets, strings))}
+                aria-label={t("play", { chord })}
+                onClick={() =>
+                  void player.play("search", strumShape(frets, strings))
+                }
                 className="rounded-2xl border border-border bg-surface p-1.5"
               >
                 <ChordDiagram frets={frets} size="sm" />
@@ -569,50 +652,55 @@ export function ChordSearch({
 - [ ] **Step 6: `chords-screen.tsx`**
 
 ```tsx
-'use client';
+"use client";
 
-import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useTranslations } from "next-intl";
+import { useState } from "react";
 
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { useStrumPlayer } from '@/features/rhythm/use-strum-player';
-import { useTunerSettings } from '@/features/tuner/settings';
-import { ChordFinder } from './chord-finder';
-import { ChordSearch } from './chord-search';
-import { CHORD_INSTRUMENTS, chordInstrument } from './identify';
-import { InstrumentPicker } from './instrument-picker';
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useStrumPlayer } from "@/features/rhythm/use-strum-player";
+import { useTunerSettings } from "@/features/tuner/settings";
 
-type Mode = 'identify' | 'search';
+import { ChordFinder } from "./chord-finder";
+import { ChordSearch } from "./chord-search";
+import { CHORD_INSTRUMENTS, chordInstrument } from "./identify";
+import { InstrumentPicker } from "./instrument-picker";
+
+type Mode = "identify" | "search";
 
 /** The «Аккорды» tab: tell what chord the pressed notes are, or show every shape of a chord. */
 export function ChordsScreen() {
-  const t = useTranslations('chords');
+  const t = useTranslations("chords");
   const [settings, update] = useTunerSettings();
-  const [mode, setMode] = useState<Mode>('identify');
+  const [mode, setMode] = useState<Mode>("identify");
   const player = useStrumPlayer();
   const tuning = chordInstrument(settings.instrument, settings.tuningId);
-  const instrument = CHORD_INSTRUMENTS.includes(settings.instrument) ? settings.instrument : 'guitar';
+  const instrument = CHORD_INSTRUMENTS.includes(settings.instrument)
+    ? settings.instrument
+    : "guitar";
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pt-4 pb-28">
-      <h1 className="font-bold font-display text-3xl tracking-tight">{t('pageTitle')}</h1>
+      <h1 className="font-bold font-display text-3xl tracking-tight">
+        {t("pageTitle")}
+      </h1>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <ToggleGroup
           variant="outline"
           spacing={0}
           value={[mode]}
           onValueChange={(value) => {
-            if (value[0] === 'identify' || value[0] === 'search') {
+            if (value[0] === "identify" || value[0] === "search") {
               player.stop();
               setMode(value[0]);
             }
           }}
         >
           <ToggleGroupItem value="identify" className="px-4">
-            {t('identify')}
+            {t("identify")}
           </ToggleGroupItem>
           <ToggleGroupItem value="search" className="px-4">
-            {t('search')}
+            {t("search")}
           </ToggleGroupItem>
         </ToggleGroup>
         <InstrumentPicker
@@ -624,9 +712,13 @@ export function ChordsScreen() {
           }}
         />
       </div>
-      {mode === 'identify' ? (
+      {mode === "identify" ? (
         // A new tuning is a new neck: start with nothing pressed.
-        <ChordFinder key={`${tuning.instrument}:${tuning.id}`} strings={tuning.strings} player={player} />
+        <ChordFinder
+          key={`${tuning.instrument}:${tuning.id}`}
+          strings={tuning.strings}
+          player={player}
+        />
       ) : (
         <ChordSearch strings={tuning.strings} player={player} />
       )}

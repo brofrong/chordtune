@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   chordList,
@@ -6,30 +6,31 @@ import {
   fromChordsOverLyrics,
   type ImportedSong,
   type Rhythm,
-  type SongDoc,
   serialize,
+  type SongDoc,
   toChordsOverLyrics,
-  type Voicings,
   validate,
-} from '@chordtune/chord-sheet';
-import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+  type Voicings,
+} from "@chordtune/chord-sheet";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo, useState } from "react";
 
-import { EditorChords } from '@/features/chords/editor-chords';
-import { VoicingSheet } from '@/features/chords/voicing-sheet';
+import { EditorChords } from "@/features/chords/editor-chords";
+import { VoicingSheet } from "@/features/chords/voicing-sheet";
 import {
   beatAt,
   playingAt,
-  type SongSound,
   sectionPlayback,
+  type SongSound,
   tabPlayback,
-} from '@/features/rhythm/playback';
-import type { StrumPlayerControls } from '@/features/rhythm/use-strum-player';
-import { EditorDock } from './editor-dock';
-import { TextEditor } from './text-editor';
-import { type ActiveChord, VisualEditor } from './visual-editor';
+} from "@/features/rhythm/playback";
+import type { StrumPlayerControls } from "@/features/rhythm/use-strum-player";
 
-export type EditorMode = 'visual' | 'text' | 'check';
+import { EditorDock } from "./editor-dock";
+import { TextEditor } from "./text-editor";
+import { type ActiveChord, VisualEditor } from "./visual-editor";
+
+export type EditorMode = "visual" | "text" | "check";
 type Mode = EditorMode;
 
 const UNKNOWN_RHYTHM_RE = /^Unknown rhythm: (\w)$/;
@@ -67,26 +68,32 @@ export function ChordEditor({
   preview: React.ReactNode;
   onVoicingsChange: (voicings: Voicings) => void;
 }) {
-  const t = useTranslations('editor');
+  const t = useTranslations("editor");
   // An empty song starts as text: typing is the quickest way in.
-  const [mode, setMode] = useState<Mode>(() => (serialize(doc).trim() ? 'visual' : 'text'));
+  const [mode, setMode] = useState<Mode>(() =>
+    serialize(doc).trim() ? "visual" : "text",
+  );
   const [text, setText] = useState(() => toChordsOverLyrics(doc));
   const [errors, setErrors] = useState<Diagnostic[]>([]);
   const [blocked, setBlocked] = useState(false);
   const [voicingChord, setVoicingChord] = useState<string | null>(null);
   const chords = useMemo(() => chordList(doc), [doc]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: only an outside replacement resets the text
+  // Only reset when doc is replaced from outside, tracked via docVersion to avoid re-running on every doc mutation
   useEffect(() => {
     setText(toChordsOverLyrics(doc));
     setErrors([]);
-  }, [docVersion]);
+  }, [doc, docVersion]);
 
   const changeText = (value: string) => {
     setText(value);
     setBlocked(false);
     const parsed = fromChordsOverLyrics(value);
-    setErrors(parsed.diagnostics.filter((diagnostic) => diagnostic.severity === 'error'));
+    setErrors(
+      parsed.diagnostics.filter(
+        (diagnostic) => diagnostic.severity === "error",
+      ),
+    );
     onDocChange(parsed.doc);
   };
 
@@ -94,11 +101,11 @@ export function ChordEditor({
     if (next === mode) {
       return;
     }
-    if (next !== 'text' && errors.length > 0) {
+    if (next !== "text" && errors.length > 0) {
       setBlocked(true);
       return;
     }
-    if (next === 'text') {
+    if (next === "text") {
       setText(toChordsOverLyrics(doc));
     }
     player.stop();
@@ -106,7 +113,7 @@ export function ChordEditor({
   };
 
   const options = { bpm, ...sound };
-  const playingId = player.playing ?? '';
+  const playingId = player.playing ?? "";
   const sectionMatch = /^section:(\d+)$/.exec(playingId);
   const tabMatch = /^tab:(\d+:\d+)$/.exec(playingId);
   const playingSection = sectionMatch ? Number(sectionMatch[1]) : null;
@@ -114,16 +121,22 @@ export function ChordEditor({
 
   const tabAt = (section: number, line: number) => {
     const found = doc.sections[section]?.lines[line];
-    return found?.type === 'alphatex'
-      ? tabPlayback(found.block, { ...options, bpm: doc.sections[section]?.tempo ?? bpm })
+    return found?.type === "alphatex"
+      ? tabPlayback(found.block, {
+          ...options,
+          bpm: doc.sections[section]?.tempo ?? bpm,
+        })
       : null;
   };
 
   let active: ActiveChord = null;
   if (playingSection !== null) {
-    active = playingAt(sectionPlayback(doc, rhythms, playingSection, options), player.position);
+    active = playingAt(
+      sectionPlayback(doc, rhythms, playingSection, options),
+      player.position,
+    );
   } else if (playingTab) {
-    const [section = 0, line = 0] = playingTab.split(':').map(Number);
+    const [section = 0, line = 0] = playingTab.split(":").map(Number);
     const playback = tabAt(section, line);
     active = playback
       ? { section, line, item: null, beat: beatAt(playback, player.position) }
@@ -134,13 +147,17 @@ export function ChordEditor({
 
   return (
     <section className="flex flex-col gap-3">
-      {mode === 'check' ? (
+      {mode === "check" ? (
         preview
-      ) : mode === 'text' ? (
+      ) : mode === "text" ? (
         <TextEditor text={text} onTextChange={changeText} onImport={onImport} />
       ) : (
         <>
-          <EditorChords chords={chords} sound={sound} onEdit={setVoicingChord} />
+          <EditorChords
+            chords={chords}
+            sound={sound}
+            onEdit={setVoicingChord}
+          />
           <VisualEditor
             doc={doc}
             onChange={onDocChange}
@@ -181,14 +198,14 @@ export function ChordEditor({
 
       {(errors.length > 0 || missing.length > 0 || blocked) && (
         <ul className="flex flex-col gap-1 text-destructive text-sm">
-          {blocked && <li>{t('switchBlocked')}</li>}
+          {blocked && <li>{t("switchBlocked")}</li>}
           {errors.map((error) => (
             <li key={`${error.line}:${error.col}:${error.message}`}>
-              {t('lineError', { line: error.line, message: error.message })}
+              {t("lineError", { line: error.line, message: error.message })}
             </li>
           ))}
           {missing.map((key) => (
-            <li key={key}>{t('unknownRhythm', { key })}</li>
+            <li key={key}>{t("unknownRhythm", { key })}</li>
           ))}
         </ul>
       )}

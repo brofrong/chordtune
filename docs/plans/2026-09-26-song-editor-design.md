@@ -54,12 +54,16 @@
 type Rhythm = {
   key: string; // 'A'
   name: string;
-  kind: 'strum' | 'pick';
-  time: '4/4' | '3/4' | '6/8';
+  kind: "strum" | "pick";
+  time: "4/4" | "3/4" | "6/8";
   grid: 8 | 16 | 6 | 12;
   steps: Step[];
 };
-type Step = { strum?: 'D' | 'U' | 'd' | 'u' | 'x'; strings?: ('B' | "B'" | 1 | 2 | 3 | 4 | 5 | 6)[]; accent?: boolean } | null;
+type Step = {
+  strum?: "D" | "U" | "d" | "u" | "x";
+  strings?: ("B" | "B'" | 1 | 2 | 3 | 4 | 5 | 6)[];
+  accent?: boolean;
+} | null;
 ```
 
 API пакета (без зависимостей):
@@ -96,7 +100,7 @@ API пакета (без зависимостей):
 
 - Индекс `artists`: name, nameTranslit, songCount.
 - Индекс `arrangements`: `searchableAttributes: [artist, artistTranslit, title,
-  titleTranslit, lyrics]` (порядок = вес, текст песни — слабейший),
+titleTranslit, lyrics]` (порядок = вес, текст песни — слабейший),
   `filterableAttributes: [artistId, chords]`.
 - Транслит латиница ↔ кириллица, чтобы «лумен» находил LUMEN.
 - Синхронизация: после коммита API пишет документ в Meili; ошибка логируется и не ломает
@@ -109,7 +113,7 @@ tRPC:
 - `songs.searchByArtist({ artistId, q })`.
 - `search.query({ q })` — общий поиск на странице «Песни».
 - `arrangements.create({ artist: {id}|{name}, song: {id}|{title}, content, rhythms, capo,
-  tempo, key })` — protected, недостающие artist/song создаются в той же транзакции.
+tempo, key })` — protected, недостающие artist/song создаются в той же транзакции.
 - `arrangements.update`, `arrangements.byId` (правит только автор), `songs.list`.
 
 Авторизация: минимальный sheet «Войти / Регистрация» (email + пароль, Better Auth).

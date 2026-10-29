@@ -1,16 +1,19 @@
-import type { BetterAuthPlugin } from 'better-auth';
-import { createAuthMiddleware } from 'better-auth/api';
-import { parseSetCookieHeader, setRequestCookie } from 'better-auth/cookies';
+import type { BetterAuthPlugin } from "better-auth";
+import { createAuthMiddleware } from "better-auth/api";
+import { parseSetCookieHeader, setRequestCookie } from "better-auth/cookies";
 
 /** The `@better-auth/passkey` default name for `advanced.webAuthnChallengeCookie`. */
-const CHALLENGE_COOKIE = 'better-auth-passkey';
-const HEADER = 'x-passkey-challenge';
+const CHALLENGE_COOKIE = "better-auth-passkey";
+const HEADER = "x-passkey-challenge";
 
 const GENERATE_PATHS = new Set([
-  '/passkey/generate-register-options',
-  '/passkey/generate-authenticate-options',
+  "/passkey/generate-register-options",
+  "/passkey/generate-authenticate-options",
 ]);
-const VERIFY_SUFFIXES = ['/passkey/verify-registration', '/passkey/verify-authentication'];
+const VERIFY_SUFFIXES = [
+  "/passkey/verify-registration",
+  "/passkey/verify-authentication",
+];
 
 /** The slice of `Auth` that `relayPasskeyChallenge` needs — just enough to compute the cookie name. */
 type AuthWithContext = {
@@ -31,32 +34,40 @@ type AuthWithContext = {
  */
 export function passkeyChallengeHeader(): BetterAuthPlugin {
   return {
-    id: 'passkey-challenge-header',
+    id: "passkey-challenge-header",
     hooks: {
       after: [
         {
-          matcher: (context) => GENERATE_PATHS.has(context.path ?? ''),
+          matcher: (context) => GENERATE_PATHS.has(context.path ?? ""),
           handler: createAuthMiddleware(async (ctx) => {
-            const setCookie = ctx.context.responseHeaders?.get('set-cookie');
+            const setCookie = ctx.context.responseHeaders?.get("set-cookie");
             if (!setCookie) {
               return;
             }
-            const cookieName = ctx.context.createAuthCookie(CHALLENGE_COOKIE).name;
-            const challengeCookie = parseSetCookieHeader(setCookie).get(cookieName);
+            const cookieName =
+              ctx.context.createAuthCookie(CHALLENGE_COOKIE).name;
+            const challengeCookie =
+              parseSetCookieHeader(setCookie).get(cookieName);
             if (!challengeCookie?.value) {
               return;
             }
             ctx.setHeader(HEADER, challengeCookie.value);
             // CORS only exposes headers listed here, same as `bearer()` does for its own header.
-            const exposed = ctx.context.responseHeaders?.get('access-control-expose-headers') || '';
+            const exposed =
+              ctx.context.responseHeaders?.get(
+                "access-control-expose-headers",
+              ) || "";
             const names = new Set(
               exposed
-                .split(',')
+                .split(",")
                 .map((name) => name.trim())
                 .filter(Boolean),
             );
             names.add(HEADER);
-            ctx.setHeader('Access-Control-Expose-Headers', Array.from(names).join(', '));
+            ctx.setHeader(
+              "Access-Control-Expose-Headers",
+              Array.from(names).join(", "),
+            );
           }),
         },
       ],
@@ -80,7 +91,10 @@ export function passkeyChallengeHeader(): BetterAuthPlugin {
  * Rewriting the request itself, before any hook runs, means every hook — including `bearer()`'s —
  * sees the challenge cookie as if it had always been part of the request.
  */
-export async function relayPasskeyChallenge(auth: AuthWithContext, request: Request) {
+export async function relayPasskeyChallenge(
+  auth: AuthWithContext,
+  request: Request,
+) {
   const { pathname } = new URL(request.url);
   if (!VERIFY_SUFFIXES.some((suffix) => pathname.endsWith(suffix))) {
     return request;

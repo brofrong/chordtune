@@ -37,6 +37,7 @@
 ### Task 1: Tab model and alphaTex parser
 
 **Files:**
+
 - Create: `packages/chord-sheet/src/tempo.ts`
 - Create: `packages/chord-sheet/src/tab.ts`
 - Create: `packages/chord-sheet/src/alphatex.ts`
@@ -44,6 +45,7 @@
 - Modify: `packages/chord-sheet/src/index.ts`
 
 **Interfaces:**
+
 - Produces:
   - `MIN_TEMPO`, `MAX_TEMPO`, `isTempo(value: number): boolean` (`tempo.ts`)
   - types `TabDuration`, `NoteEffects`, `TabNote`, `TabBeat`, `TabBar`, `TabBlock`, `TabBeatTime` (`tab.ts`)
@@ -56,45 +58,62 @@
 `packages/chord-sheet/src/alphatex.test.ts`:
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 
-import { parseAlphaTex } from './alphatex';
-import { tabBeats, tabQuarters } from './tab';
+import { parseAlphaTex } from "./alphatex";
+import { tabBeats, tabQuarters } from "./tab";
 
 const parseTex = (source: string, firstLineNo = 1) =>
-  parseAlphaTex(source.split('\n'), firstLineNo);
+  parseAlphaTex(source.split("\n"), firstLineNo);
 
 const frets = (source: string) =>
   parseTex(source).block.bars.map((bar) =>
-    bar.beats.map((beat) => beat.notes.map((n) => `${n.fret}.${n.string}`).join('+') || 'r'),
+    bar.beats.map(
+      (beat) => beat.notes.map((n) => `${n.fret}.${n.string}`).join("+") || "r",
+    ),
   );
 
 const RIFF = [
-  ':8 0.5 5.3 8.2 0.5 5.3 5.2 0.5 5.3 | 6.2 0.5 5.3 5.2 0.5 5.3 5.2 5.3 | 5.4 5.3 8.2 5.4 5.3 5.2 5.4 5.3 | 6.2 5.4 5.3 5.2 5.4 5.3 5.2 5.3 |',
-  '',
-  '3.4 5.3 3.1 3.4 5.3 5.2 3.4 5.3 | 6.2 3.4 5.3 5.2 3.4 5.3 5.2 5.3 | 5.5 7.4 0.3 5.5 7.4 0.3 5.5 7.4 | 5.5 7.4 0.3 5.5 7.4 0.3 5.5 7.4 |',
-].join('\n');
+  ":8 0.5 5.3 8.2 0.5 5.3 5.2 0.5 5.3 | 6.2 0.5 5.3 5.2 0.5 5.3 5.2 5.3 | 5.4 5.3 8.2 5.4 5.3 5.2 5.4 5.3 | 6.2 5.4 5.3 5.2 5.4 5.3 5.2 5.3 |",
+  "",
+  "3.4 5.3 3.1 3.4 5.3 5.2 3.4 5.3 | 6.2 3.4 5.3 5.2 3.4 5.3 5.2 5.3 | 5.5 7.4 0.3 5.5 7.4 0.3 5.5 7.4 | 5.5 7.4 0.3 5.5 7.4 0.3 5.5 7.4 |",
+].join("\n");
 
-describe('parseAlphaTex', () => {
-  test('the riff: eighth notes, eight full bars, blank lines and a trailing bar line', () => {
+describe("parseAlphaTex", () => {
+  test("the riff: eighth notes, eight full bars, blank lines and a trailing bar line", () => {
     const { block, diagnostics } = parseTex(RIFF);
     expect(diagnostics).toEqual([]);
     expect(block.time).toEqual([4, 4]);
     expect(block.tempo).toBeNull();
     expect(block.bars).toHaveLength(8);
-    expect(frets(RIFF)[0]).toEqual(['0.5', '5.3', '8.2', '0.5', '5.3', '5.2', '0.5', '5.3']);
-    expect(block.bars.every((bar) => bar.beats.every((b) => b.duration === 8))).toBe(true);
+    expect(frets(RIFF)[0]).toEqual([
+      "0.5",
+      "5.3",
+      "8.2",
+      "0.5",
+      "5.3",
+      "5.2",
+      "0.5",
+      "5.3",
+    ]);
+    expect(
+      block.bars.every((bar) => bar.beats.every((b) => b.duration === 8)),
+    ).toBe(true);
     expect(block.playOrder).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
     expect(tabQuarters(block)).toBe(32);
   });
 
-  test('.N is for one beat, :N for all that follow; the default is a quarter', () => {
-    const { block } = parseTex('0.6 8.2.16 5.3 :8 5.2 r');
-    expect(block.bars[0]?.beats.map((b) => b.duration)).toEqual([4, 16, 4, 8, 8]);
+  test(".N is for one beat, :N for all that follow; the default is a quarter", () => {
+    const { block } = parseTex("0.6 8.2.16 5.3 :8 5.2 r");
+    expect(block.bars[0]?.beats.map((b) => b.duration)).toEqual([
+      4, 16, 4, 8, 8,
+    ]);
   });
 
-  test('dots and triplets change the length; a short bar is a warning', () => {
-    const { block, diagnostics } = parseTex('0.6{d} :8 1.6{tu 3} 2.6{tu 3} 3.6{tu 3} 0.6');
+  test("dots and triplets change the length; a short bar is a warning", () => {
+    const { block, diagnostics } = parseTex(
+      "0.6{d} :8 1.6{tu 3} 2.6{tu 3} 3.6{tu 3} 0.6",
+    );
     const beats = block.bars[0]?.beats ?? [];
     expect(beats.map((b) => b.quarters)).toEqual(
       [1.5, 1 / 3, 1 / 3, 1 / 3, 0.5].map((q) => expect.closeTo(q, 9)),
@@ -102,12 +121,17 @@ describe('parseAlphaTex', () => {
     expect(beats[0]?.dotted).toBe(true);
     expect(beats[1]?.tuplet).toBe(3);
     expect(diagnostics).toEqual([
-      { line: 1, col: 1, severity: 'warning', message: 'Bar 1: 3 of 4 quarter notes' },
+      {
+        line: 1,
+        col: 1,
+        severity: "warning",
+        message: "Bar 1: 3 of 4 quarter notes",
+      },
     ]);
   });
 
-  test('chords, rests, dead notes and ties', () => {
-    const { block, diagnostics } = parseTex('(0.5 2.4).2 3.3 -.3 | x.6 r.2 r');
+  test("chords, rests, dead notes and ties", () => {
+    const { block, diagnostics } = parseTex("(0.5 2.4).2 3.3 -.3 | x.6 r.2 r");
     expect(diagnostics).toEqual([]);
     const [chord, note, tie] = block.bars[0]?.beats ?? [];
     expect(chord?.notes.map((n) => [n.fret, n.string])).toEqual([
@@ -118,13 +142,13 @@ describe('parseAlphaTex', () => {
     expect(note?.notes[0]?.tie).toBe(false);
     expect(tie?.notes[0]).toMatchObject({ fret: 3, string: 3, tie: true });
     const [dead, half, quarter] = block.bars[1]?.beats ?? [];
-    expect(dead?.notes[0]?.fret).toBe('x');
+    expect(dead?.notes[0]?.fret).toBe("x");
     expect(half?.notes).toEqual([]);
     expect(half?.duration).toBe(2);
     expect(quarter?.duration).toBe(4);
   });
 
-  test('effects on notes and beats', () => {
+  test("effects on notes and beats", () => {
     const { block, diagnostics } = parseTex(
       '3.3{h} 5.3 7.2{sl} 9.2 | 7.3{b (0 4) v} 0.6{pm} 0.6{pm lr} (0.5{h} 2.4).4{txt "тише"}',
     );
@@ -136,105 +160,132 @@ describe('parseAlphaTex', () => {
     expect(bend?.notes[0]?.effects).toEqual({ bend: [0, 4], vibrato: true });
     expect(pm?.palmMute).toBe(true);
     expect(pmLr).toMatchObject({ palmMute: true, letRing: true });
-    expect(chord?.text).toBe('тише');
+    expect(chord?.text).toBe("тише");
     expect(chord?.notes[0]?.effects).toEqual({ hammer: true });
     expect(chord?.notes[1]?.effects).toEqual({});
   });
 
-  test('lyrics go to beats that start a note; _ skips one', () => {
+  test("lyrics go to beats that start a note; _ skips one", () => {
     const { block, diagnostics } = parseTex(
       '\\lyrics "Я за-бу-ду _ мя"\n:8 0.6 r 2.6 3.6 -.6 5.6 7.6 8.6',
     );
     expect(diagnostics).toEqual([]);
     expect(block.bars[0]?.beats.map((b) => b.syllable)).toEqual([
-      'Я',
+      "Я",
       null,
-      'за-',
-      'бу-',
+      "за-",
+      "бу-",
       null,
-      'ду',
+      "ду",
       null,
-      'мя',
+      "мя",
     ]);
   });
 
-  test('lyrics left over are a warning', () => {
+  test("lyrics left over are a warning", () => {
     const { diagnostics } = parseTex('\\lyrics "раз два три"\n0.6 0.6 r r');
     expect(diagnostics).toEqual([
-      { line: 1, col: 9, severity: 'warning', message: 'Syllables without notes: 1' },
+      {
+        line: 1,
+        col: 9,
+        severity: "warning",
+        message: "Syllables without notes: 1",
+      },
     ]);
   });
 
-  test('tempo and time signature', () => {
-    const { block, diagnostics } = parseTex('\\tempo 140\n\\ts 3 4\n0.6 0.6 0.6');
+  test("tempo and time signature", () => {
+    const { block, diagnostics } = parseTex(
+      "\\tempo 140\n\\ts 3 4\n0.6 0.6 0.6",
+    );
     expect(diagnostics).toEqual([]);
     expect(block.tempo).toBe(140);
     expect(block.time).toEqual([3, 4]);
   });
 
-  test('a tempo out of range is ignored', () => {
-    const { block, diagnostics } = parseTex('\\tempo 500\n0.6.1');
+  test("a tempo out of range is ignored", () => {
+    const { block, diagnostics } = parseTex("\\tempo 500\n0.6.1");
     expect(block.tempo).toBeNull();
     expect(diagnostics).toEqual([
-      { line: 1, col: 1, severity: 'warning', message: 'Tempo must be 30–300: 500' },
+      {
+        line: 1,
+        col: 1,
+        severity: "warning",
+        message: "Tempo must be 30–300: 500",
+      },
     ]);
   });
 
-  test('repeats unroll into the play order', () => {
-    const { block, diagnostics } = parseTex('\\ro 0.6.1 | \\rc 3 2.6.1 | 3.6.1');
+  test("repeats unroll into the play order", () => {
+    const { block, diagnostics } = parseTex(
+      "\\ro 0.6.1 | \\rc 3 2.6.1 | 3.6.1",
+    );
     expect(diagnostics).toEqual([]);
     expect(block.bars[0]?.repeatOpen).toBe(true);
     expect(block.bars[1]?.repeatClose).toBe(3);
     expect(block.playOrder).toEqual([0, 1, 0, 1, 0, 1, 2]);
   });
 
-  test('nested repeats are an error', () => {
-    const { diagnostics } = parseTex('\\ro 0.6.1 | \\ro 2.6.1');
+  test("nested repeats are an error", () => {
+    const { diagnostics } = parseTex("\\ro 0.6.1 | \\ro 2.6.1");
     expect(diagnostics).toContainEqual({
       line: 1,
       col: 13,
-      severity: 'error',
-      message: 'Nested repeats are not supported',
+      severity: "error",
+      message: "Nested repeats are not supported",
     });
   });
 
-  test('problems point at the song line and column', () => {
-    const { diagnostics } = parseAlphaTex(['0.6 0.6 0.6 0.6 |', '9.7 abc 0.6 {zz} 0.6'], 10);
+  test("problems point at the song line and column", () => {
+    const { diagnostics } = parseAlphaTex(
+      ["0.6 0.6 0.6 0.6 |", "9.7 abc 0.6 {zz} 0.6"],
+      10,
+    );
     expect(diagnostics).toEqual([
-      { line: 11, col: 1, severity: 'error', message: 'String must be 1–6: 9.7' },
-      { line: 11, col: 5, severity: 'error', message: 'Not a note: abc' },
-      { line: 11, col: 14, severity: 'warning', message: 'Unknown effect: zz' },
-      { line: 11, col: 9, severity: 'warning', message: 'Bar 2: 2 of 4 quarter notes' },
+      {
+        line: 11,
+        col: 1,
+        severity: "error",
+        message: "String must be 1–6: 9.7",
+      },
+      { line: 11, col: 5, severity: "error", message: "Not a note: abc" },
+      { line: 11, col: 14, severity: "warning", message: "Unknown effect: zz" },
+      {
+        line: 11,
+        col: 9,
+        severity: "warning",
+        message: "Bar 2: 2 of 4 quarter notes",
+      },
     ]);
   });
 
-  test('never throws', () => {
+  test("never throws", () => {
     for (const source of [
-      '',
-      '(',
-      '{',
+      "",
+      "(",
+      "{",
       '"',
-      '\\',
-      ':',
-      '|',
-      '-.1',
-      '0.1{b (',
-      '(0.1',
-      '\\rc',
-      '0.1.3',
-      ':0',
-      '0.1{txt}',
-      '()',
-      '\\lyrics',
+      "\\",
+      ":",
+      "|",
+      "-.1",
+      "0.1{b (",
+      "(0.1",
+      "\\rc",
+      "0.1.3",
+      ":0",
+      "0.1{txt}",
+      "()",
+      "\\lyrics",
     ]) {
       expect(() => parseTex(source)).not.toThrow();
     }
   });
 });
 
-describe('tabBeats', () => {
-  test('beats in play order with their start in quarter notes', () => {
-    const { block } = parseTex('\\ts 1 4\n\\ro :8 0.6 2.6 \\rc 2');
+describe("tabBeats", () => {
+  test("beats in play order with their start in quarter notes", () => {
+    const { block } = parseTex("\\ts 1 4\n\\ro :8 0.6 2.6 \\rc 2");
     expect(tabBeats(block)).toEqual([
       { bar: 0, beat: 0, start: 0, quarters: 0.5 },
       { bar: 0, beat: 1, start: 0.5, quarters: 0.5 },
@@ -244,8 +295,8 @@ describe('tabBeats', () => {
     expect(tabQuarters(block)).toBe(2);
   });
 
-  test('an empty block has no bars and no length', () => {
-    const { block, diagnostics } = parseTex('');
+  test("an empty block has no bars and no length", () => {
+    const { block, diagnostics } = parseTex("");
     expect(block.bars).toEqual([]);
     expect(diagnostics).toEqual([]);
     expect(tabQuarters(block)).toBe(0);
@@ -275,10 +326,20 @@ export function isTempo(value: number): boolean {
 export type TabDuration = 1 | 2 | 4 | 8 | 16 | 32;
 
 /** `hammer` and `slide` lead to the next note on the same string; `bend` is in quarter tones. */
-export type NoteEffects = { hammer?: true; slide?: true; bend?: number[]; vibrato?: true };
+export type NoteEffects = {
+  hammer?: true;
+  slide?: true;
+  bend?: number[];
+  vibrato?: true;
+};
 
 /** `string` 1 is the high E. A tie holds the previous fret on the string without a new attack. */
-export type TabNote = { string: number; fret: number | 'x'; tie: boolean; effects: NoteEffects };
+export type TabNote = {
+  string: number;
+  fret: number | "x";
+  tie: boolean;
+  effects: NoteEffects;
+};
 
 export type TabBeat = {
   /** Length in quarter notes, with the dot and the tuplet applied. */
@@ -294,7 +355,11 @@ export type TabBeat = {
   letRing: boolean;
 };
 
-export type TabBar = { beats: TabBeat[]; repeatOpen: boolean; repeatClose: number | null };
+export type TabBar = {
+  beats: TabBeat[];
+  repeatOpen: boolean;
+  repeatClose: number | null;
+};
 
 export type TabBlock = {
   /** `\tempo`; `null` takes the section's or the song's. */
@@ -357,12 +422,15 @@ import {
   type TabBlock,
   type TabDuration,
   type TabNote,
-} from './tab';
-import { isTempo, MAX_TEMPO, MIN_TEMPO } from './tempo';
-import type { Diagnostic } from './types';
+} from "./tab";
+import { isTempo, MAX_TEMPO, MIN_TEMPO } from "./tempo";
+import type { Diagnostic } from "./types";
 
 type Pos = { line: number; col: number };
-type Token = Pos & { kind: 'cmd' | 'word' | 'str' | 'dur' | 'punct'; value: string };
+type Token = Pos & {
+  kind: "cmd" | "word" | "str" | "dur" | "punct";
+  value: string;
+};
 
 type Effects = {
   note: NoteEffects;
@@ -381,8 +449,8 @@ const REST_RE = /^r(?:\.(\d+))?$/;
 const BEAT_DURATION_RE = /^\.(\d+)$/;
 const NUMBER_RE = /^\d+$/;
 const WORD_END_RE = /[\s{}()|"\\:]/;
-const PUNCT = '{}()|';
-const META = new Set(['tempo', 'ts', 'lyrics']);
+const PUNCT = "{}()|";
+const META = new Set(["tempo", "ts", "lyrics"]);
 const MAX_FRET = 24;
 const MAX_NUMERATOR = 16;
 const EPSILON = 1e-6;
@@ -394,39 +462,58 @@ function toDuration(text: string): TabDuration | null {
 
 const round = (value: number) => Math.round(value * 1000) / 1000;
 
-function tokenize(lines: readonly string[], firstLineNo: number, diagnostics: Diagnostic[]) {
+function tokenize(
+  lines: readonly string[],
+  firstLineNo: number,
+  diagnostics: Diagnostic[],
+) {
   const tokens: Token[] = [];
   lines.forEach((text, index) => {
     const line = firstLineNo + index;
     let i = 0;
     while (i < text.length) {
-      const char = text[i] ?? '';
+      const char = text[i] ?? "";
       const col = i + 1;
       if (/\s/.test(char)) {
         i++;
       } else if (PUNCT.includes(char)) {
-        tokens.push({ kind: 'punct', value: char, line, col });
+        tokens.push({ kind: "punct", value: char, line, col });
         i++;
       } else if (char === '"') {
         const end = text.indexOf('"', i + 1);
         if (end === -1) {
-          diagnostics.push({ line, col, severity: 'error', message: 'Unclosed "' });
-          tokens.push({ kind: 'str', value: text.slice(i + 1), line, col });
+          diagnostics.push({
+            line,
+            col,
+            severity: "error",
+            message: 'Unclosed "',
+          });
+          tokens.push({ kind: "str", value: text.slice(i + 1), line, col });
           break;
         }
-        tokens.push({ kind: 'str', value: text.slice(i + 1, end), line, col });
+        tokens.push({ kind: "str", value: text.slice(i + 1, end), line, col });
         i = end + 1;
       } else {
         let end = i + 1;
-        while (end < text.length && !WORD_END_RE.test(text[end] ?? '')) {
+        while (end < text.length && !WORD_END_RE.test(text[end] ?? "")) {
           end++;
         }
-        if (char === '\\') {
-          tokens.push({ kind: 'cmd', value: text.slice(i + 1, end), line, col });
-        } else if (char === ':') {
-          tokens.push({ kind: 'dur', value: text.slice(i + 1, end), line, col });
+        if (char === "\\") {
+          tokens.push({
+            kind: "cmd",
+            value: text.slice(i + 1, end),
+            line,
+            col,
+          });
+        } else if (char === ":") {
+          tokens.push({
+            kind: "dur",
+            value: text.slice(i + 1, end),
+            line,
+            col,
+          });
         } else {
-          tokens.push({ kind: 'word', value: text.slice(i, end), line, col });
+          tokens.push({ kind: "word", value: text.slice(i, end), line, col });
         }
         i = end;
       }
@@ -440,10 +527,10 @@ function splitSyllables(text: string): string[] {
     .split(/\s+/)
     .filter(Boolean)
     .flatMap((word) => {
-      const parts = word.split('-');
+      const parts = word.split("-");
       return parts
         .map((part, index) => (index < parts.length - 1 ? `${part}-` : part))
-        .filter((part) => part !== '' && part !== '-');
+        .filter((part) => part !== "" && part !== "-");
     });
 }
 
@@ -478,17 +565,22 @@ export function parseAlphaTex(
 ): { block: TabBlock; diagnostics: Diagnostic[] } {
   const diagnostics: Diagnostic[] = [];
   const tokens = tokenize(lines, firstLineNo, diagnostics);
-  const block: TabBlock = { tempo: null, time: [4, 4], bars: [], playOrder: [] };
+  const block: TabBlock = {
+    tempo: null,
+    time: [4, 4],
+    bars: [],
+    playOrder: [],
+  };
   let pos = 0;
   const peek = () => tokens[pos];
   const next = () => tokens[pos++];
   const isPunct = (token: Token | undefined, value: string) =>
-    token?.kind === 'punct' && token.value === value;
-  const report = (at: Pos, severity: Diagnostic['severity'], message: string) =>
+    token?.kind === "punct" && token.value === value;
+  const report = (at: Pos, severity: Diagnostic["severity"], message: string) =>
     diagnostics.push({ line: at.line, col: at.col, severity, message });
   const number = (): number | null => {
     const token = peek();
-    if (token?.kind === 'word' && NUMBER_RE.test(token.value)) {
+    if (token?.kind === "word" && NUMBER_RE.test(token.value)) {
       pos++;
       return Number(token.value);
     }
@@ -497,30 +589,38 @@ export function parseAlphaTex(
 
   // Metadata comes first.
   let lyrics: Token | null = null;
-  for (let token = peek(); token?.kind === 'cmd' && META.has(token.value); token = peek()) {
+  for (
+    let token = peek();
+    token?.kind === "cmd" && META.has(token.value);
+    token = peek()
+  ) {
     pos++;
-    if (token.value === 'tempo') {
+    if (token.value === "tempo") {
       const tempo = number();
       if (tempo !== null && isTempo(tempo)) {
         block.tempo = tempo;
       } else {
-        report(token, 'warning', `Tempo must be ${MIN_TEMPO}–${MAX_TEMPO}: ${tempo ?? ''}`.trim());
+        report(
+          token,
+          "warning",
+          `Tempo must be ${MIN_TEMPO}–${MAX_TEMPO}: ${tempo ?? ""}`.trim(),
+        );
       }
-    } else if (token.value === 'ts') {
+    } else if (token.value === "ts") {
       const n = number();
       const m = number();
       if (n && m && n <= MAX_NUMERATOR && toDuration(String(m))) {
         block.time = [n, m];
       } else {
-        report(token, 'warning', 'Time signature must look like \\ts 3 4');
+        report(token, "warning", "Time signature must look like \\ts 3 4");
       }
     } else {
       const text = peek();
-      if (text?.kind === 'str') {
+      if (text?.kind === "str") {
         pos++;
         lyrics = text;
       } else {
-        report(token, 'error', 'Expected "…" after \\lyrics');
+        report(token, "error", 'Expected "…" after \\lyrics');
       }
     }
   }
@@ -535,7 +635,7 @@ export function parseAlphaTex(
   });
 
   const bendPoints = (): number[] | null => {
-    if (!isPunct(peek(), '(')) {
+    if (!isPunct(peek(), "(")) {
       return null;
     }
     pos++;
@@ -543,7 +643,7 @@ export function parseAlphaTex(
     for (let value = number(); value !== null; value = number()) {
       points.push(value);
     }
-    if (!isPunct(peek(), ')')) {
+    if (!isPunct(peek(), ")")) {
       return null;
     }
     pos++;
@@ -554,107 +654,109 @@ export function parseAlphaTex(
   const effects = (): Effects => {
     const result = emptyEffects();
     const open = peek();
-    if (!open || !isPunct(open, '{')) {
+    if (!open || !isPunct(open, "{")) {
       return result;
     }
     pos++;
     for (;;) {
       const token = next();
       if (!token) {
-        report(open, 'error', 'Unclosed {');
+        report(open, "error", "Unclosed {");
         return result;
       }
-      if (isPunct(token, '}')) {
+      if (isPunct(token, "}")) {
         return result;
       }
-      if (token.kind !== 'word') {
-        report(token, 'error', `Unexpected ${token.value} in {…}`);
+      if (token.kind !== "word") {
+        report(token, "error", `Unexpected ${token.value} in {…}`);
         continue;
       }
       switch (token.value) {
-        case 'd':
+        case "d":
           result.dotted = true;
           break;
-        case 'tu': {
+        case "tu": {
           const n = number();
           if (n !== null && TUPLETS[n]) {
             result.tuplet = n;
           } else {
-            report(token, 'error', 'Tuplet must be tu 3, tu 5 or tu 6');
+            report(token, "error", "Tuplet must be tu 3, tu 5 or tu 6");
           }
           break;
         }
-        case 'h':
+        case "h":
           result.note.hammer = true;
           break;
-        case 'sl':
+        case "sl":
           result.note.slide = true;
           break;
-        case 'v':
+        case "v":
           result.note.vibrato = true;
           break;
-        case 'pm':
+        case "pm":
           result.palmMute = true;
           break;
-        case 'lr':
+        case "lr":
           result.letRing = true;
           break;
-        case 'txt': {
+        case "txt": {
           const text = peek();
-          if (text?.kind === 'str') {
+          if (text?.kind === "str") {
             pos++;
             result.text = text.value;
           } else {
-            report(token, 'error', 'Expected "…" after txt');
+            report(token, "error", 'Expected "…" after txt');
           }
           break;
         }
-        case 'b': {
+        case "b": {
           const bend = bendPoints();
           if (bend) {
             result.note.bend = bend;
           } else {
-            report(token, 'error', 'Bend must look like b (0 4)');
+            report(token, "error", "Bend must look like b (0 4)");
           }
           break;
         }
         default:
-          report(token, 'warning', `Unknown effect: ${token.value}`);
+          report(token, "warning", `Unknown effect: ${token.value}`);
       }
     }
   };
 
   let duration: TabDuration = 4;
-  const lastFret = new Map<number, number | 'x'>();
+  const lastFret = new Map<number, number | "x">();
 
-  const readNote = (token: Token): { note: TabNote; duration: string | undefined } | null => {
+  const readNote = (
+    token: Token,
+  ): { note: TabNote; duration: string | undefined } | null => {
     const match = NOTE_RE.exec(token.value);
     if (!match) {
-      report(token, 'error', `Not a note: ${token.value}`);
+      report(token, "error", `Not a note: ${token.value}`);
       return null;
     }
-    const [, fretText = '', stringText = '', durationText] = match;
+    const [, fretText = "", stringText = "", durationText] = match;
     const string = Number(stringText);
     if (string < 1 || string > 6) {
-      report(token, 'error', `String must be 1–6: ${token.value}`);
+      report(token, "error", `String must be 1–6: ${token.value}`);
       return null;
     }
-    let fret: number | 'x';
+    let fret: number | "x";
     let tie = false;
-    if (fretText === '-') {
+    if (fretText === "-") {
       const previous = lastFret.get(string);
       if (previous === undefined) {
-        report(token, 'error', `Nothing to tie on string ${string}`);
+        report(token, "error", `Nothing to tie on string ${string}`);
         return null;
       }
       fret = previous;
       tie = true;
-    } else if (fretText === 'x') {
-      fret = 'x';
+    } else if (fretText === "x") {
+      fret = "x";
     } else {
       fret = Number(fretText);
       if (fret > MAX_FRET) {
-        report(token, 'error', `Fret must be 0–${MAX_FRET}: ${token.value}`);
+        report(token, "error", `Fret must be 0–${MAX_FRET}: ${token.value}`);
         return null;
       }
     }
@@ -672,7 +774,7 @@ export function parseAlphaTex(
     if (durationText !== undefined) {
       const parsed = toDuration(durationText);
       if (!parsed) {
-        report(at, 'error', `Unknown duration: .${durationText}`);
+        report(at, "error", `Unknown duration: .${durationText}`);
         return null;
       }
       beatDuration = parsed;
@@ -710,14 +812,14 @@ export function parseAlphaTex(
     for (;;) {
       const token = next();
       if (!token) {
-        report(open, 'error', 'Unclosed (');
+        report(open, "error", "Unclosed (");
         return null;
       }
-      if (isPunct(token, ')')) {
+      if (isPunct(token, ")")) {
         break;
       }
-      if (token.kind !== 'word') {
-        report(token, 'error', `Unexpected ${token.value} in (…)`);
+      if (token.kind !== "word") {
+        report(token, "error", `Unexpected ${token.value} in (…)`);
         continue;
       }
       const read = readNote(token);
@@ -726,21 +828,22 @@ export function parseAlphaTex(
         continue;
       }
       if (read.duration !== undefined) {
-        report(token, 'error', 'Put the duration after the closing )');
+        report(token, "error", "Put the duration after the closing )");
       }
       read.note.effects = fx.note;
       notes.push(read.note);
     }
     let durationText: string | undefined;
     const after = peek();
-    const match = after?.kind === 'word' ? BEAT_DURATION_RE.exec(after.value) : null;
+    const match =
+      after?.kind === "word" ? BEAT_DURATION_RE.exec(after.value) : null;
     if (match) {
       pos++;
       durationText = match[1];
     }
     const fx = effects();
     if (notes.length === 0) {
-      report(open, 'error', 'Empty chord ()');
+      report(open, "error", "Empty chord ()");
       return null;
     }
     for (const note of notes) {
@@ -749,7 +852,11 @@ export function parseAlphaTex(
     return makeBeat(open, notes, durationText, fx);
   };
 
-  const newBar = (): TabBar => ({ beats: [], repeatOpen: false, repeatClose: null });
+  const newBar = (): TabBar => ({
+    beats: [],
+    repeatOpen: false,
+    repeatClose: null,
+  });
   let bar = newBar();
   const bars: TabBar[] = [bar];
   const barAt: Pos[] = [peek() ?? { line: firstLineNo, col: 1 }];
@@ -757,48 +864,52 @@ export function parseAlphaTex(
 
   while (pos < tokens.length) {
     const token = next() as Token;
-    if (isPunct(token, '|')) {
+    if (isPunct(token, "|")) {
       bar = newBar();
       bars.push(bar);
       barAt.push(token);
       continue;
     }
-    if (token.kind === 'cmd') {
-      if (token.value === 'ro') {
+    if (token.kind === "cmd") {
+      if (token.value === "ro") {
         if (repeatOpen) {
-          report(token, 'error', 'Nested repeats are not supported');
+          report(token, "error", "Nested repeats are not supported");
         }
         repeatOpen = true;
         bar.repeatOpen = true;
-      } else if (token.value === 'rc') {
+      } else if (token.value === "rc") {
         const times = number();
         if (times !== null && times >= 2) {
           bar.repeatClose = times;
         } else {
-          report(token, 'error', 'Expected \\rc N with N ≥ 2');
+          report(token, "error", "Expected \\rc N with N ≥ 2");
         }
         repeatOpen = false;
       } else {
-        report(token, 'warning', `Unknown command: \\${token.value}`);
+        report(token, "warning", `Unknown command: \\${token.value}`);
       }
       continue;
     }
-    if (token.kind === 'dur') {
+    if (token.kind === "dur") {
       const parsed = toDuration(token.value);
       if (parsed) {
         duration = parsed;
       } else {
-        report(token, 'error', `Unknown duration: :${token.value}`);
+        report(token, "error", `Unknown duration: :${token.value}`);
       }
       continue;
     }
     let beat: TabBeat | null = null;
-    if (isPunct(token, '(')) {
+    if (isPunct(token, "(")) {
       beat = chordBeat(token);
-    } else if (token.kind === 'word') {
+    } else if (token.kind === "word") {
       beat = singleBeat(token);
     } else {
-      report(token, 'error', `Unexpected ${token.kind === 'str' ? `"${token.value}"` : token.value}`);
+      report(
+        token,
+        "error",
+        `Unexpected ${token.kind === "str" ? `"${token.value}"` : token.value}`,
+      );
       continue;
     }
     if (beat) {
@@ -823,7 +934,7 @@ export function parseAlphaTex(
     if (Math.abs(total - expected) > EPSILON) {
       report(
         barAt[index] ?? { line: firstLineNo, col: 1 },
-        'warning',
+        "warning",
         `Bar ${index + 1}: ${round(total)} of ${round(expected)} quarter notes`,
       );
     }
@@ -840,10 +951,14 @@ export function parseAlphaTex(
         continue;
       }
       const syllable = syllables[used++] ?? null;
-      beat.syllable = syllable === '_' ? null : syllable;
+      beat.syllable = syllable === "_" ? null : syllable;
     }
     if (used < syllables.length) {
-      report(lyrics, 'warning', `Syllables without notes: ${syllables.length - used}`);
+      report(
+        lyrics,
+        "warning",
+        `Syllables without notes: ${syllables.length - used}`,
+      );
     }
   }
 
@@ -854,11 +969,16 @@ export function parseAlphaTex(
 
 /** A song line for an alphaTex block, e.g. after editing its source. */
 export function alphatexLine(source: string[]) {
-  return { type: 'alphatex' as const, source, block: parseAlphaTex(source).block };
+  return {
+    type: "alphatex" as const,
+    source,
+    block: parseAlphaTex(source).block,
+  };
 }
 ```
 
 Notes for the implementer:
+
 - In the `lyrics left over` test the diagnostic column is the `"` of the string token (`\lyrics "…"` → col 9).
 - In the `problems point at` test the bar warning points at the first beat of bar 2 (`0.6` at col 9), because `barAt` moves to the first successful beat.
 
@@ -867,9 +987,9 @@ Notes for the implementer:
 `packages/chord-sheet/src/index.ts` — add, keeping alphabetical order:
 
 ```ts
-export * from './alphatex';
-export * from './tab';
-export * from './tempo';
+export * from "./alphatex";
+export * from "./tab";
+export * from "./tempo";
 ```
 
 - [ ] **Step 7: Run the tests to verify they pass**
@@ -891,6 +1011,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ### Task 2: alphaTex blocks and section tempo in the song document
 
 **Files:**
+
 - Modify: `packages/chord-sheet/src/types.ts`
 - Modify: `packages/chord-sheet/src/parse.ts`
 - Modify: `packages/chord-sheet/src/serialize.ts`
@@ -901,6 +1022,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 - Test: `packages/chord-sheet/src/parse.test.ts`, `packages/chord-sheet/src/chords-over-lyrics.test.ts`
 
 **Interfaces:**
+
 - Consumes: `parseAlphaTex`, `TabBlock`, `isTempo`, `MIN_TEMPO`, `MAX_TEMPO` (Task 1).
 - Produces:
   - `Line` gains `{ type: 'alphatex'; source: string[]; block: TabBlock }`; `Section` gains `tempo: number | null`.
@@ -916,71 +1038,86 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 Append to `packages/chord-sheet/src/parse.test.ts`:
 
 ```ts
-describe('alphaTex blocks and section tempo', () => {
+describe("alphaTex blocks and section tempo", () => {
   const SOURCE = [
-    '[Соло] @A 140bpm',
-    '{start_of_alphatex}',
-    '\\tempo 120',
-    ':8 0.5 5.3',
-    '{end_of_alphatex}',
-    '${Am}la',
-  ].join('\n');
+    "[Соло] @A 140bpm",
+    "{start_of_alphatex}",
+    "\\tempo 120",
+    ":8 0.5 5.3",
+    "{end_of_alphatex}",
+    "${Am}la",
+  ].join("\n");
 
-  test('parses the block and the section tempo', () => {
+  test("parses the block and the section tempo", () => {
     const { doc, diagnostics } = parse(SOURCE);
-    expect(diagnostics.filter((d) => d.severity === 'error')).toEqual([]);
+    expect(diagnostics.filter((d) => d.severity === "error")).toEqual([]);
     const section = doc.sections[0];
-    expect(section).toMatchObject({ label: 'Соло', rhythm: 'A', tempo: 140 });
+    expect(section).toMatchObject({ label: "Соло", rhythm: "A", tempo: 140 });
     const block = section?.lines[0];
-    expect(block?.type).toBe('alphatex');
-    expect(block?.type === 'alphatex' && block.source).toEqual(['\\tempo 120', ':8 0.5 5.3']);
-    expect(block?.type === 'alphatex' && block.block.tempo).toBe(120);
+    expect(block?.type).toBe("alphatex");
+    expect(block?.type === "alphatex" && block.source).toEqual([
+      "\\tempo 120",
+      ":8 0.5 5.3",
+    ]);
+    expect(block?.type === "alphatex" && block.block.tempo).toBe(120);
   });
 
-  test('round-trips through serialize', () => {
+  test("round-trips through serialize", () => {
     expect(serialize(parse(SOURCE).doc)).toBe(SOURCE);
   });
 
-  test('alphaTex problems point at song lines', () => {
+  test("alphaTex problems point at song lines", () => {
     const { diagnostics } = parse(
-      ['[Соло]', '{start_of_alphatex}', '0.6 9.9', '{end_of_alphatex}'].join('\n'),
+      ["[Соло]", "{start_of_alphatex}", "0.6 9.9", "{end_of_alphatex}"].join(
+        "\n",
+      ),
     );
     expect(diagnostics).toContainEqual({
       line: 3,
       col: 5,
-      severity: 'error',
-      message: 'String must be 1–6: 9.9',
+      severity: "error",
+      message: "String must be 1–6: 9.9",
     });
   });
 
-  test('tempo without a rhythm; out of range is dropped', () => {
-    expect(parse('[Бридж] 72bpm').doc.sections[0]?.tempo).toBe(72);
-    const { doc, diagnostics } = parse('[Бридж] 999bpm');
+  test("tempo without a rhythm; out of range is dropped", () => {
+    expect(parse("[Бридж] 72bpm").doc.sections[0]?.tempo).toBe(72);
+    const { doc, diagnostics } = parse("[Бридж] 999bpm");
     expect(doc.sections[0]?.tempo).toBeNull();
     expect(diagnostics).toEqual([
-      { line: 1, col: 1, severity: 'warning', message: 'Tempo must be 30–300: 999' },
+      {
+        line: 1,
+        col: 1,
+        severity: "warning",
+        message: "Tempo must be 30–300: 999",
+      },
     ]);
   });
 
-  test('an unclosed alphaTex block is an error', () => {
-    expect(parse('{start_of_alphatex}\n0.6').diagnostics).toContainEqual({
+  test("an unclosed alphaTex block is an error", () => {
+    expect(parse("{start_of_alphatex}\n0.6").diagnostics).toContainEqual({
       line: 1,
       col: 1,
-      severity: 'error',
-      message: 'Unclosed {start_of_alphatex}',
+      severity: "error",
+      message: "Unclosed {start_of_alphatex}",
     });
   });
 
-  test('validate counts block lines', () => {
-    const { doc } = parse(['{start_of_alphatex}', '0.6', '{end_of_alphatex}', '@Z text'].join('\n'));
+  test("validate counts block lines", () => {
+    const { doc } = parse(
+      ["{start_of_alphatex}", "0.6", "{end_of_alphatex}", "@Z text"].join("\n"),
+    );
     expect(validate(doc, [])).toEqual([
-      { line: 4, col: 1, severity: 'error', message: 'Unknown rhythm: Z' },
+      { line: 4, col: 1, severity: "error", message: "Unknown rhythm: Z" },
     ]);
   });
 
-  test('ASCII tabs are untouched', () => {
-    const source = '{start_of_tab}\ne|--0--|\n{end_of_tab}';
-    expect(parse(source).doc.sections[0]?.lines[0]).toEqual({ type: 'tab', lines: ['e|--0--|'] });
+  test("ASCII tabs are untouched", () => {
+    const source = "{start_of_tab}\ne|--0--|\n{end_of_tab}";
+    expect(parse(source).doc.sections[0]?.lines[0]).toEqual({
+      type: "tab",
+      lines: ["e|--0--|"],
+    });
     expect(serialize(parse(source).doc)).toBe(source);
   });
 });
@@ -989,11 +1126,19 @@ describe('alphaTex blocks and section tempo', () => {
 Append to `packages/chord-sheet/src/chords-over-lyrics.test.ts` (inside `describe('toChordsOverLyrics', …)` or a new `describe`):
 
 ```ts
-test('alphaTex blocks and section tempo pass through untouched', () => {
-  const text = ['[Соло] 140bpm', '{start_of_alphatex}', ':8 0.5 5.3 | 3.3', '{end_of_alphatex}'].join('\n');
+test("alphaTex blocks and section tempo pass through untouched", () => {
+  const text = [
+    "[Соло] 140bpm",
+    "{start_of_alphatex}",
+    ":8 0.5 5.3 | 3.3",
+    "{end_of_alphatex}",
+  ].join("\n");
   const { doc } = fromChordsOverLyrics(text);
   expect(doc.sections[0]?.tempo).toBe(140);
-  expect(doc.sections[0]?.lines[0]).toMatchObject({ type: 'alphatex', source: [':8 0.5 5.3 | 3.3'] });
+  expect(doc.sections[0]?.lines[0]).toMatchObject({
+    type: "alphatex",
+    source: [":8 0.5 5.3 | 3.3"],
+  });
   expect(toChordsOverLyrics(doc)).toBe(text);
 });
 ```
@@ -1008,16 +1153,16 @@ Expected: FAIL — `tempo` undefined, alphaTex blocks parsed as text lines.
 - [ ] **Step 3: Update `types.ts`**
 
 ```ts
-import type { TabBlock } from './tab';
+import type { TabBlock } from "./tab";
 ```
 
 ```ts
 /** A line without chord, bar, rhythm or repeat items is plain text. */
 export type Line =
-  | { type: 'line'; items: Item[] }
+  | { type: "line"; items: Item[] }
   /** ASCII tab: shown as is, takes no time. */
-  | { type: 'tab'; lines: string[] }
-  | { type: 'alphatex'; source: string[]; block: TabBlock };
+  | { type: "tab"; lines: string[] }
+  | { type: "alphatex"; source: string[]; block: TabBlock };
 
 /** `tempo` overrides the song tempo for this section only. */
 export type Section = {
@@ -1033,29 +1178,33 @@ export type Section = {
 Replace the constants and `parseHeader` at the top, add the block helpers, and use them in `parse()`:
 
 ```ts
-import { parseAlphaTex } from './alphatex';
-import { isChord } from './chord';
-import { isTempo, MAX_TEMPO, MIN_TEMPO } from './tempo';
-import type { Diagnostic, Item, Line, Section, SongDoc } from './types';
+import { parseAlphaTex } from "./alphatex";
+import { isChord } from "./chord";
+import { isTempo, MAX_TEMPO, MIN_TEMPO } from "./tempo";
+import type { Diagnostic, Item, Line, Section, SongDoc } from "./types";
 
 const META_RE = /^\{(\w+):\s*(.*?)\s*\}$/;
 const HEADER_RE = /^\[([^\]]+)\](?:\s*@([A-Z]))?(?:\s*(\d+)\s*bpm)?\s*$/;
 const REPEAT_RE = /^[x×]([1-9]\d*)$/;
 const RHYTHM_KEY_RE = /[A-Z]/;
 
-export const TAB_START = '{start_of_tab}';
-export const TAB_END = '{end_of_tab}';
-export const ALPHATEX_START = '{start_of_alphatex}';
-export const ALPHATEX_END = '{end_of_alphatex}';
+export const TAB_START = "{start_of_tab}";
+export const TAB_END = "{end_of_tab}";
+export const ALPHATEX_START = "{start_of_alphatex}";
+export const ALPHATEX_END = "{end_of_alphatex}";
 
-export type Header = { label: string; rhythm: string | null; tempo: number | null };
+export type Header = {
+  label: string;
+  rhythm: string | null;
+  tempo: number | null;
+};
 
 /** `[Соло] @B 140bpm`. The tempo is as written; `sectionFromHeader` checks its range. */
 export function parseHeader(text: string): Header | null {
   const match = HEADER_RE.exec(text);
   return match
     ? {
-        label: match[1] ?? '',
+        label: match[1] ?? "",
         rhythm: match[2] ?? null,
         tempo: match[3] ? Number(match[3]) : null,
       }
@@ -1073,7 +1222,7 @@ export function sectionFromHeader(
     diagnostics.push({
       line: lineNo,
       col: 1,
-      severity: 'warning',
+      severity: "warning",
       message: `Tempo must be ${MIN_TEMPO}–${MAX_TEMPO}: ${tempo}`,
     });
     tempo = null;
@@ -1095,70 +1244,77 @@ export function readBlock(
   start: number,
   diagnostics: Diagnostic[],
 ): { line: Line; end: number } {
-  const open = (lines[start] ?? '').trim();
+  const open = (lines[start] ?? "").trim();
   const close = open === TAB_START ? TAB_END : ALPHATEX_END;
   const body: string[] = [];
   let end = start + 1;
   for (; end < lines.length; end++) {
-    const text = lines[end] ?? '';
+    const text = lines[end] ?? "";
     if (text.trim() === close) {
       break;
     }
     body.push(text);
   }
   if (end >= lines.length) {
-    diagnostics.push({ line: start + 1, col: 1, severity: 'error', message: `Unclosed ${open}` });
+    diagnostics.push({
+      line: start + 1,
+      col: 1,
+      severity: "error",
+      message: `Unclosed ${open}`,
+    });
     end = lines.length - 1;
   }
   if (open === TAB_START) {
-    return { line: { type: 'tab', lines: body }, end };
+    return { line: { type: "tab", lines: body }, end };
   }
   const parsed = parseAlphaTex(body, start + 2);
   diagnostics.push(...parsed.diagnostics);
-  return { line: { type: 'alphatex', source: body, block: parsed.block }, end };
+  return { line: { type: "alphatex", source: body, block: parsed.block }, end };
 }
 ```
 
 In `parse()`:
 
 ```ts
-  let current: Section = { label: null, rhythm: null, tempo: null, lines: [] };
+let current: Section = { label: null, rhythm: null, tempo: null, lines: [] };
 ```
 
 and replace the header branch and the whole `if (text.trim() === TAB_START) { … }` branch with:
 
 ```ts
-    const header = parseHeader(text);
-    if (header) {
-      current = sectionFromHeader(header, i + 1, diagnostics);
-      sections.push(current);
-      continue;
-    }
-    if (isBlockStart(text)) {
-      const block = readBlock(lines, i, diagnostics);
-      current.lines.push(block.line);
-      i = block.end;
-      continue;
-    }
+const header = parseHeader(text);
+if (header) {
+  current = sectionFromHeader(header, i + 1, diagnostics);
+  sections.push(current);
+  continue;
+}
+if (isBlockStart(text)) {
+  const block = readBlock(lines, i, diagnostics);
+  current.lines.push(block.line);
+  i = block.end;
+  continue;
+}
 ```
 
 - [ ] **Step 5: Update `serialize.ts`**
 
 ```ts
-import { ALPHATEX_END, ALPHATEX_START, TAB_END, TAB_START } from './parse';
-import type { Item, Line, Section, SongDoc } from './types';
+import { ALPHATEX_END, ALPHATEX_START, TAB_END, TAB_START } from "./parse";
+import type { Item, Line, Section, SongDoc } from "./types";
 ```
 
 ```ts
 export function serializeHeader(section: Section): string {
-  const rhythm = section.rhythm ? ` @${section.rhythm}` : '';
-  const tempo = section.tempo ? ` ${section.tempo}bpm` : '';
-  return `[${section.label ?? ''}]${rhythm}${tempo}`;
+  const rhythm = section.rhythm ? ` @${section.rhythm}` : "";
+  const tempo = section.tempo ? ` ${section.tempo}bpm` : "";
+  return `[${section.label ?? ""}]${rhythm}${tempo}`;
 }
 
 /** A tab or alphaTex block with its fences. */
-export function serializeBlock(line: Exclude<Line, { type: 'line' }>): string[] {
-  return line.type === 'tab'
+export function serializeBlock(
+  line: Exclude<Line, { type: "line" }>,
+): string[] {
+  return line.type === "tab"
     ? [TAB_START, ...line.lines, TAB_END]
     : [ALPHATEX_START, ...line.source, ALPHATEX_END];
 }
@@ -1167,13 +1323,13 @@ export function serializeBlock(line: Exclude<Line, { type: 'line' }>): string[] 
 and in `serialize()`:
 
 ```ts
-    for (const line of section.lines) {
-      if (line.type === 'line') {
-        out.push(line.items.map(serializeItem).join(''));
-      } else {
-        out.push(...serializeBlock(line));
-      }
-    }
+for (const line of section.lines) {
+  if (line.type === "line") {
+    out.push(line.items.map(serializeItem).join(""));
+  } else {
+    out.push(...serializeBlock(line));
+  }
+}
 ```
 
 - [ ] **Step 6: Update `chords-over-lyrics.ts`**
@@ -1185,35 +1341,35 @@ In `isLyric`, replace `line.trim() !== TAB_START` with `!isBlockStart(line)`.
 In `fromChordsOverLyrics`: the initial section becomes `{ label: null, rhythm: null, tempo: null, lines: [] }`; the header branch becomes
 
 ```ts
-    const header = parseHeader(line);
-    if (header) {
-      current = sectionFromHeader(header, i + 1, diagnostics);
-      sections.push(current);
-      continue;
-    }
+const header = parseHeader(line);
+if (header) {
+  current = sectionFromHeader(header, i + 1, diagnostics);
+  sections.push(current);
+  continue;
+}
 ```
 
 and the whole `if (line.trim() === TAB_START) { … }` branch becomes
 
 ```ts
-    if (isBlockStart(line)) {
-      const block = readBlock(lines, i, diagnostics);
-      current.lines.push(block.line);
-      i = block.end;
-      continue;
-    }
+if (isBlockStart(line)) {
+  const block = readBlock(lines, i, diagnostics);
+  current.lines.push(block.line);
+  i = block.end;
+  continue;
+}
 ```
 
 In `toChordsOverLyrics`:
 
 ```ts
-    for (const line of section.lines) {
-      if (line.type === 'line') {
-        out.push(...renderLine(line.items));
-      } else {
-        out.push(...serializeBlock(line));
-      }
-    }
+for (const line of section.lines) {
+  if (line.type === "line") {
+    out.push(...renderLine(line.items));
+  } else {
+    out.push(...serializeBlock(line));
+  }
+}
 ```
 
 - [ ] **Step 7: Update `validate.ts`**
@@ -1232,14 +1388,19 @@ In `toChordsOverLyrics`:
 
 ```ts
 export function alphatexLine(source: string[]): Line {
-  return { type: 'alphatex', source, block: parseAlphaTex(source).block };
+  return { type: "alphatex", source, block: parseAlphaTex(source).block };
 }
 ```
 
 `apps/web/src/features/editor/doc-edit.ts`:
 
 ```ts
-  const section: Section = { label, rhythm: null, tempo: null, lines: [{ type: 'line', items: [] }] };
+const section: Section = {
+  label,
+  rhythm: null,
+  tempo: null,
+  lines: [{ type: "line", items: [] }],
+};
 ```
 
 - [ ] **Step 9: Run tests and types**
@@ -1263,10 +1424,12 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ### Task 3: Tab events and tempo in the timeline
 
 **Files:**
+
 - Modify: `packages/chord-sheet/src/timeline.ts`
 - Test: `packages/chord-sheet/src/timeline.test.ts`
 
 **Interfaces:**
+
 - Consumes: `Line` `alphatex`, `Section.tempo` (Task 2); `tabQuarters`, `barQuarters`, `TabBlock` (Task 1).
 - Produces:
   - `type ChordEvent = { kind: 'chord'; chord: string; rhythm: string | null; tempo: number | null; bar; start; length; section; line; item }`
@@ -1280,7 +1443,7 @@ In `timeline.test.ts`, change the `events` helper to keep only chord events:
 ```ts
 function events(source: string, rhythms: Rhythm[] = RHYTHMS) {
   return timeline(parse(source).doc, rhythms).flatMap((event) =>
-    event.kind === 'chord'
+    event.kind === "chord"
       ? [
           {
             chord: event.chord,
@@ -1298,42 +1461,61 @@ function events(source: string, rhythms: Rhythm[] = RHYTHMS) {
 Append:
 
 ```ts
-describe('timeline with tabs and tempo', () => {
-  const block = (body: string[]) => ['{start_of_alphatex}', ...body, '{end_of_alphatex}'];
+describe("timeline with tabs and tempo", () => {
+  const block = (body: string[]) => [
+    "{start_of_alphatex}",
+    ...body,
+    "{end_of_alphatex}",
+  ];
 
-  test('an alphaTex block takes its bars and the chords after it follow', () => {
+  test("an alphaTex block takes its bars and the chords after it follow", () => {
     const doc = parse(
-      ['${Am}a', ...block([':8 0.5 5.3 8.2 0.5 5.3 5.2 0.5 5.3 | 0.6.2 0.6.2']), '${G}b'].join('\n'),
+      [
+        "${Am}a",
+        ...block([":8 0.5 5.3 8.2 0.5 5.3 5.2 0.5 5.3 | 0.6.2 0.6.2"]),
+        "${G}b",
+      ].join("\n"),
     ).doc;
-    expect(timeline(doc, RHYTHMS).map((e) => [e.kind, e.start, e.length, e.line])).toEqual([
-      ['chord', 0, 1, 0],
-      ['tab', 1, 2, 1],
-      ['chord', 3, 1, 2],
+    expect(
+      timeline(doc, RHYTHMS).map((e) => [e.kind, e.start, e.length, e.line]),
+    ).toEqual([
+      ["chord", 0, 1, 0],
+      ["tab", 1, 2, 1],
+      ["chord", 3, 1, 2],
     ]);
   });
 
-  test('bars of a 3/4 block have three quarters', () => {
-    const doc = parse(block(['\\ts 3 4', '0.6 0.6 0.6 | 0.6 0.6 0.6']).join('\n')).doc;
-    expect(timeline(doc, RHYTHMS)[0]).toMatchObject({ kind: 'tab', length: 2 });
+  test("bars of a 3/4 block have three quarters", () => {
+    const doc = parse(
+      block(["\\ts 3 4", "0.6 0.6 0.6 | 0.6 0.6 0.6"]).join("\n"),
+    ).doc;
+    expect(timeline(doc, RHYTHMS)[0]).toMatchObject({ kind: "tab", length: 2 });
   });
 
-  test('tempo: the block, else the section, else the song (null)', () => {
+  test("tempo: the block, else the section, else the song (null)", () => {
     const doc = parse(
       [
-        '[A] 140bpm',
-        '${Am}a',
-        ...block(['0.6.1']),
-        ...block(['\\tempo 70', '0.6.1']),
-        '[B]',
-        '${G}b',
-      ].join('\n'),
+        "[A] 140bpm",
+        "${Am}a",
+        ...block(["0.6.1"]),
+        ...block(["\\tempo 70", "0.6.1"]),
+        "[B]",
+        "${G}b",
+      ].join("\n"),
     ).doc;
-    expect(timeline(doc, RHYTHMS).map((e) => e.tempo)).toEqual([140, 140, 70, null]);
+    expect(timeline(doc, RHYTHMS).map((e) => e.tempo)).toEqual([
+      140,
+      140,
+      70,
+      null,
+    ]);
   });
 
-  test('empty blocks take no time', () => {
-    const doc = parse([...block([]), '${Am}a'].join('\n')).doc;
-    expect(timeline(doc, RHYTHMS).map((e) => [e.kind, e.start])).toEqual([['chord', 0]]);
+  test("empty blocks take no time", () => {
+    const doc = parse([...block([]), "${Am}a"].join("\n")).doc;
+    expect(timeline(doc, RHYTHMS).map((e) => [e.kind, e.start])).toEqual([
+      ["chord", 0],
+    ]);
   });
 });
 ```
@@ -1348,9 +1530,9 @@ Expected: FAIL — no `kind`/`tempo` on events, no tab events.
 `timeline.ts`:
 
 ```ts
-import type { Rhythm } from './rhythm';
-import { barQuarters, type TabBlock, tabQuarters } from './tab';
-import type { Item, SongDoc } from './types';
+import type { Rhythm } from "./rhythm";
+import { barQuarters, type TabBlock, tabQuarters } from "./tab";
+import type { Item, SongDoc } from "./types";
 
 type Place = {
   /** Bar number from 0. */
@@ -1365,7 +1547,7 @@ type Place = {
 };
 
 export type ChordEvent = Place & {
-  kind: 'chord';
+  kind: "chord";
   chord: string;
   /** Key of the rhythm pattern, `null` when the song has none. */
   rhythm: string | null;
@@ -1373,59 +1555,62 @@ export type ChordEvent = Place & {
   item: number;
 };
 
-export type TabEvent = Place & { kind: 'tab'; block: TabBlock };
+export type TabEvent = Place & { kind: "tab"; block: TabBlock };
 
 export type TimelineEvent = ChordEvent | TabEvent;
 
-type Unplaced = Omit<ChordEvent, 'bar'> | Omit<TabEvent, 'bar'>;
+type Unplaced = Omit<ChordEvent, "bar"> | Omit<TabEvent, "bar">;
 ```
 
 Keep `groups()` as is. In `timeline()`:
 
 ```ts
-  const push = (event: Unplaced) => {
-    events.push({ ...event, bar: Math.floor(event.start + 1e-9) } as TimelineEvent);
-    position = event.start + event.length;
-  };
+const push = (event: Unplaced) => {
+  events.push({
+    ...event,
+    bar: Math.floor(event.start + 1e-9),
+  } as TimelineEvent);
+  position = event.start + event.length;
+};
 ```
 
 Inside `section.lines.forEach((line, lineIndex) => {`:
 
 ```ts
-      if (line.type === 'tab') {
-        return;
-      }
-      if (line.type === 'alphatex') {
-        const quarters = tabQuarters(line.block);
-        if (quarters > 0) {
-          push({
-            kind: 'tab',
-            block: line.block,
-            tempo: line.block.tempo ?? section.tempo,
-            start: position,
-            length: quarters / barQuarters(line.block.time),
-            section: sectionIndex,
-            line: lineIndex,
-          });
-        }
-        return;
-      }
+if (line.type === "tab") {
+  return;
+}
+if (line.type === "alphatex") {
+  const quarters = tabQuarters(line.block);
+  if (quarters > 0) {
+    push({
+      kind: "tab",
+      block: line.block,
+      tempo: line.block.tempo ?? section.tempo,
+      start: position,
+      length: quarters / barQuarters(line.block.time),
+      section: sectionIndex,
+      line: lineIndex,
+    });
+  }
+  return;
+}
 ```
 
 The chord push becomes:
 
 ```ts
-            push({
-              kind: 'chord',
-              chord: item.chord,
-              rhythm,
-              tempo: section.tempo,
-              start: position,
-              length,
-              section: sectionIndex,
-              line: lineIndex,
-              item: index,
-            });
+push({
+  kind: "chord",
+  chord: item.chord,
+  rhythm,
+  tempo: section.tempo,
+  start: position,
+  length,
+  section: sectionIndex,
+  line: lineIndex,
+  item: index,
+});
 ```
 
 The repeat loop stays as is (`push({ ...event, start: … })` — `phrase` elements are `TimelineEvent`s and spread fine into `Unplaced`; the stale `bar` is overwritten by `push`).
@@ -1451,6 +1636,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ### Task 4: Scheduling tabs, tempo per event and capo
 
 **Files:**
+
 - Create: `packages/audio/src/tab-schedule.ts`
 - Create: `packages/audio/src/tab-schedule.test.ts`
 - Modify: `packages/audio/src/strum-schedule.ts`
@@ -1458,6 +1644,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 - Modify: `packages/audio/src/index.ts`
 
 **Interfaces:**
+
 - Consumes: `TimelineEvent`/`ChordEvent`/`TabEvent` (Task 3), `TabBlock`, `tabBeats`, `tabQuarters`, `parseAlphaTex` (Task 1).
 - Produces:
   - `scheduleTab(block: TabBlock, options: { bpm: number; capo?: number }): ScheduledNote[]` — times from the block start.
@@ -1470,16 +1657,20 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 `packages/audio/src/tab-schedule.test.ts`:
 
 ```ts
-import { describe, expect, test } from 'bun:test';
-import { parseAlphaTex } from '@chordtune/chord-sheet';
+import { describe, expect, test } from "bun:test";
 
-import { scheduleTab } from './tab-schedule';
+import { parseAlphaTex } from "@chordtune/chord-sheet";
 
-const block = (source: string) => parseAlphaTex(source.split('\n')).block;
+import { scheduleTab } from "./tab-schedule";
 
-describe('scheduleTab', () => {
-  test('pitch from the string, fret and capo; time from the durations', () => {
-    const notes = scheduleTab(block(':8 0.6 5.3 (0.5 2.4).4'), { bpm: 60, capo: 2 });
+const block = (source: string) => parseAlphaTex(source.split("\n")).block;
+
+describe("scheduleTab", () => {
+  test("pitch from the string, fret and capo; time from the durations", () => {
+    const notes = scheduleTab(block(":8 0.6 5.3 (0.5 2.4).4"), {
+      bpm: 60,
+      capo: 2,
+    });
     expect(notes.map((n) => [n.time, n.midi, n.string])).toEqual([
       [0, 42, 6],
       [0.5, 62, 3],
@@ -1488,8 +1679,8 @@ describe('scheduleTab', () => {
     ]);
   });
 
-  test('ties ring on, dead notes and palm mute are muted, legato is softer', () => {
-    const notes = scheduleTab(block('3.3{h} 5.3 -.3 x.6 0.6{pm}'), { bpm: 60 });
+  test("ties ring on, dead notes and palm mute are muted, legato is softer", () => {
+    const notes = scheduleTab(block("3.3{h} 5.3 -.3 x.6 0.6{pm}"), { bpm: 60 });
     expect(notes.map((n) => [n.time, n.midi, n.muted])).toEqual([
       [0, 58, false],
       [1, 60, false],
@@ -1499,8 +1690,10 @@ describe('scheduleTab', () => {
     expect(notes[1]?.gain ?? 1).toBeLessThan(notes[0]?.gain ?? 0);
   });
 
-  test('repeats play again', () => {
-    expect(scheduleTab(block('\\ro 0.6.2 \\rc 2'), { bpm: 60 }).map((n) => n.time)).toEqual([0, 2]);
+  test("repeats play again", () => {
+    expect(
+      scheduleTab(block("\\ro 0.6.2 \\rc 2"), { bpm: 60 }).map((n) => n.time),
+    ).toEqual([0, 2]);
   });
 });
 ```
@@ -1512,9 +1705,9 @@ const event = (
   chord: string,
   start: number,
   length: number,
-  rhythm: string | null = 'A',
+  rhythm: string | null = "A",
 ): TimelineEvent => ({
-  kind: 'chord',
+  kind: "chord",
   chord,
   rhythm,
   tempo: null,
@@ -1530,21 +1723,34 @@ const event = (
 and add (import `parseAlphaTex` from `@chordtune/chord-sheet`):
 
 ```ts
-describe('tabs and tempo', () => {
-  test('a tab event plays in its tempo and pushes the next chord', () => {
-    const tab = parseAlphaTex(['\\tempo 120', '0.6 0.6 0.6 0.6']).block;
+describe("tabs and tempo", () => {
+  test("a tab event plays in its tempo and pushes the next chord", () => {
+    const tab = parseAlphaTex(["\\tempo 120", "0.6 0.6 0.6 0.6"]).block;
     const events: TimelineEvent[] = [
-      event('Am', 0, 1),
-      { kind: 'tab', block: tab, tempo: 120, bar: 1, start: 1, length: 1, section: 0, line: 1 },
-      event('G', 2, 1),
+      event("Am", 0, 1),
+      {
+        kind: "tab",
+        block: tab,
+        tempo: 120,
+        bar: 1,
+        start: 1,
+        length: 1,
+        section: 0,
+        line: 1,
+      },
+      event("G", 2, 1),
     ];
-    expect(eventSeconds(events, [preset('six')], 60)).toEqual([
+    expect(eventSeconds(events, [preset("six")], 60)).toEqual([
       { start: 0, end: 4 },
       { start: 4, end: 6 },
       { start: 6, end: 10 },
     ]);
-    const notes = scheduleNotes(events, [preset('six')], { bpm: 60 });
-    expect(notes.filter((n) => n.time >= 4 && n.time < 6).map((n) => [n.time, n.midi])).toEqual([
+    const notes = scheduleNotes(events, [preset("six")], { bpm: 60 });
+    expect(
+      notes
+        .filter((n) => n.time >= 4 && n.time < 6)
+        .map((n) => [n.time, n.midi]),
+    ).toEqual([
       [4, 40],
       [4.5, 40],
       [5, 40],
@@ -1552,15 +1758,20 @@ describe('tabs and tempo', () => {
     ]);
   });
 
-  test('a section tempo changes the bar length', () => {
-    expect(eventSeconds([{ ...event('Am', 0, 1), tempo: 120 }], [preset('six')], 60)).toEqual([
-      { start: 0, end: 2 },
-    ]);
+  test("a section tempo changes the bar length", () => {
+    expect(
+      eventSeconds([{ ...event("Am", 0, 1), tempo: 120 }], [preset("six")], 60),
+    ).toEqual([{ start: 0, end: 2 }]);
   });
 
-  test('capo raises every chord note', () => {
-    const plain = scheduleNotes([event('Am', 0, 1)], [preset('six')], { bpm: 60 });
-    const capo = scheduleNotes([event('Am', 0, 1)], [preset('six')], { bpm: 60, capo: 3 });
+  test("capo raises every chord note", () => {
+    const plain = scheduleNotes([event("Am", 0, 1)], [preset("six")], {
+      bpm: 60,
+    });
+    const capo = scheduleNotes([event("Am", 0, 1)], [preset("six")], {
+      bpm: 60,
+      capo: 3,
+    });
     expect(capo.map((n) => n.midi)).toEqual(plain.map((n) => n.midi + 3));
   });
 });
@@ -1574,10 +1785,10 @@ Expected: FAIL — `./tab-schedule` missing; tab events ignored.
 - [ ] **Step 3: Write `tab-schedule.ts`**
 
 ```ts
-import { type TabBlock, tabBeats } from '@chordtune/chord-sheet';
+import { tabBeats, type TabBlock } from "@chordtune/chord-sheet";
 
-import { OPEN_STRING_MIDI } from './guitar-synth';
-import type { ScheduledNote } from './strum-schedule';
+import { OPEN_STRING_MIDI } from "./guitar-synth";
+import type { ScheduledNote } from "./strum-schedule";
 
 const TAB_GAIN = 0.9;
 const DEAD_GAIN = 0.8;
@@ -1607,7 +1818,7 @@ export function scheduleTab(
       if (note.tie) {
         continue;
       }
-      const dead = note.fret === 'x';
+      const dead = note.fret === "x";
       let gain = dead ? DEAD_GAIN : TAB_GAIN;
       if (beat.palmMute) {
         gain *= PALM_MUTE_GAIN;
@@ -1621,7 +1832,7 @@ export function scheduleTab(
       const open = OPEN_STRING_MIDI[6 - note.string] ?? OPEN_STRING_MIDI[0];
       notes.push({
         time: start * quarterSec,
-        midi: open + (note.fret === 'x' ? 0 : note.fret) + capo,
+        midi: open + (note.fret === "x" ? 0 : note.fret) + capo,
         string: note.string,
         gain,
         muted: dead || beat.palmMute,
@@ -1643,13 +1854,13 @@ import {
   type Rhythm,
   type Step,
   type StringRef,
-  type TimelineEvent,
   tabQuarters,
-} from '@chordtune/chord-sheet';
+  type TimelineEvent,
+} from "@chordtune/chord-sheet";
 
-import { type GuitarFrets, OPEN_STRING_MIDI } from './guitar-synth';
-import { scheduleTab } from './tab-schedule';
-import { voicingFor } from './voicing';
+import { type GuitarFrets, OPEN_STRING_MIDI } from "./guitar-synth";
+import { scheduleTab } from "./tab-schedule";
+import { voicingFor } from "./voicing";
 ```
 
 ```ts
@@ -1664,9 +1875,13 @@ export type ScheduleOptions = {
 `rhythmOf(event: ChordEvent, …)`. Replace `eventSeconds`:
 
 ```ts
-function eventLength(event: TimelineEvent, rhythms: readonly Rhythm[], bpm: number): number {
+function eventLength(
+  event: TimelineEvent,
+  rhythms: readonly Rhythm[],
+  bpm: number,
+): number {
   const tempo = event.tempo ?? bpm;
-  return event.kind === 'tab'
+  return event.kind === "tab"
     ? (tabQuarters(event.block) * 60) / tempo
     : event.length * barSeconds(rhythmOf(event, rhythms), tempo);
 }
@@ -1689,44 +1904,58 @@ export function eventSeconds(
 In `scheduleNotes`:
 
 ```ts
-  const voicing = options.voicing ?? voicingFor;
-  const capo = options.capo ?? 0;
-  const seconds = eventSeconds(events, rhythms, options.bpm);
-  const notes: ScheduledNote[] = [];
+const voicing = options.voicing ?? voicingFor;
+const capo = options.capo ?? 0;
+const seconds = eventSeconds(events, rhythms, options.bpm);
+const notes: ScheduledNote[] = [];
 
-  events.forEach((event, index) => {
-    const offset = seconds[index]?.start ?? 0;
-    if (event.kind === 'tab') {
-      for (const note of scheduleTab(event.block, { bpm: event.tempo ?? options.bpm, capo })) {
-        notes.push({ ...note, time: note.time + offset });
+events.forEach((event, index) => {
+  const offset = seconds[index]?.start ?? 0;
+  if (event.kind === "tab") {
+    for (const note of scheduleTab(event.block, {
+      bpm: event.tempo ?? options.bpm,
+      capo,
+    })) {
+      notes.push({ ...note, time: note.time + offset });
+    }
+    return;
+  }
+  const frets = voicing(event.chord);
+  if (!frets) {
+    return;
+  }
+  const rhythm = rhythmOf(event, rhythms);
+  const barSec = barSeconds(rhythm, event.tempo ?? options.bpm);
+  const end = event.start + event.length;
+  const stepCount = rhythm.steps.length;
+
+  for (
+    let bar = Math.floor(event.start + EPSILON);
+    bar < end - EPSILON;
+    bar++
+  ) {
+    rhythm.steps.forEach((step, i) => {
+      const at = bar + i / stepCount;
+      if (step && at >= event.start - EPSILON && at < end - EPSILON) {
+        const time = offset + (at - event.start) * barSec;
+        notes.push(...playStep(step, rhythm.kind, frets, time, capo));
       }
-      return;
-    }
-    const frets = voicing(event.chord);
-    if (!frets) {
-      return;
-    }
-    const rhythm = rhythmOf(event, rhythms);
-    const barSec = barSeconds(rhythm, event.tempo ?? options.bpm);
-    const end = event.start + event.length;
-    const stepCount = rhythm.steps.length;
-
-    for (let bar = Math.floor(event.start + EPSILON); bar < end - EPSILON; bar++) {
-      rhythm.steps.forEach((step, i) => {
-        const at = bar + i / stepCount;
-        if (step && at >= event.start - EPSILON && at < end - EPSILON) {
-          const time = offset + (at - event.start) * barSec;
-          notes.push(...playStep(step, rhythm.kind, frets, time, capo));
-        }
-      });
-    }
-  });
+    });
+  }
+});
 ```
 
 Thread `capo` through `playStep(step, kind, frets, time, capo)` into `note(index, fret, time, gain, muted, capo)`:
 
 ```ts
-function note(index: number, fret: number, time: number, gain: number, muted: boolean, capo: number) {
+function note(
+  index: number,
+  fret: number,
+  time: number,
+  gain: number,
+  muted: boolean,
+  capo: number,
+) {
   return {
     time,
     midi: (OPEN_STRING_MIDI[index] ?? OPEN_STRING_MIDI[0]) + fret + capo,
@@ -1764,6 +1993,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ### Task 5: Web playback options, speed and zen timing with tabs
 
 **Files:**
+
 - Modify: `apps/web/src/features/rhythm/playback.ts`
 - Create: `apps/web/src/features/rhythm/playback.test.ts`
 - Modify: `apps/web/src/features/rhythm/rhythm-editor-sheet.tsx` (3 call sites)
@@ -1772,6 +2002,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 - Modify: `apps/web/src/features/song/song-view.tsx`, `apps/web/src/features/editor/chord-editor.tsx` (call sites only, to keep compiling)
 
 **Interfaces:**
+
 - Consumes: `scheduleTab`, `eventSeconds`, `scheduleNotes` with `capo` (Task 4); `timeline`, `tabBeats`, `TabBlock` (Tasks 1, 3).
 - Produces (`playback.ts`):
   - `type PlaybackOptions = { bpm: number; capo?: number | null; speed?: number }`
@@ -1793,28 +2024,44 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```ts
 /// <reference types="bun" />
 
-import { describe, expect, test } from 'bun:test';
-import { parse } from '@chordtune/chord-sheet';
+import { describe, expect, test } from "bun:test";
 
-import { beatAt, playingAt, songPlayback, tabPlayback } from './playback';
+import { parse } from "@chordtune/chord-sheet";
+
+import { beatAt, playingAt, songPlayback, tabPlayback } from "./playback";
 
 const doc = parse(
-  ['${Am}a', '{start_of_alphatex}', '0.6 0.6 0.6 0.6', '{end_of_alphatex}'].join('\n'),
+  [
+    "${Am}a",
+    "{start_of_alphatex}",
+    "0.6 0.6 0.6 0.6",
+    "{end_of_alphatex}",
+  ].join("\n"),
 ).doc;
 
-describe('songPlayback', () => {
-  test('speed divides every time', () => {
+describe("songPlayback", () => {
+  test("speed divides every time", () => {
     const normal = songPlayback(doc, [], { bpm: 60 });
     const slow = songPlayback(doc, [], { bpm: 60, speed: 0.5 });
     expect(slow.seconds).toEqual(
-      normal.seconds.map(({ start, end }) => ({ start: start * 2, end: end * 2 })),
+      normal.seconds.map(({ start, end }) => ({
+        start: start * 2,
+        end: end * 2,
+      })),
     );
-    expect(slow.notes.map((n) => n.time)).toEqual(normal.notes.map((n) => n.time * 2));
+    expect(slow.notes.map((n) => n.time)).toEqual(
+      normal.notes.map((n) => n.time * 2),
+    );
   });
 
-  test('playingAt finds the chord or the tab beat', () => {
+  test("playingAt finds the chord or the tab beat", () => {
     const playback = songPlayback(doc, [], { bpm: 60 });
-    expect(playingAt(playback, 1)).toEqual({ section: 0, line: 0, item: 0, beat: null });
+    expect(playingAt(playback, 1)).toEqual({
+      section: 0,
+      line: 0,
+      item: 0,
+      beat: null,
+    });
     expect(playingAt(playback, 6.5)).toEqual({
       section: 0,
       line: 1,
@@ -1824,24 +2071,31 @@ describe('songPlayback', () => {
     expect(playingAt(playback, 99)).toBeNull();
   });
 
-  test('tab-only song has notes', () => {
-    const tabOnly = parse('{start_of_alphatex}\n0.6 0.6\n{end_of_alphatex}').doc;
-    expect(songPlayback(tabOnly, [], { bpm: 60 }).notes.map((n) => n.time)).toEqual([0, 1]);
+  test("tab-only song has notes", () => {
+    const tabOnly = parse(
+      "{start_of_alphatex}\n0.6 0.6\n{end_of_alphatex}",
+    ).doc;
+    expect(
+      songPlayback(tabOnly, [], { bpm: 60 }).notes.map((n) => n.time),
+    ).toEqual([0, 1]);
   });
 
-  test('capo shifts the song', () => {
+  test("capo shifts the song", () => {
     const plain = songPlayback(doc, [], { bpm: 60 }).notes.map((n) => n.midi);
-    const capo = songPlayback(doc, [], { bpm: 60, capo: 2 }).notes.map((n) => n.midi);
+    const capo = songPlayback(doc, [], { bpm: 60, capo: 2 }).notes.map(
+      (n) => n.midi,
+    );
     expect(capo).toEqual(plain.map((midi) => midi + 2));
   });
 });
 
-describe('tabPlayback', () => {
-  test('the block tempo wins, speed scales, beatAt follows', () => {
-    const block = parse('{start_of_alphatex}\n\\tempo 120\n0.6 0.6\n{end_of_alphatex}').doc
-      .sections[0]?.lines[0];
-    if (block?.type !== 'alphatex') {
-      throw new Error('expected a block');
+describe("tabPlayback", () => {
+  test("the block tempo wins, speed scales, beatAt follows", () => {
+    const block = parse(
+      "{start_of_alphatex}\n\\tempo 120\n0.6 0.6\n{end_of_alphatex}",
+    ).doc.sections[0]?.lines[0];
+    if (block?.type !== "alphatex") {
+      throw new Error("expected a block");
     }
     const playback = tabPlayback(block.block, { bpm: 60, speed: 2 });
     expect(playback.beatStarts).toEqual([0, 0.25]);
@@ -1854,21 +2108,23 @@ describe('tabPlayback', () => {
 Append to `zen-timing.test.ts` inside `describe('zenLines', …)`:
 
 ```ts
-  test('alphaTex blocks are lines with a start per beat', () => {
-    const lines = zenLines(
-      doc('${Am}a\n{start_of_alphatex}\n\\tempo 120\n:8 0.6 0.6 r.4 0.6.2\n{end_of_alphatex}'),
-      [],
-      60,
-    );
-    expect(lines[1]).toEqual({
-      section: 0,
-      line: 1,
-      start: 4,
-      end: 6,
-      chordStarts: [4, 4.25, 4.5, 5],
-      chordItems: [0, 1, 2, 3],
-    });
+test("alphaTex blocks are lines with a start per beat", () => {
+  const lines = zenLines(
+    doc(
+      "${Am}a\n{start_of_alphatex}\n\\tempo 120\n:8 0.6 0.6 r.4 0.6.2\n{end_of_alphatex}",
+    ),
+    [],
+    60,
+  );
+  expect(lines[1]).toEqual({
+    section: 0,
+    line: 1,
+    start: 4,
+    end: 6,
+    chordStarts: [4, 4.25, 4.5, 5],
+    chordItems: [0, 1, 2, 3],
   });
+});
 ```
 
 - [ ] **Step 2: Run the tests to verify they fail**
@@ -1879,23 +2135,32 @@ Expected: FAIL — `playingAt`, `tabPlayback` missing; zen has no tab line.
 - [ ] **Step 3: Rewrite `playback.ts`**
 
 ```ts
-import { eventSeconds, type ScheduledNote, scheduleNotes, scheduleTab } from '@chordtune/audio';
+import {
+  eventSeconds,
+  type ScheduledNote,
+  scheduleNotes,
+  scheduleTab,
+} from "@chordtune/audio";
 import {
   barBeats,
   type Rhythm,
   type SongDoc,
+  tabBeats,
   type TabBeatTime,
   type TabBlock,
-  type TimelineEvent,
-  tabBeats,
   timeline,
-} from '@chordtune/chord-sheet';
+  type TimelineEvent,
+} from "@chordtune/chord-sheet";
 
 export const DEFAULT_BPM = 90;
-export const DEFAULT_PREVIEW_CHORD = 'Am';
+export const DEFAULT_PREVIEW_CHORD = "Am";
 
 /** `speed` plays everything that many times faster; tempo and bars stay as written. */
-export type PlaybackOptions = { bpm: number; capo?: number | null; speed?: number };
+export type PlaybackOptions = {
+  bpm: number;
+  capo?: number | null;
+  speed?: number;
+};
 
 export type SongPlayback = {
   events: TimelineEvent[];
@@ -1907,10 +2172,17 @@ export type SongPlayback = {
 };
 
 export type ActiveBeat = { bar: number; beat: number };
-export type PlayingAt = { section: number; line: number; item: number | null; beat: ActiveBeat | null };
+export type PlayingAt = {
+  section: number;
+  line: number;
+  item: number | null;
+  beat: ActiveBeat | null;
+};
 
 function atSpeed(notes: ScheduledNote[], speed: number): ScheduledNote[] {
-  return speed === 1 ? notes : notes.map((note) => ({ ...note, time: note.time / speed }));
+  return speed === 1
+    ? notes
+    : notes.map((note) => ({ ...note, time: note.time / speed }));
 }
 
 function schedule(
@@ -1923,21 +2195,28 @@ function schedule(
     end: end / speed,
   }));
   const beatStarts = events.map((event, index) => {
-    if (event.kind !== 'tab') {
+    if (event.kind !== "tab") {
       return null;
     }
     const quarterSec = 60 / (event.tempo ?? bpm) / speed;
     const start = seconds[index]?.start ?? 0;
     return tabBeats(event.block).map((beat) => start + beat.start * quarterSec);
   });
-  const notes = atSpeed(scheduleNotes(events, rhythms, { bpm, capo: capo ?? 0 }), speed);
+  const notes = atSpeed(
+    scheduleNotes(events, rhythms, { bpm, capo: capo ?? 0 }),
+    speed,
+  );
   return { events, seconds, beatStarts, notes };
 }
 
 /** One bar of a pattern on one chord, to loop in the pattern editor. */
-export function patternPlayback(rhythm: Rhythm, chord: string, options: PlaybackOptions) {
+export function patternPlayback(
+  rhythm: Rhythm,
+  chord: string,
+  options: PlaybackOptions,
+) {
   const event: TimelineEvent = {
-    kind: 'chord',
+    kind: "chord",
     chord,
     rhythm: rhythm.key,
     tempo: null,
@@ -1955,7 +2234,11 @@ export function patternPlayback(rhythm: Rhythm, chord: string, options: Playback
 }
 
 /** The whole song in time, for «Послушать». */
-export function songPlayback(doc: SongDoc, rhythms: Rhythm[], options: PlaybackOptions) {
+export function songPlayback(
+  doc: SongDoc,
+  rhythms: Rhythm[],
+  options: PlaybackOptions,
+) {
   return schedule(timeline(doc, rhythms), rhythms, options);
 }
 
@@ -1974,7 +2257,10 @@ export function sectionPlayback(
 }
 
 /** One tab block on its own; `options.bpm` is the tempo around it, `\tempo` wins. */
-export function tabPlayback(block: TabBlock, { bpm, capo, speed = 1 }: PlaybackOptions) {
+export function tabPlayback(
+  block: TabBlock,
+  { bpm, capo, speed = 1 }: PlaybackOptions,
+) {
   const tempo = block.tempo ?? bpm;
   const beats = tabBeats(block);
   return {
@@ -1988,12 +2274,18 @@ export function beatAt(
   playback: { beats: TabBeatTime[]; beatStarts: number[] },
   position: number,
 ): ActiveBeat | null {
-  const beat = playback.beats[playback.beatStarts.findLastIndex((start) => start <= position)];
+  const beat =
+    playback.beats[
+      playback.beatStarts.findLastIndex((start) => start <= position)
+    ];
   return beat ? { bar: beat.bar, beat: beat.beat } : null;
 }
 
 /** What sounds at `position` seconds: a chord item or a tab beat. */
-export function playingAt(playback: SongPlayback, position: number): PlayingAt | null {
+export function playingAt(
+  playback: SongPlayback,
+  position: number,
+): PlayingAt | null {
   const index = playback.seconds.findIndex(
     (span) => position >= span.start && position < span.end,
   );
@@ -2001,11 +2293,21 @@ export function playingAt(playback: SongPlayback, position: number): PlayingAt |
   if (!event) {
     return null;
   }
-  if (event.kind === 'chord') {
-    return { section: event.section, line: event.line, item: event.item, beat: null };
+  if (event.kind === "chord") {
+    return {
+      section: event.section,
+      line: event.line,
+      item: event.item,
+      beat: null,
+    };
   }
   const starts = playback.beatStarts[index] ?? [];
-  const beat = tabBeats(event.block)[Math.max(0, starts.findLastIndex((start) => start <= position))];
+  const beat = tabBeats(event.block)[
+    Math.max(
+      0,
+      starts.findLastIndex((start) => start <= position),
+    )
+  ];
   return {
     section: event.section,
     line: event.line,
@@ -2026,8 +2328,13 @@ export function playingAt(playback: SongPlayback, position: number): PlayingAt |
 - [ ] **Step 5: Update `zen-timing.ts`**
 
 ```ts
-import { eventSeconds } from '@chordtune/audio';
-import { type Rhythm, type SongDoc, tabBeats, timeline } from '@chordtune/chord-sheet';
+import { eventSeconds } from "@chordtune/audio";
+import {
+  type Rhythm,
+  type SongDoc,
+  tabBeats,
+  timeline,
+} from "@chordtune/chord-sheet";
 ```
 
 Update the `ZenLine` doc comments:
@@ -2041,17 +2348,17 @@ Update the `ZenLine` doc comments:
 and inside `events.forEach` replace the two final pushes:
 
 ```ts
-    line.end = Math.max(line.end, span.end);
-    if (event.kind === 'tab') {
-      const quarterSec = 60 / (event.tempo ?? bpm);
-      tabBeats(event.block).forEach((beat, index) => {
-        line.chordStarts.push(span.start + beat.start * quarterSec);
-        line.chordItems.push(index);
-      });
-    } else {
-      line.chordStarts.push(span.start);
-      line.chordItems.push(event.item);
-    }
+line.end = Math.max(line.end, span.end);
+if (event.kind === "tab") {
+  const quarterSec = 60 / (event.tempo ?? bpm);
+  tabBeats(event.block).forEach((beat, index) => {
+    line.chordStarts.push(span.start + beat.start * quarterSec);
+    line.chordItems.push(index);
+  });
+} else {
+  line.chordStarts.push(span.start);
+  line.chordItems.push(event.item);
+}
 ```
 
 Update the `zenLines` doc comment: "…Lines without chords take no time; an alphaTex block is one line whose «chords» are its beats."
@@ -2077,11 +2384,13 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ### Task 6: Tab layout and the `TabStaff` component
 
 **Files:**
+
 - Create: `apps/web/src/features/tab/tab-layout.ts`
 - Create: `apps/web/src/features/tab/tab-layout.test.ts`
 - Create: `apps/web/src/features/tab/tab-staff.tsx`
 
 **Interfaces:**
+
 - Consumes: `TabBlock`, `TabBeat` (Task 1); `ActiveBeat` (Task 5).
 - Produces:
   - `type BeatLayout = { bar: number; beat: number; x: number; width: number; at: number }` (`at` = quarters from the bar start)
@@ -2097,17 +2406,21 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```ts
 /// <reference types="bun" />
 
-import { describe, expect, test } from 'bun:test';
-import { parseAlphaTex } from '@chordtune/chord-sheet';
+import { describe, expect, test } from "bun:test";
 
-import { beamGroups, layoutTab } from './tab-layout';
+import { parseAlphaTex } from "@chordtune/chord-sheet";
 
-const block = (source: string) => parseAlphaTex(source.split('\n')).block;
+import { beamGroups, layoutTab } from "./tab-layout";
 
-describe('layoutTab', () => {
-  test('beat width follows the duration, with a minimum', () => {
+const block = (source: string) => parseAlphaTex(source.split("\n")).block;
+
+describe("layoutTab", () => {
+  test("beat width follows the duration, with a minimum", () => {
     // Half: 72; sixteenths: 9 → 18 each; bar: 10 + 72 + 8 × 18 + 10.
-    const [row] = layoutTab(block('0.6.2 :16 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6'), 1000);
+    const [row] = layoutTab(
+      block("0.6.2 :16 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6"),
+      1000,
+    );
     expect(row?.width).toBe(236);
     expect(row?.beats.slice(0, 2).map((b) => [b.x, b.width, b.at])).toEqual([
       [46, 72, 0],
@@ -2115,9 +2428,9 @@ describe('layoutTab', () => {
     ]);
   });
 
-  test('bars wrap into rows of the given width', () => {
+  test("bars wrap into rows of the given width", () => {
     // A whole note bar is 10 + 144 + 10 = 164.
-    const rows = layoutTab(block('0.6.1 | 0.6.1 | 0.6.1'), 350);
+    const rows = layoutTab(block("0.6.1 | 0.6.1 | 0.6.1"), 350);
     expect(rows.map((r) => r.bars.map((b) => [b.index, b.x]))).toEqual([
       [
         [0, 0],
@@ -2127,23 +2440,25 @@ describe('layoutTab', () => {
     ]);
   });
 
-  test('a bar wider than the row gets a row of its own', () => {
-    expect(layoutTab(block('0.6.1 | 0.6.1'), 100)).toHaveLength(2);
+  test("a bar wider than the row gets a row of its own", () => {
+    expect(layoutTab(block("0.6.1 | 0.6.1"), 100)).toHaveLength(2);
   });
 
-  test('empty block has no rows', () => {
-    expect(layoutTab(block(''), 300)).toEqual([]);
+  test("empty block has no rows", () => {
+    expect(layoutTab(block(""), 300)).toEqual([]);
   });
 });
 
-describe('beamGroups', () => {
-  test('eighths and shorter share a beam within a quarter', () => {
-    const tab = block(':8 0.6 0.6 0.6 r 0.6.4 :16 0.6 0.6 0.6 0.6');
+describe("beamGroups", () => {
+  test("eighths and shorter share a beam within a quarter", () => {
+    const tab = block(":8 0.6 0.6 0.6 r 0.6.4 :16 0.6 0.6 0.6 0.6");
     const [row] = layoutTab(tab, 1000);
     if (!row) {
-      throw new Error('expected a row');
+      throw new Error("expected a row");
     }
-    expect(beamGroups(tab, row).map((group) => group.map((b) => b.beat))).toEqual([
+    expect(
+      beamGroups(tab, row).map((group) => group.map((b) => b.beat)),
+    ).toEqual([
       [0, 1],
       [5, 6, 7, 8],
     ]);
@@ -2159,7 +2474,7 @@ Expected: FAIL — module missing.
 - [ ] **Step 3: Write `tab-layout.ts`**
 
 ```ts
-import type { TabBlock } from '@chordtune/chord-sheet';
+import type { TabBlock } from "@chordtune/chord-sheet";
 
 export const QUARTER_WIDTH = 36;
 export const MIN_BEAT_WIDTH = 18;
@@ -2191,7 +2506,9 @@ export function layoutTab(block: TabBlock, width: number): RowLayout[] {
   let row: RowLayout | null = null;
 
   block.bars.forEach((bar, index) => {
-    const widths = bar.beats.map((beat) => Math.max(MIN_BEAT_WIDTH, beat.quarters * QUARTER_WIDTH));
+    const widths = bar.beats.map((beat) =>
+      Math.max(MIN_BEAT_WIDTH, beat.quarters * QUARTER_WIDTH),
+    );
     const barWidth = BAR_PAD * 2 + widths.reduce((sum, w) => sum + w, 0);
     if (!row || (row.width + barWidth > width && row.bars.length > 0)) {
       row = { bars: [], beats: [], width: 0 };
@@ -2202,7 +2519,13 @@ export function layoutTab(block: TabBlock, width: number): RowLayout[] {
     let at = 0;
     bar.beats.forEach((beat, beatIndex) => {
       const beatWidth = widths[beatIndex] ?? MIN_BEAT_WIDTH;
-      row?.beats.push({ bar: index, beat: beatIndex, x: cursor + beatWidth / 2, width: beatWidth, at });
+      row?.beats.push({
+        bar: index,
+        beat: beatIndex,
+        x: cursor + beatWidth / 2,
+        width: beatWidth,
+        at,
+      });
       cursor += beatWidth;
       at += beat.quarters;
     });
@@ -2216,13 +2539,13 @@ export function layoutTab(block: TabBlock, width: number): RowLayout[] {
 export function beamGroups(block: TabBlock, row: RowLayout): BeatLayout[][] {
   const groups: BeatLayout[][] = [];
   let group: BeatLayout[] = [];
-  let key = '';
+  let key = "";
   const flush = () => {
     if (group.length > 1) {
       groups.push(group);
     }
     group = [];
-    key = '';
+    key = "";
   };
   for (const layout of row.beats) {
     const beat = block.bars[layout.bar]?.beats[layout.beat];
@@ -2250,14 +2573,25 @@ Expected: PASS.
 - [ ] **Step 5: Write `tab-staff.tsx`**
 
 ```tsx
-'use client';
+"use client";
 
-import type { TabBar, TabBeat, TabBlock, TabNote } from '@chordtune/chord-sheet';
-import { useLayoutEffect, useRef, useState } from 'react';
+import type {
+  TabBar,
+  TabBeat,
+  TabBlock,
+  TabNote,
+} from "@chordtune/chord-sheet";
+import { useLayoutEffect, useRef, useState } from "react";
 
-import type { ActiveBeat } from '@/features/rhythm/playback';
-import { cn } from '@/lib/utils';
-import { type BeatLayout, beamGroups, layoutTab, type RowLayout } from './tab-layout';
+import type { ActiveBeat } from "@/features/rhythm/playback";
+import { cn } from "@/lib/utils";
+
+import {
+  beamGroups,
+  type BeatLayout,
+  layoutTab,
+  type RowLayout,
+} from "./tab-layout";
 
 const STRING_GAP = 10;
 const TEXT_Y = 9;
@@ -2304,16 +2638,23 @@ export function TabStaff({
 }) {
   const [ref, width] = useWidth();
   const rows = layoutTab(block, width);
-  const hasLyrics = block.bars.some((bar) => bar.beats.some((beat) => beat.syllable));
+  const hasLyrics = block.bars.some((bar) =>
+    bar.beats.some((beat) => beat.syllable),
+  );
   const height = hasLyrics ? LYRICS_Y + 6 : RHYTHM_TOP + STEM + 6;
 
   return (
-    <div ref={ref} className={cn('flex flex-col gap-3 overflow-x-auto', className)}>
+    <div
+      ref={ref}
+      className={cn("flex flex-col gap-3 overflow-x-auto", className)}
+    >
       {rows.map((row) => {
         const first = row.bars[0]?.index ?? 0;
         const active =
           activeBeat !== null &&
-          row.beats.some((b) => b.bar === activeBeat.bar && b.beat === activeBeat.beat);
+          row.beats.some(
+            (b) => b.bar === activeBeat.bar && b.beat === activeBeat.beat,
+          );
         return (
           <div key={first} data-active-row={active || undefined}>
             <svg
@@ -2340,7 +2681,8 @@ function Row({
   row: RowLayout;
   activeBeat: ActiveBeat | null;
 }) {
-  const beatOf = (layout: BeatLayout) => block.bars[layout.bar]?.beats[layout.beat];
+  const beatOf = (layout: BeatLayout) =>
+    block.bars[layout.bar]?.beats[layout.beat];
   const beamed = new Set(beamGroups(block, row).flat());
 
   return (
@@ -2356,9 +2698,20 @@ function Row({
         />
       ))}
       {row.bars.map((bar) => (
-        <BarLines key={bar.index} bar={block.bars[bar.index]} x={bar.x} width={bar.width} />
+        <BarLines
+          key={bar.index}
+          bar={block.bars[bar.index]}
+          x={bar.x}
+          width={bar.width}
+        />
       ))}
-      <line x1={row.width} x2={row.width} y1={TOP} y2={TOP + STAFF} className="stroke-muted-foreground" />
+      <line
+        x1={row.width}
+        x2={row.width}
+        y1={TOP}
+        y2={TOP + STAFF}
+        className="stroke-muted-foreground"
+      />
       <Runs row={row} beatOf={beatOf} />
       {row.beats.map((layout, index) => {
         const beat = beatOf(layout);
@@ -2371,11 +2724,15 @@ function Row({
             key={`${layout.bar}:${layout.beat}`}
             beat={beat}
             layout={layout}
-            active={activeBeat?.bar === layout.bar && activeBeat.beat === layout.beat}
+            active={
+              activeBeat?.bar === layout.bar && activeBeat.beat === layout.beat
+            }
             beamed={beamed.has(layout)}
             target={(note) => {
               for (const next of following) {
-                const found = beatOf(next)?.notes.find((other) => other.string === note.string);
+                const found = beatOf(next)?.notes.find(
+                  (other) => other.string === note.string,
+                );
                 if (found) {
                   return { layout: next, note: found };
                 }
@@ -2386,30 +2743,60 @@ function Row({
         );
       })}
       {beamGroups(block, row).map((group) => (
-        <Beams key={`${group[0]?.bar}:${group[0]?.beat}`} group={group} beatOf={beatOf} />
+        <Beams
+          key={`${group[0]?.bar}:${group[0]?.beat}`}
+          group={group}
+          beatOf={beatOf}
+        />
       ))}
     </g>
   );
 }
 
-function BarLines({ bar, x, width }: { bar: TabBar | undefined; x: number; width: number }) {
+function BarLines({
+  bar,
+  x,
+  width,
+}: {
+  bar: TabBar | undefined;
+  x: number;
+  width: number;
+}) {
   const dots = (dx: number) =>
     [2.5, 4.5].map((string) => (
-      <circle key={string} cx={dx} cy={stringY(string)} r={1.8} className="fill-muted-foreground" />
+      <circle
+        key={string}
+        cx={dx}
+        cy={stringY(string)}
+        r={1.8}
+        className="fill-muted-foreground"
+      />
     ));
   return (
     <g className="stroke-muted-foreground">
       <line x1={x} x2={x} y1={TOP} y2={TOP + STAFF} />
       {bar?.repeatOpen && (
         <g>
-          <rect x={x + 1} y={TOP} width={2.5} height={STAFF} className="fill-muted-foreground" />
+          <rect
+            x={x + 1}
+            y={TOP}
+            width={2.5}
+            height={STAFF}
+            className="fill-muted-foreground"
+          />
           {dots(x + 8)}
         </g>
       )}
       {bar?.repeatClose !== null && bar?.repeatClose !== undefined && (
         <g>
           {dots(x + width - 8)}
-          <rect x={x + width - 3.5} y={TOP} width={2.5} height={STAFF} className="fill-muted-foreground" />
+          <rect
+            x={x + width - 3.5}
+            y={TOP}
+            width={2.5}
+            height={STAFF}
+            className="fill-muted-foreground"
+          />
           <text
             x={x + width - 2}
             y={MARK_Y}
@@ -2432,7 +2819,7 @@ function Runs({
   row: RowLayout;
   beatOf: (layout: BeatLayout) => TabBeat | undefined;
 }) {
-  const runs = (flag: 'palmMute' | 'letRing') => {
+  const runs = (flag: "palmMute" | "letRing") => {
     const result: BeatLayout[][] = [];
     for (const layout of row.beats) {
       if (!beatOf(layout)?.[flag]) {
@@ -2440,7 +2827,11 @@ function Runs({
       }
       const last = result.at(-1);
       const previous = last?.at(-1);
-      if (last && previous && row.beats.indexOf(previous) === row.beats.indexOf(layout) - 1) {
+      if (
+        last &&
+        previous &&
+        row.beats.indexOf(previous) === row.beats.indexOf(layout) - 1
+      ) {
         last.push(layout);
       } else {
         result.push([layout]);
@@ -2456,7 +2847,11 @@ function Runs({
     }
     return (
       <g key={`${label}:${first.bar}:${first.beat}`}>
-        <text x={first.x - 6} y={MARK_Y} className="fill-muted-foreground text-[9px]">
+        <text
+          x={first.x - 6}
+          y={MARK_Y}
+          className="fill-muted-foreground text-[9px]"
+        >
           {label}
         </text>
         {last !== first && (
@@ -2474,8 +2869,8 @@ function Runs({
   };
   return (
     <g>
-      {runs('palmMute').map((run) => draw('P.M.', run))}
-      {runs('letRing').map((run) => draw('let ring', run))}
+      {runs("palmMute").map((run) => draw("P.M.", run))}
+      {runs("letRing").map((run) => draw("let ring", run))}
     </g>
   );
 }
@@ -2507,16 +2902,32 @@ function Beat({
         />
       )}
       {beat.text && (
-        <text x={x} y={TEXT_Y} textAnchor="middle" className="fill-muted-foreground text-[10px]">
+        <text
+          x={x}
+          y={TEXT_Y}
+          textAnchor="middle"
+          className="fill-muted-foreground text-[10px]"
+        >
           {beat.text}
         </text>
       )}
       {beat.notes.map((note) => (
-        <NoteMark key={note.string} note={note} x={x} active={active} target={target(note)} />
+        <NoteMark
+          key={note.string}
+          note={note}
+          x={x}
+          active={active}
+          target={target(note)}
+        />
       ))}
       <Rhythm beat={beat} x={x} beamed={beamed} />
       {beat.syllable && (
-        <text x={x} y={LYRICS_Y} textAnchor="middle" className="fill-foreground text-[12px]">
+        <text
+          x={x}
+          y={LYRICS_Y}
+          textAnchor="middle"
+          className="fill-foreground text-[12px]"
+        >
           {beat.syllable}
         </text>
       )}
@@ -2536,9 +2947,12 @@ function NoteMark({
   target: { layout: BeatLayout; note: TabNote } | null;
 }) {
   const y = stringY(note.string);
-  const label = note.fret === 'x' ? 'x' : note.tie ? `(${note.fret})` : String(note.fret);
+  const label =
+    note.fret === "x" ? "x" : note.tie ? `(${note.fret})` : String(note.fret);
   const up =
-    target && typeof target.note.fret === 'number' && typeof note.fret === 'number'
+    target &&
+    typeof target.note.fret === "number" &&
+    typeof note.fret === "number"
       ? target.note.fret > note.fret
       : true;
   const bend = note.effects.bend ? Math.max(...note.effects.bend) : 0;
@@ -2546,14 +2960,16 @@ function NoteMark({
     <g>
       {note.effects.hammer && target && (
         <g className="fill-none stroke-muted-foreground">
-          <path d={`M ${x + 4} ${y - 6} Q ${(x + target.layout.x) / 2} ${y - 14} ${target.layout.x - 4} ${y - 6}`} />
+          <path
+            d={`M ${x + 4} ${y - 6} Q ${(x + target.layout.x) / 2} ${y - 14} ${target.layout.x - 4} ${y - 6}`}
+          />
           <text
             x={(x + target.layout.x) / 2}
             y={y - 12}
             textAnchor="middle"
             className="fill-muted-foreground stroke-none text-[9px]"
           >
-            {up ? 'h' : 'p'}
+            {up ? "h" : "p"}
           </text>
         </g>
       )}
@@ -2569,9 +2985,16 @@ function NoteMark({
       {bend > 0 && (
         <g className="fill-none stroke-muted-foreground">
           <path d={`M ${x + 7} ${y} Q ${x + 14} ${y} ${x + 14} ${TOP - 4}`} />
-          <path d={`M ${x + 11} ${TOP - 1} L ${x + 14} ${TOP - 6} L ${x + 17} ${TOP - 1}`} />
-          <text x={x + 14} y={TOP - 8} textAnchor="middle" className="fill-muted-foreground stroke-none text-[9px]">
-            {bend === 2 ? '½' : bend === 4 ? 'full' : String(bend / 4)}
+          <path
+            d={`M ${x + 11} ${TOP - 1} L ${x + 14} ${TOP - 6} L ${x + 17} ${TOP - 1}`}
+          />
+          <text
+            x={x + 14}
+            y={TOP - 8}
+            textAnchor="middle"
+            className="fill-muted-foreground stroke-none text-[9px]"
+          >
+            {bend === 2 ? "½" : bend === 4 ? "full" : String(bend / 4)}
           </text>
         </g>
       )}
@@ -2588,8 +3011,8 @@ function NoteMark({
         textAnchor="middle"
         paintOrder="stroke"
         className={cn(
-          'stroke-[4px] stroke-background font-mono text-[11px]',
-          active ? 'fill-primary' : 'fill-foreground',
+          "stroke-[4px] stroke-background font-mono text-[11px]",
+          active ? "fill-primary" : "fill-foreground",
         )}
       >
         {label}
@@ -2598,7 +3021,15 @@ function NoteMark({
   );
 }
 
-function Rhythm({ beat, x, beamed }: { beat: TabBeat; x: number; beamed: boolean }) {
+function Rhythm({
+  beat,
+  x,
+  beamed,
+}: {
+  beat: TabBeat;
+  x: number;
+  beamed: boolean;
+}) {
   const bottom = RHYTHM_TOP + STEM;
   if (beat.notes.length === 0) {
     return (
@@ -2626,9 +3057,21 @@ function Rhythm({ beat, x, beamed }: { beat: TabBeat; x: number; beamed: boolean
           y2={bottom - i * 4 - 5}
         />
       ))}
-      {beat.dotted && <circle cx={x + 4} cy={bottom - 2} r={1.5} className="fill-muted-foreground" />}
+      {beat.dotted && (
+        <circle
+          cx={x + 4}
+          cy={bottom - 2}
+          r={1.5}
+          className="fill-muted-foreground"
+        />
+      )}
       {beat.tuplet && !beamed && (
-        <text x={x} y={bottom + 10} textAnchor="middle" className="fill-muted-foreground stroke-none text-[9px]">
+        <text
+          x={x}
+          y={bottom + 10}
+          textAnchor="middle"
+          className="fill-muted-foreground stroke-none text-[9px]"
+        >
           {beat.tuplet}
         </text>
       )}
@@ -2649,7 +3092,9 @@ function Beams({
     return null;
   }
   const beats = group.map(beatOf);
-  const count = Math.min(...beats.map((beat) => beamCount(beat?.duration ?? 8)));
+  const count = Math.min(
+    ...beats.map((beat) => beamCount(beat?.duration ?? 8)),
+  );
   const bottom = RHYTHM_TOP + STEM;
   const tuplet = beats[0]?.tuplet;
   return (
@@ -2699,12 +3144,14 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ### Task 7: Song page: tabs, active beat and speed in the dock
 
 **Files:**
+
 - Create: `apps/web/src/features/song/speed-chips.tsx`
 - Modify: `apps/web/src/features/song/song-view.tsx`
 - Modify: `apps/web/src/features/song/song-dock.tsx`
 - Modify: `apps/web/messages/ru.json`, `apps/web/messages/en.json` (`song.speed`)
 
 **Interfaces:**
+
 - Consumes: `songPlayback`, `sectionPlayback`, `patternPlayback`, `playingAt`, `PlayingAt` (Task 5); `TabStaff` (Task 6); `timeline` (Task 3).
 - Produces:
   - `SPEEDS = [0.5, 0.75, 1, 1.25, 1.5] as const`, `formatSpeed(speed: number): string` (`'0.75×'`), `<SpeedChips speed onChange className? />` (`speed-chips.tsx`).
@@ -2718,11 +3165,11 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 - [ ] **Step 2: Write `speed-chips.tsx`**
 
 ```tsx
-'use client';
+"use client";
 
-import { useTranslations } from 'next-intl';
+import { useTranslations } from "next-intl";
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
 export const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5] as const;
 
@@ -2740,9 +3187,13 @@ export function SpeedChips({
   onChange: (speed: number) => void;
   className?: string;
 }) {
-  const t = useTranslations('song');
+  const t = useTranslations("song");
   return (
-    <div role="radiogroup" aria-label={t('speed')} className={cn('flex gap-1', className)}>
+    <div
+      role="radiogroup"
+      aria-label={t("speed")}
+      className={cn("flex gap-1", className)}
+    >
       {SPEEDS.map((value) => (
         <button
           key={value}
@@ -2751,10 +3202,10 @@ export function SpeedChips({
           aria-checked={value === speed}
           onClick={() => onChange(value)}
           className={cn(
-            'rounded-full px-2 py-0.5 font-semibold text-xs tabular-nums transition-colors',
+            "rounded-full px-2 py-0.5 font-semibold text-xs tabular-nums transition-colors",
             value === speed
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-surface-2 text-muted-foreground',
+              ? "bg-primary text-primary-foreground"
+              : "bg-surface-2 text-muted-foreground",
           )}
         >
           {formatSpeed(value)}
@@ -2789,41 +3240,46 @@ Imports: add `timeline` from `@chordtune/chord-sheet`; `type PlayingAt`, `playin
 State and playback:
 
 ```tsx
-  const bpm = arrangement.tempo ?? DEFAULT_BPM;
-  const [speed, setSpeed] = useState(1);
-  const options = { bpm, capo: arrangement.capo, speed };
-  const player = useStrumPlayer();
-  const { rhythms } = arrangement;
+const bpm = arrangement.tempo ?? DEFAULT_BPM;
+const [speed, setSpeed] = useState(1);
+const options = { bpm, capo: arrangement.capo, speed };
+const player = useStrumPlayer();
+const { rhythms } = arrangement;
 
-  const [zenOpen, setZenOpen] = useState(false);
+const [zenOpen, setZenOpen] = useState(false);
 
-  const playing = useMemo(() => {
-    const opts = { bpm, capo: arrangement.capo, speed };
-    if (player.playing === 'song') {
-      return songPlayback(doc, rhythms, opts);
-    }
-    const match = player.playing?.match(/^section:(\d+)$/);
-    return match ? sectionPlayback(doc, rhythms, Number(match[1]), opts) : null;
-  }, [player.playing, doc, rhythms, bpm, arrangement.capo, speed]);
+const playing = useMemo(() => {
+  const opts = { bpm, capo: arrangement.capo, speed };
+  if (player.playing === "song") {
+    return songPlayback(doc, rhythms, opts);
+  }
+  const match = player.playing?.match(/^section:(\d+)$/);
+  return match ? sectionPlayback(doc, rhythms, Number(match[1]), opts) : null;
+}, [player.playing, doc, rhythms, bpm, arrangement.capo, speed]);
 
-  const active: PlayingAt | null = playing ? playingAt(playing, player.position) : null;
+const active: PlayingAt | null = playing
+  ? playingAt(playing, player.position)
+  : null;
 
-  const changeSpeed = (next: number) => {
-    // Scheduled notes are fixed at their speed: stop instead of drifting.
-    player.stop();
-    setSpeed(next);
-  };
+const changeSpeed = (next: number) => {
+  // Scheduled notes are fixed at their speed: stop instead of drifting.
+  player.stop();
+  setSpeed(next);
+};
 ```
 
 Hints and `canPlay`:
 
 ```tsx
-  const speedHint = speed === 1 ? '' : ` · ${formatSpeed(speed)}`;
-  const listenHint =
-    player.playing === 'song' && active
-      ? (doc.sections[active.section]?.label ?? rhythmHint)
-      : `${rhythmHint} · ${bpm} BPM${speedHint}`;
-  const canPlay = useMemo(() => timeline(doc, rhythms).length > 0, [doc, rhythms]);
+const speedHint = speed === 1 ? "" : ` · ${formatSpeed(speed)}`;
+const listenHint =
+  player.playing === "song" && active
+    ? (doc.sections[active.section]?.label ?? rhythmHint)
+    : `${rhythmHint} · ${bpm} BPM${speedHint}`;
+const canPlay = useMemo(
+  () => timeline(doc, rhythms).length > 0,
+  [doc, rhythms],
+);
 ```
 
 All playback calls use `options`: `sectionPlayback(doc, rhythms, section, options)`, `patternPlayback(rhythm, firstChord(doc), options)`, `songPlayback(doc, rhythms, options).notes`.
@@ -2831,42 +3287,46 @@ All playback calls use `options`: `sectionPlayback(doc, rhythms, section, option
 Section header: after the `RhythmBadge`, show the section tempo when set:
 
 ```tsx
-                {section.tempo && (
-                  <span className="text-muted-foreground text-xs tabular-nums">
-                    {t('bpm', { bpm: section.tempo })}
-                  </span>
-                )}
+{
+  section.tempo && (
+    <span className="text-muted-foreground text-xs tabular-nums">
+      {t("bpm", { bpm: section.tempo })}
+    </span>
+  );
+}
 ```
 
 Lines — replace the `line.type === 'tab' ? … : …` expression with:
 
 ```tsx
-            {section.lines.map((line, lineIndex) => {
-              const here = active?.section === sectionIndex && active.line === lineIndex;
-              if (line.type === 'tab') {
-                // biome-ignore lint/suspicious/noArrayIndexKey: lines are positional
-                return <TabView key={lineIndex} lines={line.lines} />;
-              }
-              if (line.type === 'alphatex') {
-                return (
-                  <TabStaff
-                    // biome-ignore lint/suspicious/noArrayIndexKey: lines are positional
-                    key={lineIndex}
-                    block={line.block}
-                    activeBeat={here ? active.beat : null}
-                    className="py-1"
-                  />
-                );
-              }
-              return (
-                <LineView
-                  // biome-ignore lint/suspicious/noArrayIndexKey: lines are positional
-                  key={lineIndex}
-                  items={line.items}
-                  activeItem={here ? active.item : null}
-                />
-              );
-            })}
+{
+  section.lines.map((line, lineIndex) => {
+    const here = active?.section === sectionIndex && active.line === lineIndex;
+    if (line.type === "tab") {
+      // biome-ignore lint/suspicious/noArrayIndexKey: lines are positional
+      return <TabView key={lineIndex} lines={line.lines} />;
+    }
+    if (line.type === "alphatex") {
+      return (
+        <TabStaff
+          // biome-ignore lint/suspicious/noArrayIndexKey: lines are positional
+          key={lineIndex}
+          block={line.block}
+          activeBeat={here ? active.beat : null}
+          className="py-1"
+        />
+      );
+    }
+    return (
+      <LineView
+        // biome-ignore lint/suspicious/noArrayIndexKey: lines are positional
+        key={lineIndex}
+        items={line.items}
+        activeItem={here ? active.item : null}
+      />
+    );
+  });
+}
 ```
 
 Dock and zen:
@@ -2910,12 +3370,14 @@ Dock and zen:
 ### Task 8: Zen mode: speed instead of BPM, tabs in the scroll
 
 **Files:**
+
 - Modify: `apps/web/src/features/zen/zen-clock.ts`
 - Modify: `apps/web/src/features/zen/zen-clock.test.ts`
 - Modify: `apps/web/src/features/zen/zen-mode.tsx`
 - Modify: `apps/web/messages/ru.json`, `apps/web/messages/en.json` (drop `zen.slower`/`zen.faster` if unused)
 
 **Interfaces:**
+
 - Consumes: `zenLines` with tab lines (Task 5); `TabStaff` (Task 6); `SpeedChips` (Task 7); `tabBeats` (Task 1).
 - Produces: `advanceClock(seconds: number, frameMs: number, speed?: number): number`; `ZenMode` props `{ doc; rhythms; bpm: number; speed: number; onSpeedChange: (speed: number) => void; title; artist; played; onFinished; onClose }`.
 
@@ -2924,10 +3386,10 @@ Dock and zen:
 Append to `zen-clock.test.ts`:
 
 ```ts
-  test('speed makes song time run faster or slower', () => {
-    expect(advanceClock(1, 100, 1.5)).toBeCloseTo(1.15, 9);
-    expect(advanceClock(1, 100, 0.5)).toBeCloseTo(1.05, 9);
-  });
+test("speed makes song time run faster or slower", () => {
+  expect(advanceClock(1, 100, 1.5)).toBeCloseTo(1.15, 9);
+  expect(advanceClock(1, 100, 0.5)).toBeCloseTo(1.05, 9);
+});
 ```
 
 - [ ] **Step 2: Run it to verify it fails**
@@ -2942,7 +3404,11 @@ Expected: FAIL — `1.1` received for speed 1.5.
 const MAX_FRAME_MS = 250;
 
 /** Song time after a frame; `speed` is the playback speed (1.5 plays half again as fast). */
-export function advanceClock(seconds: number, frameMs: number, speed = 1): number {
+export function advanceClock(
+  seconds: number,
+  frameMs: number,
+  speed = 1,
+): number {
   return seconds + (Math.min(frameMs, MAX_FRAME_MS) / 1000) * speed;
 }
 ```
@@ -2992,35 +3458,38 @@ The footer clock shows wall time: `{clock(time / speed)} / {clock(total / speed)
 The footer right side replaces the ±BPM group with:
 
 ```tsx
-        <SpeedChips speed={speed} onChange={onSpeedChange} className="ml-auto" />
+<SpeedChips speed={speed} onChange={onSpeedChange} className="ml-auto" />
 ```
 
 Rows — replace the `{line.type === 'tab' ? … : <LineView … />}` expression:
 
 ```tsx
-                    {line.type === 'tab' ? (
-                      <TabView lines={line.lines} />
-                    ) : line.type === 'alphatex' ? (
-                      <TabStaff
-                        block={line.block}
-                        activeBeat={
-                          isCurrent
-                            ? (() => {
-                                const beat =
-                                  tabBeats(line.block)[current?.chordItems[position.chord] ?? -1];
-                                return beat ? { bar: beat.bar, beat: beat.beat } : null;
-                              })()
-                            : null
-                        }
-                      />
-                    ) : (
-                      <LineView
-                        items={line.items}
-                        activeItem={
-                          isCurrent ? (current?.chordItems[position.chord] ?? null) : null
-                        }
-                      />
-                    )}
+{
+  line.type === "tab" ? (
+    <TabView lines={line.lines} />
+  ) : line.type === "alphatex" ? (
+    <TabStaff
+      block={line.block}
+      activeBeat={
+        isCurrent
+          ? (() => {
+              const beat = tabBeats(line.block)[
+                current?.chordItems[position.chord] ?? -1
+              ];
+              return beat ? { bar: beat.bar, beat: beat.beat } : null;
+            })()
+          : null
+      }
+    />
+  ) : (
+    <LineView
+      items={line.items}
+      activeItem={
+        isCurrent ? (current?.chordItems[position.chord] ?? null) : null
+      }
+    />
+  );
+}
 ```
 
 Tab rows are not scaled up: in the row `className`, use `isCurrent && line.type !== 'alphatex' ? 'scale-[1.04] opacity-100' : isCurrent ? 'opacity-100' : …` (keep the other branches as they are).
@@ -3028,21 +3497,23 @@ Tab rows are not scaled up: in the row `className`, use `isCurrent && line.type 
 Scroll — in the `useLayoutEffect`, the current line's top follows the active tab row:
 
 ```tsx
-  useLayoutEffect(() => {
-    const height = viewport.current?.clientHeight ?? 0;
-    const top = (key?: string) => {
-      const element = key ? rows.current.get(key) : undefined;
-      if (!element) {
-        return 0;
-      }
-      // Inside a tab block, follow the row with the current beat.
-      const row = element.querySelector<HTMLElement>('[data-active-row]');
-      return row ? row.offsetTop : element.offsetTop;
-    };
-    const from = top(current ? `${current.section}:${current.line}` : undefined);
-    const to = next ? top(`${next.section}:${next.line}`) : from;
-    setOffset(height * ANCHOR - (from + (to - from) * zenOffset(position.progress)));
-  }, [current, next, position.progress]);
+useLayoutEffect(() => {
+  const height = viewport.current?.clientHeight ?? 0;
+  const top = (key?: string) => {
+    const element = key ? rows.current.get(key) : undefined;
+    if (!element) {
+      return 0;
+    }
+    // Inside a tab block, follow the row with the current beat.
+    const row = element.querySelector<HTMLElement>("[data-active-row]");
+    return row ? row.offsetTop : element.offsetTop;
+  };
+  const from = top(current ? `${current.section}:${current.line}` : undefined);
+  const to = next ? top(`${next.section}:${next.line}`) : from;
+  setOffset(
+    height * ANCHOR - (from + (to - from) * zenOffset(position.progress)),
+  );
+}, [current, next, position.progress]);
 ```
 
 (`row.offsetTop` is relative to the same absolutely positioned scroller as the line elements, because nothing between them is positioned.)
@@ -3070,6 +3541,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ### Task 9: Editor: section tempo, tab blocks and the tab editor sheet
 
 **Files:**
+
 - Create: `apps/web/src/features/tab/tab-source.ts`
 - Create: `apps/web/src/features/tab/tab-source.test.ts`
 - Create: `apps/web/src/features/tab/tab-editor-sheet.tsx`
@@ -3080,6 +3552,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 - Modify: `apps/web/messages/ru.json`, `apps/web/messages/en.json`
 
 **Interfaces:**
+
 - Consumes: `alphatexLine`, `parseAlphaTex`, `isTempo`, `MIN_TEMPO`, `MAX_TEMPO` (Tasks 1–2); `tabPlayback`, `beatAt`, `sectionPlayback`, `playingAt`, `PlayingAt` (Task 5); `TabStaff` (Task 6).
 - Produces:
   - `type BlockMeta = 'tempo' | 'ts'`; `readBlockMeta(source: readonly string[], command: BlockMeta): string | null`; `setBlockMeta(source: readonly string[], command: BlockMeta, value: string | null): string[]`.
@@ -3095,30 +3568,32 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```ts
 /// <reference types="bun" />
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 
-import { readBlockMeta, setBlockMeta } from './tab-source';
+import { readBlockMeta, setBlockMeta } from "./tab-source";
 
-describe('setBlockMeta', () => {
-  test('adds, replaces and removes a command line', () => {
-    expect(setBlockMeta([':8 0.6'], 'tempo', '140')).toEqual(['\\tempo 140', ':8 0.6']);
-    expect(setBlockMeta(['\\tempo 140', ':8 0.6'], 'tempo', '90')).toEqual([
-      '\\tempo 90',
-      ':8 0.6',
+describe("setBlockMeta", () => {
+  test("adds, replaces and removes a command line", () => {
+    expect(setBlockMeta([":8 0.6"], "tempo", "140")).toEqual([
+      "\\tempo 140",
+      ":8 0.6",
     ]);
-    expect(setBlockMeta(['\\tempo 140', '\\ts 3 4', '0.6'], 'tempo', null)).toEqual([
-      '\\ts 3 4',
-      '0.6',
+    expect(setBlockMeta(["\\tempo 140", ":8 0.6"], "tempo", "90")).toEqual([
+      "\\tempo 90",
+      ":8 0.6",
     ]);
-    expect(setBlockMeta(['0.6'], 'ts', null)).toEqual(['0.6']);
+    expect(
+      setBlockMeta(["\\tempo 140", "\\ts 3 4", "0.6"], "tempo", null),
+    ).toEqual(["\\ts 3 4", "0.6"]);
+    expect(setBlockMeta(["0.6"], "ts", null)).toEqual(["0.6"]);
   });
 });
 
-describe('readBlockMeta', () => {
-  test('returns the raw value, even a half-typed one', () => {
-    expect(readBlockMeta(['\\tempo 140', '\\ts 3 4'], 'ts')).toBe('3 4');
-    expect(readBlockMeta(['\\tempo 1', '0.6'], 'tempo')).toBe('1');
-    expect(readBlockMeta(['0.6'], 'tempo')).toBeNull();
+describe("readBlockMeta", () => {
+  test("returns the raw value, even a half-typed one", () => {
+    expect(readBlockMeta(["\\tempo 140", "\\ts 3 4"], "ts")).toBe("3 4");
+    expect(readBlockMeta(["\\tempo 1", "0.6"], "tempo")).toBe("1");
+    expect(readBlockMeta(["0.6"], "tempo")).toBeNull();
   });
 });
 ```
@@ -3131,17 +3606,21 @@ Expected: FAIL — module missing.
 - [ ] **Step 3: Write `tab-source.ts`**
 
 ```ts
-export type BlockMeta = 'tempo' | 'ts';
+export type BlockMeta = "tempo" | "ts";
 
-const metaRe = (command: BlockMeta) => new RegExp(`^\\s*\\\\${command}\\b\\s*(.*)$`);
+const metaRe = (command: BlockMeta) =>
+  new RegExp(`^\\s*\\\\${command}\\b\\s*(.*)$`);
 
 /** The argument of `\tempo` / `\ts` in a block, as written. */
-export function readBlockMeta(source: readonly string[], command: BlockMeta): string | null {
+export function readBlockMeta(
+  source: readonly string[],
+  command: BlockMeta,
+): string | null {
   const re = metaRe(command);
   for (const line of source) {
     const match = re.exec(line);
     if (match) {
-      return (match[1] ?? '').trim();
+      return (match[1] ?? "").trim();
     }
   }
   return null;
@@ -3170,7 +3649,12 @@ Run: `cd apps/web && bun test src/features/tab/tab-source.test.ts` → PASS.
 - [ ] **Step 4: Add `setLine` to `doc-edit.ts`**
 
 ```ts
-export function setLine(doc: SongDoc, section: number, line: number, next: Line): SongDoc {
+export function setLine(
+  doc: SongDoc,
+  section: number,
+  line: number,
+  next: Line,
+): SongDoc {
   return withSection(doc, section, (s) => ({
     ...s,
     lines: s.lines.map((l, i) => (i === line ? next : l)),
@@ -3223,45 +3707,51 @@ export function setLine(doc: SongDoc, section: number, line: number, next: Line)
 - [ ] **Step 6: Write `tab-editor-sheet.tsx`**
 
 ```tsx
-'use client';
+"use client";
 
-import { MAX_TEMPO, MIN_TEMPO, parseAlphaTex } from '@chordtune/chord-sheet';
-import { Play, Square } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { MAX_TEMPO, MIN_TEMPO, parseAlphaTex } from "@chordtune/chord-sheet";
+import { Play, Square } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo, useState } from "react";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Textarea } from '@/components/ui/textarea';
-import { beatAt, tabPlayback } from '@/features/rhythm/playback';
-import type { StrumPlayerControls } from '@/features/rhythm/use-strum-player';
-import { readBlockMeta, setBlockMeta } from './tab-source';
-import { TabStaff } from './tab-staff';
+} from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
+import { beatAt, tabPlayback } from "@/features/rhythm/playback";
+import type { StrumPlayerControls } from "@/features/rhythm/use-strum-player";
 
-const PREVIEW_ID = 'tab-preview';
-const TIMES = ['4/4', '3/4', '6/8', '2/4'];
+import { readBlockMeta, setBlockMeta } from "./tab-source";
+import { TabStaff } from "./tab-staff";
+
+const PREVIEW_ID = "tab-preview";
+const TIMES = ["4/4", "3/4", "6/8", "2/4"];
 const CHEATS: [code: string, key: string][] = [
-  ['5.3', 'note'],
-  [':8', 'duration'],
-  ['5.3.16', 'beatDuration'],
-  ['r  r.2', 'rest'],
-  ['(0.5 2.4).4', 'chord'],
-  ['x.3  -.3', 'dead'],
-  ['{d} {tu 3} {h} {sl} {pm}', 'effects'],
-  ['{b (0 4)} {v}', 'bend'],
-  ['{txt "тише"}', 'text'],
-  ['\\lyrics "сло-ва _ пес-ни"', 'lyrics'],
-  ['\\ro … \\rc 2', 'repeat'],
-  ['\\tempo 140  \\ts 3 4', 'meta'],
+  ["5.3", "note"],
+  [":8", "duration"],
+  ["5.3.16", "beatDuration"],
+  ["r  r.2", "rest"],
+  ["(0.5 2.4).4", "chord"],
+  ["x.3  -.3", "dead"],
+  ["{d} {tu 3} {h} {sl} {pm}", "effects"],
+  ["{b (0 4)} {v}", "bend"],
+  ['{txt "тише"}', "text"],
+  ['\\lyrics "сло-ва _ пес-ни"', "lyrics"],
+  ["\\ro … \\rc 2", "repeat"],
+  ["\\tempo 140  \\ts 3 4", "meta"],
 ];
 
 /** Writes one alphaTex block: the source, a live tablature, problems, and a play button. */
@@ -3282,20 +3772,25 @@ export function TabEditorSheet({
   onSave: (source: string[]) => void;
   onClose: () => void;
 }) {
-  const t = useTranslations('tab');
-  const [text, setText] = useState(source?.join('\n') ?? '');
-  useEffect(() => setText(source?.join('\n') ?? ''), [source]);
+  const t = useTranslations("tab");
+  const [text, setText] = useState(source?.join("\n") ?? "");
+  useEffect(() => setText(source?.join("\n") ?? ""), [source]);
 
-  const lines = useMemo(() => text.split('\n'), [text]);
+  const lines = useMemo(() => text.split("\n"), [text]);
   const { block, diagnostics } = useMemo(() => parseAlphaTex(lines), [lines]);
-  const errors = diagnostics.filter((diagnostic) => diagnostic.severity === 'error');
-  const playback = useMemo(() => tabPlayback(block, { bpm, capo }), [block, bpm, capo]);
+  const errors = diagnostics.filter(
+    (diagnostic) => diagnostic.severity === "error",
+  );
+  const playback = useMemo(
+    () => tabPlayback(block, { bpm, capo }),
+    [block, bpm, capo],
+  );
   const previewing = player.playing === PREVIEW_ID;
   const activeBeat = previewing ? beatAt(playback, player.position) : null;
-  const time = readBlockMeta(lines, 'ts')?.replace(/\s+/, '/') ?? '4/4';
+  const time = readBlockMeta(lines, "ts")?.replace(/\s+/, "/") ?? "4/4";
 
-  const setMeta = (command: 'tempo' | 'ts', value: string | null) =>
-    setText(setBlockMeta(lines, command, value).join('\n'));
+  const setMeta = (command: "tempo" | "ts", value: string | null) =>
+    setText(setBlockMeta(lines, command, value).join("\n"));
 
   const close = () => {
     if (previewing) {
@@ -3308,7 +3803,7 @@ export function TabEditorSheet({
     if (previewing) {
       player.stop();
     }
-    const end = lines.findLastIndex((line) => line.trim() !== '');
+    const end = lines.findLastIndex((line) => line.trim() !== "");
     onSave(lines.slice(0, end + 1));
   };
 
@@ -3321,12 +3816,12 @@ export function TabEditorSheet({
         {source !== null && (
           <div className="flex flex-col gap-4 p-4 pt-0">
             <SheetHeader className="px-0">
-              <SheetTitle>{t('title')}</SheetTitle>
+              <SheetTitle>{t("title")}</SheetTitle>
             </SheetHeader>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="tab-tempo">{t('tempo')}</Label>
+                <Label htmlFor="tab-tempo">{t("tempo")}</Label>
                 <Input
                   id="tab-tempo"
                   type="number"
@@ -3334,17 +3829,23 @@ export function TabEditorSheet({
                   min={MIN_TEMPO}
                   max={MAX_TEMPO}
                   placeholder={String(bpm)}
-                  value={readBlockMeta(lines, 'tempo') ?? ''}
-                  onChange={(event) => setMeta('tempo', event.target.value || null)}
+                  value={readBlockMeta(lines, "tempo") ?? ""}
+                  onChange={(event) =>
+                    setMeta("tempo", event.target.value || null)
+                  }
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label>{t('time')}</Label>
+                <Label>{t("time")}</Label>
                 <Select
                   value={time}
                   items={TIMES.map((value) => ({ value, label: value }))}
                   onValueChange={(value) =>
-                    value && setMeta('ts', value === '4/4' ? null : value.replace('/', ' '))
+                    value &&
+                    setMeta(
+                      "ts",
+                      value === "4/4" ? null : value.replace("/", " "),
+                    )
                   }
                 >
                   <SelectTrigger className="w-full">
@@ -3362,12 +3863,12 @@ export function TabEditorSheet({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="tab-source">{t('source')}</Label>
+              <Label htmlFor="tab-source">{t("source")}</Label>
               <Textarea
                 id="tab-source"
                 value={text}
                 onChange={(event) => setText(event.target.value)}
-                placeholder={t('placeholder')}
+                placeholder={t("placeholder")}
                 spellCheck={false}
                 autoCapitalize="off"
                 autoCorrect="off"
@@ -3377,7 +3878,11 @@ export function TabEditorSheet({
               />
             </div>
 
-            <TabStaff block={block} activeBeat={activeBeat} className="rounded-md bg-muted/30 p-2" />
+            <TabStaff
+              block={block}
+              activeBeat={activeBeat}
+              className="rounded-md bg-muted/30 p-2"
+            />
 
             {diagnostics.length > 0 && (
               <ul className="flex flex-col gap-1 text-sm">
@@ -3385,22 +3890,31 @@ export function TabEditorSheet({
                   <li
                     key={`${diagnostic.line}:${diagnostic.col}:${diagnostic.message}`}
                     className={
-                      diagnostic.severity === 'error' ? 'text-destructive' : 'text-muted-foreground'
+                      diagnostic.severity === "error"
+                        ? "text-destructive"
+                        : "text-muted-foreground"
                     }
                   >
-                    {t('lineError', { line: diagnostic.line, message: diagnostic.message })}
+                    {t("lineError", {
+                      line: diagnostic.line,
+                      message: diagnostic.message,
+                    })}
                   </li>
                 ))}
               </ul>
             )}
 
             <details className="text-sm">
-              <summary className="cursor-pointer text-muted-foreground">{t('cheatsheet')}</summary>
+              <summary className="cursor-pointer text-muted-foreground">
+                {t("cheatsheet")}
+              </summary>
               <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
                 {CHEATS.map(([code, key]) => (
                   <div key={key} className="contents">
                     <dt className="font-mono text-xs">{code}</dt>
-                    <dd className="text-muted-foreground text-xs">{t(`cheat.${key}`)}</dd>
+                    <dd className="text-muted-foreground text-xs">
+                      {t(`cheat.${key}`)}
+                    </dd>
                   </div>
                 ))}
               </dl>
@@ -3411,17 +3925,19 @@ export function TabEditorSheet({
                 variant="outline"
                 disabled={playback.notes.length === 0}
                 onClick={() =>
-                  previewing ? player.stop() : void player.play(PREVIEW_ID, playback.notes)
+                  previewing
+                    ? player.stop()
+                    : void player.play(PREVIEW_ID, playback.notes)
                 }
               >
                 {previewing ? <Square /> : <Play />}
-                {t('play')}
+                {t("play")}
               </Button>
               <Button variant="ghost" className="ml-auto" onClick={close}>
-                {t('cancel')}
+                {t("cancel")}
               </Button>
               <Button disabled={errors.length > 0} onClick={save}>
-                {t('done')}
+                {t("done")}
               </Button>
             </div>
           </div>
@@ -3452,110 +3968,118 @@ State: `const [editingTab, setEditingTab] = useState<{ section: number; line: nu
 Section header — after the rhythm `Select` (inside the same `section.label !== null` condition), add:
 
 ```tsx
-            {section.label !== null && (
-              <SectionTempo
-                value={section.tempo}
-                songBpm={songBpm}
-                onChange={(tempo) => onChange(updateSection(doc, sectionIndex, { tempo }))}
-              />
-            )}
+{
+  section.label !== null && (
+    <SectionTempo
+      value={section.tempo}
+      songBpm={songBpm}
+      onChange={(tempo) =>
+        onChange(updateSection(doc, sectionIndex, { tempo }))
+      }
+    />
+  );
+}
 ```
 
 Lines — before the existing `if (line.type === 'tab')`, add:
 
 ```tsx
-            if (line.type === 'alphatex') {
-              return (
-                <div key={key} className="group flex items-start gap-1">
-                  <TabStaff
-                    block={line.block}
-                    activeBeat={
-                      active?.section === sectionIndex && active.line === lineIndex
-                        ? active.beat
-                        : null
-                    }
-                    className="min-w-0 flex-1"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    className="text-muted-foreground"
-                    aria-label={t('playTab')}
-                    onClick={() => onPlayTab(sectionIndex, lineIndex)}
-                  >
-                    {playingTab === key ? <Square /> : <Play />}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    className="text-muted-foreground"
-                    aria-label={t('editTab')}
-                    onClick={() => setEditingTab({ section: sectionIndex, line: lineIndex })}
-                  >
-                    <Pencil />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    className="text-muted-foreground"
-                    aria-label={t('removeLine')}
-                    onClick={() => onChange(removeLine(doc, sectionIndex, lineIndex))}
-                  >
-                    <Trash2 />
-                  </Button>
-                </div>
-              );
-            }
+if (line.type === "alphatex") {
+  return (
+    <div key={key} className="group flex items-start gap-1">
+      <TabStaff
+        block={line.block}
+        activeBeat={
+          active?.section === sectionIndex && active.line === lineIndex
+            ? active.beat
+            : null
+        }
+        className="min-w-0 flex-1"
+      />
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        className="text-muted-foreground"
+        aria-label={t("playTab")}
+        onClick={() => onPlayTab(sectionIndex, lineIndex)}
+      >
+        {playingTab === key ? <Square /> : <Play />}
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        className="text-muted-foreground"
+        aria-label={t("editTab")}
+        onClick={() =>
+          setEditingTab({ section: sectionIndex, line: lineIndex })
+        }
+      >
+        <Pencil />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        className="text-muted-foreground"
+        aria-label={t("removeLine")}
+        onClick={() => onChange(removeLine(doc, sectionIndex, lineIndex))}
+      >
+        <Trash2 />
+      </Button>
+    </div>
+  );
+}
 ```
 
 Next to the «+ Строка» button, wrap both in `<div className="flex gap-1 self-start">` and add:
 
 ```tsx
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground"
-              onClick={() => {
-                const at = section.lines.length;
-                onChange(insertLine(doc, sectionIndex, at, alphatexLine([])));
-                setEditingTab({ section: sectionIndex, line: at });
-              }}
-            >
-              <Plus />
-              {t('addTab')}
-            </Button>
+<Button
+  variant="ghost"
+  size="sm"
+  className="text-muted-foreground"
+  onClick={() => {
+    const at = section.lines.length;
+    onChange(insertLine(doc, sectionIndex, at, alphatexLine([])));
+    setEditingTab({ section: sectionIndex, line: at });
+  }}
+>
+  <Plus />
+  {t("addTab")}
+</Button>
 ```
 
 Before the closing `</div>` of the component (next to `ChordPalette`):
 
 ```tsx
-      <TabEditorSheet
-        source={(() => {
-          const line = editingTab
-            ? doc.sections[editingTab.section]?.lines[editingTab.line]
-            : undefined;
-          return line?.type === 'alphatex' ? line.source : null;
-        })()}
-        bpm={(editingTab ? doc.sections[editingTab.section]?.tempo : null) ?? songBpm}
-        capo={capo}
-        player={player}
-        onSave={(source) => {
-          if (editingTab) {
-            onChange(setLine(doc, editingTab.section, editingTab.line, alphatexLine(source)));
-          }
-          setEditingTab(null);
-        }}
-        onClose={() => {
-          const line = editingTab
-            ? doc.sections[editingTab.section]?.lines[editingTab.line]
-            : undefined;
-          // A block that was added and never written is dropped.
-          if (editingTab && line?.type === 'alphatex' && line.source.length === 0) {
-            onChange(removeLine(doc, editingTab.section, editingTab.line));
-          }
-          setEditingTab(null);
-        }}
-      />
+<TabEditorSheet
+  source={(() => {
+    const line = editingTab
+      ? doc.sections[editingTab.section]?.lines[editingTab.line]
+      : undefined;
+    return line?.type === "alphatex" ? line.source : null;
+  })()}
+  bpm={(editingTab ? doc.sections[editingTab.section]?.tempo : null) ?? songBpm}
+  capo={capo}
+  player={player}
+  onSave={(source) => {
+    if (editingTab) {
+      onChange(
+        setLine(doc, editingTab.section, editingTab.line, alphatexLine(source)),
+      );
+    }
+    setEditingTab(null);
+  }}
+  onClose={() => {
+    const line = editingTab
+      ? doc.sections[editingTab.section]?.lines[editingTab.line]
+      : undefined;
+    // A block that was added and never written is dropped.
+    if (editingTab && line?.type === "alphatex" && line.source.length === 0) {
+      onChange(removeLine(doc, editingTab.section, editingTab.line));
+    }
+    setEditingTab(null);
+  }}
+/>
 ```
 
 `source` must stay referentially stable between renders so the sheet's `useEffect` does not reset typing: `line.source` comes from `doc` and only changes when the doc changes, which does not happen while the sheet is open.
@@ -3573,8 +4097,8 @@ function SectionTempo({
   songBpm: number;
   onChange: (tempo: number | null) => void;
 }) {
-  const t = useTranslations('editor');
-  const shown = value === null ? '' : String(value);
+  const t = useTranslations("editor");
+  const shown = value === null ? "" : String(value);
   const [text, setText] = useState(shown);
   useEffect(() => setText(shown), [shown]);
 
@@ -3594,13 +4118,13 @@ function SectionTempo({
       <Input
         type="number"
         inputMode="numeric"
-        aria-label={t('sectionTempo')}
+        aria-label={t("sectionTempo")}
         placeholder={String(songBpm)}
         value={text}
         onChange={(event) => setText(event.target.value)}
         onBlur={commit}
         onKeyDown={(event) => {
-          if (event.key === 'Enter') {
+          if (event.key === "Enter") {
             commit();
           }
         }}
@@ -3619,30 +4143,36 @@ Props: add `capo: number | null`. Imports: `beatAt`, `playingAt`, `sectionPlayba
 Replace the `playingSection`/`active` block:
 
 ```tsx
-  const options = { bpm, capo };
-  const playingId = player.playing ?? '';
-  const sectionMatch = /^section:(\d+)$/.exec(playingId);
-  const tabMatch = /^tab:(\d+:\d+)$/.exec(playingId);
-  const playingSection = sectionMatch ? Number(sectionMatch[1]) : null;
-  const playingTab = tabMatch?.[1] ?? null;
+const options = { bpm, capo };
+const playingId = player.playing ?? "";
+const sectionMatch = /^section:(\d+)$/.exec(playingId);
+const tabMatch = /^tab:(\d+:\d+)$/.exec(playingId);
+const playingSection = sectionMatch ? Number(sectionMatch[1]) : null;
+const playingTab = tabMatch?.[1] ?? null;
 
-  const tabAt = (section: number, line: number) => {
-    const found = doc.sections[section]?.lines[line];
-    return found?.type === 'alphatex'
-      ? tabPlayback(found.block, { ...options, bpm: doc.sections[section]?.tempo ?? bpm })
-      : null;
-  };
+const tabAt = (section: number, line: number) => {
+  const found = doc.sections[section]?.lines[line];
+  return found?.type === "alphatex"
+    ? tabPlayback(found.block, {
+        ...options,
+        bpm: doc.sections[section]?.tempo ?? bpm,
+      })
+    : null;
+};
 
-  let active: ActiveChord = null;
-  if (playingSection !== null) {
-    active = playingAt(sectionPlayback(doc, rhythms, playingSection, options), player.position);
-  } else if (playingTab) {
-    const [section = 0, line = 0] = playingTab.split(':').map(Number);
-    const playback = tabAt(section, line);
-    active = playback
-      ? { section, line, item: null, beat: beatAt(playback, player.position) }
-      : null;
-  }
+let active: ActiveChord = null;
+if (playingSection !== null) {
+  active = playingAt(
+    sectionPlayback(doc, rhythms, playingSection, options),
+    player.position,
+  );
+} else if (playingTab) {
+  const [section = 0, line = 0] = playingTab.split(":").map(Number);
+  const playback = tabAt(section, line);
+  active = playback
+    ? { section, line, item: null, beat: beatAt(playback, player.position) }
+    : null;
+}
 ```
 
 `VisualEditor` gets:
@@ -3688,6 +4218,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ### Task 10: Convert Obsidian `jtab` blocks to alphaTex on import
 
 **Files:**
+
 - Create: `packages/chord-sheet/src/jtab.ts`
 - Create: `packages/chord-sheet/src/jtab.test.ts`
 - Modify: `packages/chord-sheet/src/import-obsidian.ts`
@@ -3695,6 +4226,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 - Modify: `packages/chord-sheet/src/index.ts`
 
 **Interfaces:**
+
 - Consumes: `alphatexLine` (Task 2), `Section` with `tempo` (Task 2).
 - Produces: `jtabToAlphaTex(source: string): string[] | null`.
 
@@ -3703,46 +4235,48 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 `packages/chord-sheet/src/jtab.test.ts`:
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 
-import { parseAlphaTex } from './alphatex';
-import { jtabToAlphaTex } from './jtab';
+import { parseAlphaTex } from "./alphatex";
+import { jtabToAlphaTex } from "./jtab";
 
-describe('jtabToAlphaTex', () => {
-  test('even bars become eighth notes, one output line per jtab line', () => {
+describe("jtabToAlphaTex", () => {
+  test("even bars become eighth notes, one output line per jtab line", () => {
     const source = [
-      '$5 0 $3 5 $2 8 $5 0 $3 5 $2 5 $5 0 $3 5 | $2 6 $5 0 $3 5 $2 5 $5 0 $3 5 $2 5 $3 5 |',
-      '',
-      '$4 3 $3 5 $1 3 $4 3 $3 5 $2 5 $4 3 $3 5 |',
-    ].join('\n');
+      "$5 0 $3 5 $2 8 $5 0 $3 5 $2 5 $5 0 $3 5 | $2 6 $5 0 $3 5 $2 5 $5 0 $3 5 $2 5 $3 5 |",
+      "",
+      "$4 3 $3 5 $1 3 $4 3 $3 5 $2 5 $4 3 $3 5 |",
+    ].join("\n");
     const lines = jtabToAlphaTex(source);
     expect(lines).toEqual([
-      ':8 0.5 5.3 8.2 0.5 5.3 5.2 0.5 5.3 | 6.2 0.5 5.3 5.2 0.5 5.3 5.2 5.3 |',
-      '3.4 5.3 3.1 3.4 5.3 5.2 3.4 5.3 |',
+      ":8 0.5 5.3 8.2 0.5 5.3 5.2 0.5 5.3 | 6.2 0.5 5.3 5.2 0.5 5.3 5.2 5.3 |",
+      "3.4 5.3 3.1 3.4 5.3 5.2 3.4 5.3 |",
     ]);
     expect(parseAlphaTex(lines ?? []).diagnostics).toEqual([]);
   });
 
-  test('uneven bars or foreign tokens are not converted', () => {
-    expect(jtabToAlphaTex('$5 0 $3 5 | $2 6 $5 0 $3 5 |')).toBeNull();
-    expect(jtabToAlphaTex('$5 0 $3 5 $2 8')).toBeNull();
-    expect(jtabToAlphaTex('Am G | $5 0')).toBeNull();
-    expect(jtabToAlphaTex('')).toBeNull();
+  test("uneven bars or foreign tokens are not converted", () => {
+    expect(jtabToAlphaTex("$5 0 $3 5 | $2 6 $5 0 $3 5 |")).toBeNull();
+    expect(jtabToAlphaTex("$5 0 $3 5 $2 8")).toBeNull();
+    expect(jtabToAlphaTex("Am G | $5 0")).toBeNull();
+    expect(jtabToAlphaTex("")).toBeNull();
   });
 });
 ```
 
 In `import-obsidian.test.ts`, replace the two jtab expectations of the `Гореть` test:
 
-```ts
-    expect(song.notes).not.toContain('```jtab');
-    expect(song.notes).not.toContain('**Проигрыш**');
-    const riff = doc.sections.find((section) => section.label === 'Проигрыш');
-    const block = riff?.lines[0];
-    expect(block?.type).toBe('alphatex');
-    expect(block?.type === 'alphatex' && block.block.bars).toHaveLength(8);
-    expect(block?.type === 'alphatex' && block.block.bars[0]?.beats[0]?.duration).toBe(8);
-```
+````ts
+expect(song.notes).not.toContain("```jtab");
+expect(song.notes).not.toContain("**Проигрыш**");
+const riff = doc.sections.find((section) => section.label === "Проигрыш");
+const block = riff?.lines[0];
+expect(block?.type).toBe("alphatex");
+expect(block?.type === "alphatex" && block.block.bars).toHaveLength(8);
+expect(
+  block?.type === "alphatex" && block.block.bars[0]?.beats[0]?.duration,
+).toBe(8);
+````
 
 (`doc` is already `parse(song.content).doc` in that test; if `Проигрыш` also exists as a section in the fixture's chords block, the block goes into that section instead — the `find` still holds.)
 
@@ -3766,8 +4300,8 @@ function barNotes(bar: string): string[] | null {
   }
   const notes: string[] = [];
   for (let i = 0; i < tokens.length; i += 2) {
-    const string = STRING_RE.exec(tokens[i] ?? '')?.[1];
-    const fret = tokens[i + 1] ?? '';
+    const string = STRING_RE.exec(tokens[i] ?? "")?.[1];
+    const fret = tokens[i + 1] ?? "";
     if (!string || !FRET_RE.test(fret)) {
       return null;
     }
@@ -3782,12 +4316,12 @@ function barNotes(bar: string): string[] | null {
  */
 export function jtabToAlphaTex(source: string): string[] | null {
   const rows = source
-    .split('\n')
+    .split("\n")
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) =>
       line
-        .split('|')
+        .split("|")
         .map((bar) => bar.trim())
         .filter(Boolean)
         .map(barNotes),
@@ -3803,7 +4337,7 @@ export function jtabToAlphaTex(source: string): string[] | null {
   }
   return rows.map(
     (row, index) =>
-      `${index === 0 ? `:${count} ` : ''}${row.map((bar) => (bar ?? []).join(' ')).join(' | ')} |`,
+      `${index === 0 ? `:${count} ` : ""}${row.map((bar) => (bar ?? []).join(" ")).join(" | ")} |`,
   );
 }
 ```
@@ -3815,85 +4349,90 @@ Imports: `import { alphatexLine } from './alphatex';` and `import { jtabToAlphaT
 State next to `notes`:
 
 ```ts
-  const tabs: { label: string | null; source: string[] }[] = [];
-  let fenceLines: string[] = [];
-  /** `**Проигрыш**` right before a fence names the tab in it. */
-  let lastBold: string | null = null;
+const tabs: { label: string | null; source: string[] }[] = [];
+let fenceLines: string[] = [];
+/** `**Проигрыш**` right before a fence names the tab in it. */
+let lastBold: string | null = null;
 ```
 
 In the `fence === null` branch, when a fence opens:
 
-```ts
-      if (trimmed.startsWith('```')) {
-        fence = trimmed.slice(3).trim();
-        fenceLines = [];
-        if (fence === 'chords') {
-          if (sheet.length > 0) {
-            sheet.push('');
-          }
-        } else if (fence !== 'jtab') {
-          notes.push(trimmed);
-        }
-        continue;
-      }
-```
+````ts
+if (trimmed.startsWith("```")) {
+  fence = trimmed.slice(3).trim();
+  fenceLines = [];
+  if (fence === "chords") {
+    if (sheet.length > 0) {
+      sheet.push("");
+    }
+  } else if (fence !== "jtab") {
+    notes.push(trimmed);
+  }
+  continue;
+}
+````
 
 and where a plain line goes to notes (`if (!readMeta(line, null) && trimmed) { notes.push(line.trimEnd()); }`), track the bold heading:
 
 ```ts
-      if (!readMeta(line, null) && trimmed) {
-        notes.push(line.trimEnd());
-        lastBold = BOLD_RE.exec(trimmed)?.[1]?.trim() ?? null;
-      }
-      continue;
+if (!readMeta(line, null) && trimmed) {
+  notes.push(line.trimEnd());
+  lastBold = BOLD_RE.exec(trimmed)?.[1]?.trim() ?? null;
+}
+continue;
 ```
 
 with `const BOLD_RE = /^\*\*(.+?)\*\*$/;` at the top of the file.
 
 When the fence closes:
 
-```ts
-    if (trimmed === '```') {
-      if (fence === 'jtab') {
-        const source = jtabToAlphaTex(fenceLines.join('\n'));
-        if (source) {
-          if (lastBold !== null && notes.at(-1) === `**${lastBold}**`) {
-            notes.pop();
-          }
-          tabs.push({ label: lastBold, source });
-        } else {
-          notes.push('```jtab', ...fenceLines, '```');
-        }
-      } else if (fence !== 'chords') {
-        notes.push(trimmed);
+````ts
+if (trimmed === "```") {
+  if (fence === "jtab") {
+    const source = jtabToAlphaTex(fenceLines.join("\n"));
+    if (source) {
+      if (lastBold !== null && notes.at(-1) === `**${lastBold}**`) {
+        notes.pop();
       }
-      fence = null;
-      lastBold = null;
-      continue;
+      tabs.push({ label: lastBold, source });
+    } else {
+      notes.push("```jtab", ...fenceLines, "```");
     }
-    if (fence === 'jtab') {
-      fenceLines.push(line.trimEnd());
-      continue;
-    }
-```
+  } else if (fence !== "chords") {
+    notes.push(trimmed);
+  }
+  fence = null;
+  lastBold = null;
+  continue;
+}
+if (fence === "jtab") {
+  fenceLines.push(line.trimEnd());
+  continue;
+}
+````
 
 (keep the existing `if (fence !== 'chords') { notes.push(line.trimEnd()); continue; }` after it for other fences).
 
 After `markSectionRhythms(…)`:
 
 ```ts
-  for (const tab of tabs) {
-    const line = alphatexLine(tab.source);
-    const label = tab.label?.toLowerCase();
-    const target = label
-      ? doc.sections.find((section) => section.label?.toLowerCase() === label)
-      : undefined;
-    if (target) {
-      target.lines.push(line);
-    } else {
-      doc.sections.push({ label: tab.label ?? 'Таб', rhythm: null, tempo: null, lines: [line] });
-    }
+for (const tab of tabs) {
+  const line = alphatexLine(tab.source);
+  const label = tab.label?.toLowerCase();
+  const target = label
+    ? doc.sections.find((section) => section.label?.toLowerCase() === label)
+    : undefined;
+  if (target) {
+    target.lines.push(line);
+  } else {
+    doc.sections.push({
+      label: tab.label ?? "Таб",
+      rhythm: null,
+      tempo: null,
+      lines: [line],
+    });
   }
+}
 ```
 
 Update the `importObsidian` doc comment: "…```jtab blocks with even bars become alphaTex tabs in the section named by the `**heading**` before them. Everything else goes to `notes`."

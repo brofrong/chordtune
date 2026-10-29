@@ -1,32 +1,32 @@
 export const pitchClassNames = [
-  'C',
-  'C#',
-  'D',
-  'D#',
-  'E',
-  'F',
-  'F#',
-  'G',
-  'G#',
-  'A',
-  'A#',
-  'B',
+  "C",
+  "C#",
+  "D",
+  "D#",
+  "E",
+  "F",
+  "F#",
+  "G",
+  "G#",
+  "A",
+  "A#",
+  "B",
 ] as const;
 
 export type PitchClassName = (typeof pitchClassNames)[number];
 
 export type ChordQuality =
-  | 'maj'
-  | 'min'
-  | '7'
-  | 'maj7'
-  | 'm7'
-  | 'dim'
-  | 'aug'
-  | 'sus2'
-  | 'sus4'
-  | '6'
-  | 'm6';
+  | "maj"
+  | "min"
+  | "7"
+  | "maj7"
+  | "m7"
+  | "dim"
+  | "aug"
+  | "sus2"
+  | "sus4"
+  | "6"
+  | "m6";
 
 export type ChordMatch = {
   label: string;
@@ -54,17 +54,17 @@ type QualitySpec = {
 };
 
 const QUALITIES: QualitySpec[] = [
-  { quality: 'maj', intervals: [0, 4, 7], weights: [1, 1, 0.85] },
-  { quality: 'min', intervals: [0, 3, 7], weights: [1, 1, 0.85] },
-  { quality: '7', intervals: [0, 4, 7, 10], weights: [1, 1, 0.75, 0.9] },
-  { quality: 'maj7', intervals: [0, 4, 7, 11], weights: [1, 0.95, 0.7, 0.9] },
-  { quality: 'm7', intervals: [0, 3, 7, 10], weights: [1, 1, 0.75, 0.9] },
-  { quality: 'dim', intervals: [0, 3, 6], weights: [1, 1, 0.9] },
-  { quality: 'aug', intervals: [0, 4, 8], weights: [1, 1, 0.9] },
-  { quality: 'sus2', intervals: [0, 2, 7], weights: [1, 0.95, 0.85] },
-  { quality: 'sus4', intervals: [0, 5, 7], weights: [1, 0.95, 0.85] },
-  { quality: '6', intervals: [0, 4, 7, 9], weights: [1, 0.95, 0.7, 0.85] },
-  { quality: 'm6', intervals: [0, 3, 7, 9], weights: [1, 0.95, 0.7, 0.85] },
+  { quality: "maj", intervals: [0, 4, 7], weights: [1, 1, 0.85] },
+  { quality: "min", intervals: [0, 3, 7], weights: [1, 1, 0.85] },
+  { quality: "7", intervals: [0, 4, 7, 10], weights: [1, 1, 0.75, 0.9] },
+  { quality: "maj7", intervals: [0, 4, 7, 11], weights: [1, 0.95, 0.7, 0.9] },
+  { quality: "m7", intervals: [0, 3, 7, 10], weights: [1, 1, 0.75, 0.9] },
+  { quality: "dim", intervals: [0, 3, 6], weights: [1, 1, 0.9] },
+  { quality: "aug", intervals: [0, 4, 8], weights: [1, 1, 0.9] },
+  { quality: "sus2", intervals: [0, 2, 7], weights: [1, 0.95, 0.85] },
+  { quality: "sus4", intervals: [0, 5, 7], weights: [1, 0.95, 0.85] },
+  { quality: "6", intervals: [0, 4, 7, 9], weights: [1, 0.95, 0.7, 0.85] },
+  { quality: "m6", intervals: [0, 3, 7, 9], weights: [1, 0.95, 0.7, 0.85] },
 ];
 
 export function chromaFromMagnitudes(
@@ -86,7 +86,10 @@ export function chromaFromMagnitudes(
   return chroma;
 }
 
-export function detectChord(chroma: ArrayLike<number>, limit = 3): ChordDetection {
+export function detectChord(
+  chroma: ArrayLike<number>,
+  limit = 3,
+): ChordDetection {
   let energy = 0;
   let peak = 0;
   for (let i = 0; i < 12; i++) {
@@ -138,7 +141,9 @@ export function detectChord(chroma: ArrayLike<number>, limit = 3): ChordDetectio
   };
 }
 
-export function activePitchClasses(chroma: ArrayLike<number>): PitchClassName[] {
+export function activePitchClasses(
+  chroma: ArrayLike<number>,
+): PitchClassName[] {
   let peak = 0;
   for (let i = 0; i < 12; i++) {
     if ((chroma[i] ?? 0) > peak) {
@@ -178,7 +183,10 @@ function spectralPeaks(
     if (magnitude < threshold) {
       continue;
     }
-    if (magnitude < (magnitudes[i - 1] ?? 0) || magnitude < (magnitudes[i + 1] ?? 0)) {
+    if (
+      magnitude < (magnitudes[i - 1] ?? 0) ||
+      magnitude < (magnitudes[i + 1] ?? 0)
+    ) {
       continue;
     }
 
@@ -206,7 +214,11 @@ function interpolatedFrequency(
   return (index + shift) * binHz;
 }
 
-function missingTonePenalty(chroma: ArrayLike<number>, spec: QualitySpec, root: number): number {
+function missingTonePenalty(
+  chroma: ArrayLike<number>,
+  spec: QualitySpec,
+  root: number,
+): number {
   if (spec.intervals.length <= 3) {
     return 0;
   }
@@ -250,7 +262,10 @@ function cosineSimilarity(a: ArrayLike<number>, b: ArrayLike<number>): number {
   return denom < 1e-12 ? 0 : dot / denom;
 }
 
-function outsiderPenalty(chroma: ArrayLike<number>, template: ArrayLike<number>): number {
+function outsiderPenalty(
+  chroma: ArrayLike<number>,
+  template: ArrayLike<number>,
+): number {
   let outsider = 0;
   let total = 0;
   for (let i = 0; i < 12; i++) {
@@ -263,7 +278,11 @@ function outsiderPenalty(chroma: ArrayLike<number>, template: ArrayLike<number>)
   return total < 1e-12 ? 0 : outsider / total;
 }
 
-function extraToneBonus(chroma: ArrayLike<number>, spec: QualitySpec, root: number): number {
+function extraToneBonus(
+  chroma: ArrayLike<number>,
+  spec: QualitySpec,
+  root: number,
+): number {
   if (spec.intervals.length <= 3) {
     return 0;
   }
@@ -280,27 +299,27 @@ function extraToneBonus(chroma: ArrayLike<number>, spec: QualitySpec, root: numb
 
 function formatChordLabel(root: PitchClassName, quality: ChordQuality): string {
   switch (quality) {
-    case 'maj':
+    case "maj":
       return root;
-    case 'min':
+    case "min":
       return `${root}m`;
-    case '7':
+    case "7":
       return `${root}7`;
-    case 'maj7':
+    case "maj7":
       return `${root}maj7`;
-    case 'm7':
+    case "m7":
       return `${root}m7`;
-    case 'dim':
+    case "dim":
       return `${root}dim`;
-    case 'aug':
+    case "aug":
       return `${root}aug`;
-    case 'sus2':
+    case "sus2":
       return `${root}sus2`;
-    case 'sus4':
+    case "sus4":
       return `${root}sus4`;
-    case '6':
+    case "6":
       return `${root}6`;
-    case 'm6':
+    case "m6":
       return `${root}m6`;
   }
 }

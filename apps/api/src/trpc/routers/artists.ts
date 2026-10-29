@@ -1,12 +1,21 @@
-import { TRPCError } from '@trpc/server';
-import { z } from 'zod';
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 
-import { env } from '../../env';
-import { isAdmin } from '../../services/admin';
-import { artistPage, deezerCandidates, relinkArtist } from '../../services/artist-profile';
-import { WIKI_LANGS } from '../../services/artist-sources';
-import { adminProcedure, protectedProcedure, publicProcedure, router } from '../init';
-import { fromSearch } from './shared';
+import { env } from "../../env";
+import { isAdmin } from "../../services/admin";
+import {
+  artistPage,
+  deezerCandidates,
+  relinkArtist,
+} from "../../services/artist-profile";
+import { WIKI_LANGS } from "../../services/artist-sources";
+import {
+  adminProcedure,
+  protectedProcedure,
+  publicProcedure,
+  router,
+} from "../init";
+import { fromSearch } from "./shared";
 
 export const artistsRouter = router({
   search: publicProcedure
@@ -27,13 +36,26 @@ export const artistsRouter = router({
    * Signed in only: Deezer's quota is per server IP, and the API has no rate limiting of its own.
    */
   searchDeezer: protectedProcedure
-    .input(z.object({ q: z.string().max(100), includeLinked: z.boolean().default(false) }))
+    .input(
+      z.object({
+        q: z.string().max(100),
+        includeLinked: z.boolean().default(false),
+      }),
+    )
     .query(async ({ ctx, input }) => {
       try {
-        return await deezerCandidates(ctx.db, ctx.artistSources, input.q, input);
+        return await deezerCandidates(
+          ctx.db,
+          ctx.artistSources,
+          input.q,
+          input,
+        );
       } catch (error) {
-        console.error('Deezer search failed', error);
-        throw new TRPCError({ code: 'SERVICE_UNAVAILABLE', message: 'deezer-unavailable' });
+        console.error("Deezer search failed", error);
+        throw new TRPCError({
+          code: "SERVICE_UNAVAILABLE",
+          message: "deezer-unavailable",
+        });
       }
     }),
 
@@ -42,7 +64,9 @@ export const artistsRouter = router({
     .query(({ ctx, input }) => artistPage(ctx.db, input.slug, input.locale)),
 
   /** Whether to offer «Change link»: the web page itself is rendered without the user's session. */
-  canEdit: publicProcedure.query(({ ctx }) => isAdmin(ctx.session?.user, env.ADMIN_EMAILS)),
+  canEdit: publicProcedure.query(({ ctx }) =>
+    isAdmin(ctx.session?.user, env.ADMIN_EMAILS),
+  ),
 
   searchWikidata: adminProcedure
     .input(z.object({ q: z.string().max(100) }))
@@ -50,8 +74,11 @@ export const artistsRouter = router({
       try {
         return await ctx.artistSources.searchWikidata(input.q);
       } catch (error) {
-        console.error('Wikidata search failed', error);
-        throw new TRPCError({ code: 'SERVICE_UNAVAILABLE', message: 'wikidata-unavailable' });
+        console.error("Wikidata search failed", error);
+        throw new TRPCError({
+          code: "SERVICE_UNAVAILABLE",
+          message: "wikidata-unavailable",
+        });
       }
     }),
 
@@ -66,5 +93,7 @@ export const artistsRouter = router({
           .nullable(),
       }),
     )
-    .mutation(({ ctx, input }) => relinkArtist(ctx.db, ctx.search, ctx.artistSources, input)),
+    .mutation(({ ctx, input }) =>
+      relinkArtist(ctx.db, ctx.search, ctx.artistSources, input),
+    ),
 });

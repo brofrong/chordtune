@@ -1,11 +1,11 @@
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import { cache } from 'react';
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { cache } from "react";
 
-import { ArtistView } from '@/features/artist/artist-view';
-import { resolveLocale } from '@/i18n/params';
-import type { Locale } from '@/i18n/routing';
-import { serverTrpc } from '@/lib/trpc-server';
+import { ArtistView } from "@/features/artist/artist-view";
+import { resolveLocale } from "@/i18n/params";
+import type { Locale } from "@/i18n/routing";
+import { serverTrpc } from "@/lib/trpc-server";
 
 // Route types are generated for `page.tsx` only, so the params of this web-only page are typed by hand.
 type ArtistPageProps = { params: Promise<{ locale: string; slug: string }> };
@@ -18,7 +18,9 @@ const loadArtist = cache(async (slug: string, locale: Locale) => {
   }
 });
 
-export async function generateMetadata({ params }: ArtistPageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: ArtistPageProps): Promise<Metadata> {
   const locale = await resolveLocale(params);
   const { slug } = await params;
   const artist = await loadArtist(slug, locale);

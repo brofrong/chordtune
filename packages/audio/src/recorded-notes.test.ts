@@ -1,7 +1,17 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 
-import { createPitchTracker, detectPitchYin, frequencyToNote, rms, trackPitch } from './pitch';
-import { listNoteFixtures, noteFromFilename, readNoteFixture } from './test-utils/wav';
+import {
+  createPitchTracker,
+  detectPitchYin,
+  frequencyToNote,
+  rms,
+  trackPitch,
+} from "./pitch";
+import {
+  listNoteFixtures,
+  noteFromFilename,
+  readNoteFixture,
+} from "./test-utils/wav";
 
 const WINDOW = 2048;
 const HOP = 512;
@@ -26,24 +36,27 @@ function scanClip(samples: Float32Array, sampleRate: number) {
   return frames;
 }
 
-describe('recorded guitar notes', () => {
+describe("recorded guitar notes", () => {
   const files = listNoteFixtures();
 
-  test('has the six open-string recordings', () => {
+  test("has the six open-string recordings", () => {
     const labels = new Set(files.map(noteFromFilename));
-    expect(labels).toEqual(new Set(['E2', 'A2', 'D3', 'G3', 'B3', 'E4']));
+    expect(labels).toEqual(new Set(["E2", "A2", "D3", "G3", "B3", "E4"]));
   });
 
-  test('low E sustain is E2, not the octave above', async () => {
-    const file = files.find((name) => name.startsWith('E2_'));
+  test("low E sustain is E2, not the octave above", async () => {
+    const file = files.find((name) => name.startsWith("E2_"));
     expect(file).toBeDefined();
     const { sampleRate, samples } = await readNoteFixture(file as string);
     for (const at of [0.7, 3.1]) {
       const from = Math.floor(at * sampleRate);
-      const pitch = detectPitchYin(samples.subarray(from, from + WINDOW), sampleRate);
+      const pitch = detectPitchYin(
+        samples.subarray(from, from + WINDOW),
+        sampleRate,
+      );
       expect(pitch.frequency).not.toBeNull();
       const note = frequencyToNote(pitch.frequency ?? 0);
-      expect(`${note.name}${note.octave}`).toBe('E2');
+      expect(`${note.name}${note.octave}`).toBe("E2");
       expect(Math.abs((pitch.frequency ?? 0) - 82.41)).toBeLessThan(3);
     }
   });
@@ -75,7 +88,9 @@ describe('recorded guitar notes', () => {
 
       const sustain = frames.filter(
         (frame) =>
-          frame.t >= start + ATTACK_SKIP_SEC && frame.t <= ringingEnd && frame.rms >= MIN_RMS,
+          frame.t >= start + ATTACK_SKIP_SEC &&
+          frame.t <= ringingEnd &&
+          frame.rms >= MIN_RMS,
       );
       const correct = sustain.filter((frame) => frame.note === expected);
 

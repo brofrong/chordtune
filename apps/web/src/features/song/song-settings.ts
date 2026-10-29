@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { isZenMode, type ZenModeId } from '@chordtune/chord-sheet';
-import { useCallback, useEffect, useState } from 'react';
+import { isZenMode, type ZenModeId } from "@chordtune/chord-sheet";
+import { useCallback, useEffect, useState } from "react";
 
 const MAX_CAPO = 12;
 
@@ -18,13 +18,15 @@ export function readSongSettings(raw: string | null): SongSettings {
   }
   try {
     const data: unknown = JSON.parse(raw);
-    if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+    if (typeof data !== "object" || data === null || Array.isArray(data)) {
       return EMPTY;
     }
     const { capo, zenMode } = data as Record<string, unknown>;
     return {
       capo:
-        Number.isInteger(capo) && (capo as number) >= 0 && (capo as number) <= MAX_CAPO
+        Number.isInteger(capo) &&
+        (capo as number) >= 0 &&
+        (capo as number) <= MAX_CAPO
           ? (capo as number)
           : null,
       zenMode: isZenMode(zenMode) ? zenMode : null,

@@ -1,7 +1,7 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-import { publicProcedure, router } from '../init';
-import { fromSearch, listItemFromDoc } from './shared';
+import { publicProcedure, router } from "../init";
+import { fromSearch, listItemFromDoc } from "./shared";
 
 export const searchRouter = router({
   query: publicProcedure

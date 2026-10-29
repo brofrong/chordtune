@@ -1,4 +1,4 @@
-import type { TabBlock } from '@chordtune/chord-sheet';
+import type { TabBlock } from "@chordtune/chord-sheet";
 
 export const QUARTER_WIDTH = 36;
 export const MIN_BEAT_WIDTH = 18;
@@ -30,7 +30,9 @@ export function layoutTab(block: TabBlock, width: number): RowLayout[] {
   let row: RowLayout | null = null;
 
   block.bars.forEach((bar, index) => {
-    const widths = bar.beats.map((beat) => Math.max(MIN_BEAT_WIDTH, beat.quarters * QUARTER_WIDTH));
+    const widths = bar.beats.map((beat) =>
+      Math.max(MIN_BEAT_WIDTH, beat.quarters * QUARTER_WIDTH),
+    );
     const barWidth = BAR_PAD * 2 + widths.reduce((sum, w) => sum + w, 0);
     if (!row || (row.width + barWidth > width && row.bars.length > 0)) {
       row = { bars: [], beats: [], width: 0 };
@@ -62,7 +64,11 @@ export function layoutTab(block: TabBlock, width: number): RowLayout[] {
  * played) — the same domain `layoutTab` draws rows in, so a row's start can be compared against
  * the currently active beat regardless of which pass through a repeat it's on.
  */
-export function tabBeatQuarters(block: TabBlock, bar: number, beat = 0): number {
+export function tabBeatQuarters(
+  block: TabBlock,
+  bar: number,
+  beat = 0,
+): number {
   let at = 0;
   for (let i = 0; i < bar; i++) {
     for (const b of block.bars[i]?.beats ?? []) {
@@ -79,13 +85,13 @@ export function tabBeatQuarters(block: TabBlock, bar: number, beat = 0): number 
 export function beamGroups(block: TabBlock, row: RowLayout): BeatLayout[][] {
   const groups: BeatLayout[][] = [];
   let group: BeatLayout[] = [];
-  let key = '';
+  let key = "";
   const flush = () => {
     if (group.length > 1) {
       groups.push(group);
     }
     group = [];
-    key = '';
+    key = "";
   };
   for (const layout of row.beats) {
     const beat = block.bars[layout.bar]?.beats[layout.beat];

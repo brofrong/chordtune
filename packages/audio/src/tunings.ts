@@ -1,8 +1,8 @@
-import { GUITAR_TUNINGS, SONG_TUNING_IDS } from '@chordtune/chord-sheet';
+import { GUITAR_TUNINGS, SONG_TUNING_IDS } from "@chordtune/chord-sheet";
 
-import { centsBetween, DEFAULT_A4_HZ, midiToHz, midiToNoteName } from './pitch';
+import { centsBetween, DEFAULT_A4_HZ, midiToHz, midiToNoteName } from "./pitch";
 
-export type InstrumentId = 'guitar' | 'bass' | 'ukulele' | 'chromatic';
+export type InstrumentId = "guitar" | "bass" | "ukulele" | "chromatic";
 
 export type Tuning = {
   id: string;
@@ -18,7 +18,11 @@ export type Instrument = {
   tunings: readonly Tuning[];
 };
 
-const tuning = (instrument: InstrumentId, id: string, strings: number[]): Tuning => ({
+const tuning = (
+  instrument: InstrumentId,
+  id: string,
+  strings: number[],
+): Tuning => ({
   id,
   instrument,
   strings,
@@ -26,47 +30,54 @@ const tuning = (instrument: InstrumentId, id: string, strings: number[]): Tuning
 
 export const INSTRUMENTS: readonly Instrument[] = [
   {
-    id: 'guitar',
+    id: "guitar",
     minHz: 60,
     maxHz: 1200,
-    tunings: SONG_TUNING_IDS.map((id) => tuning('guitar', id, [...GUITAR_TUNINGS[id]])),
+    tunings: SONG_TUNING_IDS.map((id) =>
+      tuning("guitar", id, [...GUITAR_TUNINGS[id]]),
+    ),
   },
   {
-    id: 'bass',
+    id: "bass",
     minHz: 28,
     maxHz: 600,
     tunings: [
-      tuning('bass', 'standard', [28, 33, 38, 43]),
-      tuning('bass', 'drop-d', [26, 33, 38, 43]),
-      tuning('bass', 'five-string', [23, 28, 33, 38, 43]),
+      tuning("bass", "standard", [28, 33, 38, 43]),
+      tuning("bass", "drop-d", [26, 33, 38, 43]),
+      tuning("bass", "five-string", [23, 28, 33, 38, 43]),
     ],
   },
   {
-    id: 'ukulele',
+    id: "ukulele",
     minHz: 120,
     maxHz: 1400,
     tunings: [
-      tuning('ukulele', 'standard', [67, 60, 64, 69]),
-      tuning('ukulele', 'low-g', [55, 60, 64, 69]),
-      tuning('ukulele', 'baritone', [50, 55, 59, 64]),
+      tuning("ukulele", "standard", [67, 60, 64, 69]),
+      tuning("ukulele", "low-g", [55, 60, 64, 69]),
+      tuning("ukulele", "baritone", [50, 55, 59, 64]),
     ],
   },
   {
-    id: 'chromatic',
+    id: "chromatic",
     minHz: 40,
     maxHz: 1600,
-    tunings: [tuning('chromatic', 'chromatic', [])],
+    tunings: [tuning("chromatic", "chromatic", [])],
   },
 ];
 
 export const DEFAULT_TUNING = INSTRUMENTS[0]?.tunings[0] as Tuning;
 
 export function getInstrument(id: InstrumentId): Instrument {
-  return INSTRUMENTS.find((instrument) => instrument.id === id) ?? (INSTRUMENTS[0] as Instrument);
+  return (
+    INSTRUMENTS.find((instrument) => instrument.id === id) ??
+    (INSTRUMENTS[0] as Instrument)
+  );
 }
 
 export function findTuning(instrument: InstrumentId, tuningId: string): Tuning {
-  const found = getInstrument(instrument).tunings.find((item) => item.id === tuningId);
+  const found = getInstrument(instrument).tunings.find(
+    (item) => item.id === tuningId,
+  );
   return found ?? (getInstrument(instrument).tunings[0] as Tuning);
 }
 

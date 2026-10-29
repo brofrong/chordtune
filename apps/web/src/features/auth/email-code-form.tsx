@@ -1,22 +1,27 @@
-'use client';
+"use client";
 
-import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { authClient } from '@/lib/auth-client';
-import { authErrorKey } from './auth-errors';
-import { normalizeOtp, OTP_LENGTH } from './otp';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { authClient } from "@/lib/auth-client";
+
+import { authErrorKey } from "./auth-errors";
+import { normalizeOtp, OTP_LENGTH } from "./otp";
 
 const RESEND_SECONDS = 60;
 
-export function EmailCodeForm({ onDone }: { onDone: () => Promise<void> | void }) {
-  const t = useTranslations('auth');
-  const [email, setEmail] = useState('');
+export function EmailCodeForm({
+  onDone,
+}: {
+  onDone: () => Promise<void> | void;
+}) {
+  const t = useTranslations("auth");
+  const [email, setEmail] = useState("");
   const [sentTo, setSentTo] = useState<string | null>(null);
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [wait, setWait] = useState(0);
@@ -32,14 +37,17 @@ export function EmailCodeForm({ onDone }: { onDone: () => Promise<void> | void }
   const send = async (to: string) => {
     setPending(true);
     setError(null);
-    const result = await authClient.emailOtp.sendVerificationOtp({ email: to, type: 'sign-in' });
+    const result = await authClient.emailOtp.sendVerificationOtp({
+      email: to,
+      type: "sign-in",
+    });
     setPending(false);
     if (result.error) {
       setError(t(`errors.${authErrorKey(result.error)}`));
       return;
     }
     setSentTo(to);
-    setCode('');
+    setCode("");
     setWait(RESEND_SECONDS);
   };
 
@@ -64,10 +72,10 @@ export function EmailCodeForm({ onDone }: { onDone: () => Promise<void> | void }
         className="flex flex-col gap-2"
         onSubmit={(event) => {
           event.preventDefault();
-          send(email.trim());
+          void send(email.trim());
         }}
       >
-        <Label htmlFor="auth-email">{t('email')}</Label>
+        <Label htmlFor="auth-email">{t("email")}</Label>
         <Input
           id="auth-email"
           type="email"
@@ -79,7 +87,7 @@ export function EmailCodeForm({ onDone }: { onDone: () => Promise<void> | void }
         />
         {error && <p className="text-destructive text-sm">{error}</p>}
         <Button type="submit" size="lg" disabled={pending}>
-          {t('getCode')}
+          {t("getCode")}
         </Button>
       </form>
     );
@@ -87,8 +95,10 @@ export function EmailCodeForm({ onDone }: { onDone: () => Promise<void> | void }
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-muted-foreground text-sm">{t('codeSent', { email: sentTo })}</p>
-      <Label htmlFor="auth-code">{t('code')}</Label>
+      <p className="text-muted-foreground text-sm">
+        {t("codeSent", { email: sentTo })}
+      </p>
+      <Label htmlFor="auth-code">{t("code")}</Label>
       <Input
         id="auth-code"
         inputMode="numeric"
@@ -102,14 +112,19 @@ export function EmailCodeForm({ onDone }: { onDone: () => Promise<void> | void }
           const next = normalizeOtp(event.target.value);
           setCode(next);
           if (next.length === OTP_LENGTH) {
-            verify(next);
+            void verify(next);
           }
         }}
       />
       {error && <p className="text-destructive text-sm">{error}</p>}
       <div className="flex justify-between text-sm">
-        <Button variant="link" size="sm" className="px-0" onClick={() => setSentTo(null)}>
-          {t('changeEmail')}
+        <Button
+          variant="link"
+          size="sm"
+          className="px-0"
+          onClick={() => setSentTo(null)}
+        >
+          {t("changeEmail")}
         </Button>
         <Button
           variant="link"
@@ -118,7 +133,7 @@ export function EmailCodeForm({ onDone }: { onDone: () => Promise<void> | void }
           disabled={wait > 0 || pending}
           onClick={() => send(sentTo)}
         >
-          {wait > 0 ? t('resendIn', { seconds: wait }) : t('resend')}
+          {wait > 0 ? t("resendIn", { seconds: wait }) : t("resend")}
         </Button>
       </div>
     </div>

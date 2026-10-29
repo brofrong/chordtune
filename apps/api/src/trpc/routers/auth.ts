@@ -1,6 +1,6 @@
-import { authConfig, authMethods } from '../../auth/config';
-import { env } from '../../env';
-import { publicProcedure, router } from '../init';
+import { authConfig, authMethods } from "../../auth/config";
+import { env } from "../../env";
+import { publicProcedure, router } from "../init";
 
 const methods = authMethods(authConfig(env));
 

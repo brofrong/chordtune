@@ -1,4 +1,4 @@
-export const CAPTURE_PROCESSOR_NAME = 'chordtune-capture';
+export const CAPTURE_PROCESSOR_NAME = "chordtune-capture";
 
 const CHUNK_SIZE = 512;
 
@@ -37,5 +37,7 @@ registerProcessor('${CAPTURE_PROCESSOR_NAME}', CaptureProcessor);
 `;
 
 export function captureWorkletUrl(): string {
-  return URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
+  return URL.createObjectURL(
+    new Blob([source], { type: "application/javascript" }),
+  );
 }

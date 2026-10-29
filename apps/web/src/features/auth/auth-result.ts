@@ -1,4 +1,4 @@
-import { authErrorKey } from './auth-errors';
+import { authErrorKey } from "./auth-errors";
 
 type Failure = { code?: string; status?: number; message?: string };
 
@@ -8,7 +8,7 @@ export class AuthRequestError extends Error {
   readonly status?: number;
 
   constructor(failure: Failure) {
-    super(failure.message || failure.code || 'Auth request failed');
+    super(failure.message || failure.code || "Auth request failed");
     this.code = failure.code;
     this.status = failure.status;
   }
@@ -27,10 +27,17 @@ export async function unwrap<T>(
 
 /** The session is too old for this action: only signing in again helps. */
 export function isReauthError(error: unknown): boolean {
-  return typeof error === 'object' && error !== null && authErrorKey(error as Failure) === 'reauth';
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    authErrorKey(error as Failure) === "reauth"
+  );
 }
 
 /** React Query's default three retries, but none for an error that retrying can't fix. */
-export function retryUnlessReauth(failureCount: number, error: unknown): boolean {
+export function retryUnlessReauth(
+  failureCount: number,
+  error: unknown,
+): boolean {
   return !isReauthError(error) && failureCount < 3;
 }

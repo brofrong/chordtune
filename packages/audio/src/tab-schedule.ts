@@ -1,7 +1,7 @@
-import { type TabBlock, tabBeats } from '@chordtune/chord-sheet';
+import { tabBeats, type TabBlock } from "@chordtune/chord-sheet";
 
-import { OPEN_STRING_MIDI } from './guitar-synth';
-import type { ScheduledNote } from './strum-schedule';
+import { OPEN_STRING_MIDI } from "./guitar-synth";
+import type { ScheduledNote } from "./strum-schedule";
 
 const TAB_GAIN = 0.9;
 const DEAD_GAIN = 0.8;
@@ -37,7 +37,7 @@ export function scheduleTab(
       if (note.tie) {
         continue;
       }
-      const dead = note.fret === 'x';
+      const dead = note.fret === "x";
       let gain = dead ? DEAD_GAIN : TAB_GAIN;
       if (beat.palmMute) {
         gain *= PALM_MUTE_GAIN;
@@ -51,7 +51,7 @@ export function scheduleTab(
       const open = strings[strings.length - note.string] ?? strings[0];
       notes.push({
         time: start * quarterSec,
-        midi: open + (note.fret === 'x' ? 0 : note.fret) + capo,
+        midi: open + (note.fret === "x" ? 0 : note.fret) + capo,
         string: note.string,
         gain,
         muted: dead || beat.palmMute,

@@ -2,9 +2,9 @@ import {
   type EnqueuedTaskPromise,
   type FederatedMultiSearchParams,
   Meilisearch,
-} from 'meilisearch';
+} from "meilisearch";
 
-import { otherScript } from '../lib/translit';
+import { otherScript } from "../lib/translit";
 
 export type ArtistDoc = {
   id: string;
@@ -45,16 +45,21 @@ export type SearchIndex = {
   searchArtists(q: string, limit?: number): Promise<ArtistDoc[]>;
   searchSongs(artistId: string, q: string, limit?: number): Promise<SongHit[]>;
   search(q: string, limit?: number): Promise<ArrangementDoc[]>;
-  replaceAll(artists: ArtistDoc[], arrangements: ArrangementDoc[]): Promise<void>;
+  replaceAll(
+    artists: ArtistDoc[],
+    arrangements: ArrangementDoc[],
+  ): Promise<void>;
 };
 
-const ARTISTS = 'artists';
-const ARRANGEMENTS = 'arrangements';
+const ARTISTS = "artists";
+const ARRANGEMENTS = "arrangements";
 
 async function done(task: EnqueuedTaskPromise) {
   const result = await task.waitTask();
-  if (result.status === 'failed') {
-    throw new Error(`Meilisearch task ${result.uid} failed: ${result.error?.message}`);
+  if (result.status === "failed") {
+    throw new Error(
+      `Meilisearch task ${result.uid} failed: ${result.error?.message}`,
+    );
   }
 }
 
@@ -86,16 +91,22 @@ export function createMeiliSearch(host: string, apiKey?: string): SearchIndex {
     ready ??= Promise.all([
       done(
         artists.updateSettings({
-          searchableAttributes: ['name', 'nameTranslit'],
-          sortableAttributes: ['songCount'],
+          searchableAttributes: ["name", "nameTranslit"],
+          sortableAttributes: ["songCount"],
         }),
       ),
       done(
         arrangements.updateSettings({
           // Order is weight: the song text matters least.
-          searchableAttributes: ['artist', 'artistTranslit', 'title', 'titleTranslit', 'lyrics'],
-          filterableAttributes: ['artistId', 'chords'],
-          sortableAttributes: ['createdAt'],
+          searchableAttributes: [
+            "artist",
+            "artistTranslit",
+            "title",
+            "titleTranslit",
+            "lyrics",
+          ],
+          filterableAttributes: ["artistId", "chords"],
+          sortableAttributes: ["createdAt"],
         }),
       ),
     ]).then(
@@ -111,12 +122,12 @@ export function createMeiliSearch(host: string, apiKey?: string): SearchIndex {
   return {
     async upsertArtist(doc) {
       await ensureSettings();
-      await artists.addDocuments([doc], { primaryKey: 'id' });
+      await artists.addDocuments([doc], { primaryKey: "id" });
     },
 
     async upsertArrangement(doc) {
       await ensureSettings();
-      await arrangements.addDocuments([doc], { primaryKey: 'id' });
+      await arrangements.addDocuments([doc], { primaryKey: "id" });
     },
 
     async deleteArrangement(id) {
@@ -126,10 +137,16 @@ export function createMeiliSearch(host: string, apiKey?: string): SearchIndex {
     async searchArtists(q, limit = 8) {
       await ensureSettings();
       if (!q.trim()) {
-        const { hits } = await artists.search('', { limit, sort: ['songCount:desc'] });
+        const { hits } = await artists.search("", {
+          limit,
+          sort: ["songCount:desc"],
+        });
         return hits;
       }
-      const { hits } = await client.multiSearch<FederatedMultiSearchParams, ArtistDoc>({
+      const { hits } = await client.multiSearch<
+        FederatedMultiSearchParams,
+        ArtistDoc
+      >({
         federation: { limit },
         queries: queries(ARTISTS, q),
       });
@@ -138,9 +155,16 @@ export function createMeiliSearch(host: string, apiKey?: string): SearchIndex {
 
     async searchSongs(artistId, q, limit = 8) {
       await ensureSettings();
-      const { hits } = await client.multiSearch<FederatedMultiSearchParams, ArrangementDoc>({
+      const { hits } = await client.multiSearch<
+        FederatedMultiSearchParams,
+        ArrangementDoc
+      >({
         federation: { limit: 50 },
-        queries: queries(ARRANGEMENTS, q, `artistId = ${JSON.stringify(artistId)}`),
+        queries: queries(
+          ARRANGEMENTS,
+          q,
+          `artistId = ${JSON.stringify(artistId)}`,
+        ),
       });
       return uniqueBy(hits, (hit) => hit.songId)
         .slice(0, limit)
@@ -150,10 +174,16 @@ export function createMeiliSearch(host: string, apiKey?: string): SearchIndex {
     async search(q, limit = 20) {
       await ensureSettings();
       if (!q.trim()) {
-        const { hits } = await arrangements.search('', { limit, sort: ['createdAt:desc'] });
+        const { hits } = await arrangements.search("", {
+          limit,
+          sort: ["createdAt:desc"],
+        });
         return hits;
       }
-      const { hits } = await client.multiSearch<FederatedMultiSearchParams, ArrangementDoc>({
+      const { hits } = await client.multiSearch<
+        FederatedMultiSearchParams,
+        ArrangementDoc
+      >({
         federation: { limit },
         queries: queries(ARRANGEMENTS, q),
       });
@@ -165,10 +195,12 @@ export function createMeiliSearch(host: string, apiKey?: string): SearchIndex {
       await done(artists.deleteAllDocuments());
       await done(arrangements.deleteAllDocuments());
       if (artistDocs.length > 0) {
-        await done(artists.addDocuments(artistDocs, { primaryKey: 'id' }));
+        await done(artists.addDocuments(artistDocs, { primaryKey: "id" }));
       }
       if (arrangementDocs.length > 0) {
-        await done(arrangements.addDocuments(arrangementDocs, { primaryKey: 'id' }));
+        await done(
+          arrangements.addDocuments(arrangementDocs, { primaryKey: "id" }),
+        );
       }
     },
   };

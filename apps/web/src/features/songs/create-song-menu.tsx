@@ -1,37 +1,38 @@
-'use client';
+"use client";
 
-import { ChevronRight, ClipboardPaste, PenLine, Plus } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
-import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { ChevronRight, ClipboardPaste, PenLine, Plus } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
 
-import { Link } from '@/i18n/navigation';
-import { spring } from '@/lib/motion';
-import { PasteNoteSheet } from './paste-note-sheet';
+import { Link } from "@/i18n/navigation";
+import { spring } from "@/lib/motion";
+
+import { PasteNoteSheet } from "./paste-note-sheet";
 
 const optionClass =
-  'flex w-full items-center gap-3 rounded-2xl border border-border bg-surface p-3 text-left transition-colors hover:bg-surface-2';
+  "flex w-full items-center gap-3 rounded-2xl border border-border bg-surface p-3 text-left transition-colors hover:bg-surface-2";
 
 /** «Добавить песню» that springs open into the ways to add one. */
 export function CreateSongMenu() {
-  const t = useTranslations('songs');
+  const t = useTranslations("songs");
   const [open, setOpen] = useState(false);
   const [pasting, setPasting] = useState(false);
 
   const options = [
     {
-      key: 'write',
+      key: "write",
       icon: PenLine,
-      tone: 'bg-brand-2/15 text-brand-2',
-      title: t('write'),
-      hint: t('writeHint'),
+      tone: "bg-brand-2/15 text-brand-2",
+      title: t("write"),
+      hint: t("writeHint"),
     },
     {
-      key: 'paste',
+      key: "paste",
       icon: ClipboardPaste,
-      tone: 'bg-chord/15 text-chord',
-      title: t('paste'),
-      hint: t('pasteHint'),
+      tone: "bg-chord/15 text-chord",
+      title: t("paste"),
+      hint: t("pasteHint"),
     },
   ];
 
@@ -51,15 +52,15 @@ export function CreateSongMenu() {
           <Plus className="size-5" />
         </motion.span>
         <span>
-          <span className="block font-semibold">{t('add')}</span>
-          <span className="text-muted-foreground text-xs">{t('addHint')}</span>
+          <span className="block font-semibold">{t("add")}</span>
+          <span className="text-muted-foreground text-xs">{t("addHint")}</span>
         </span>
       </button>
       <AnimatePresence initial={false}>
         {open && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
+            animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={spring.soft}
             className="overflow-hidden"
@@ -75,7 +76,9 @@ export function CreateSongMenu() {
                       <Icon className="size-4" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block font-medium text-sm">{option.title}</span>
+                      <span className="block font-medium text-sm">
+                        {option.title}
+                      </span>
                       <span className="block truncate text-muted-foreground text-xs">
                         {option.hint}
                       </span>
@@ -90,7 +93,7 @@ export function CreateSongMenu() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ ...spring.pop, delay: index * 0.06 }}
                   >
-                    {option.key === 'write' ? (
+                    {option.key === "write" ? (
                       <Link href="/songs/new" className={optionClass}>
                         {body}
                       </Link>

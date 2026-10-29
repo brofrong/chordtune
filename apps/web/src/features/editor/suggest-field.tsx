@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { Autocomplete } from '@base-ui/react/autocomplete';
+import { Autocomplete } from "@base-ui/react/autocomplete";
 
-import { Input } from '@/components/ui/input';
+import { Input } from "@/components/ui/input";
 
 /** A free-text input with async suggestions; picking one fills the text. */
 export function SuggestField<T>({
@@ -45,7 +45,11 @@ export function SuggestField<T>({
         render={<Input className="h-10" />}
       />
       <Autocomplete.Portal hidden={!status && items.length === 0}>
-        <Autocomplete.Positioner sideOffset={4} align="start" className="isolate z-50">
+        <Autocomplete.Positioner
+          sideOffset={4}
+          align="start"
+          className="isolate z-50"
+        >
           <Autocomplete.Popup className="max-h-[min(var(--available-height),20rem)] w-(--anchor-width) overflow-y-auto rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
             {status && (
               <Autocomplete.Status className="px-2 py-1.5 text-muted-foreground text-xs">

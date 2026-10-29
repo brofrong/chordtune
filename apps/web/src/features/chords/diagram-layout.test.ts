@@ -1,11 +1,11 @@
 /// <reference types="bun" />
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 
-import { diagramLayout } from './diagram-layout';
+import { diagramLayout } from "./diagram-layout";
 
-describe('diagramLayout', () => {
-  test('open chord from the nut', () => {
+describe("diagramLayout", () => {
+  test("open chord from the nut", () => {
     expect(diagramLayout([null, 0, 2, 2, 1, 0])).toEqual({
       base: 1,
       dots: [
@@ -20,7 +20,7 @@ describe('diagramLayout', () => {
     });
   });
 
-  test('barre at the nut: the barre string dots are not repeated', () => {
+  test("barre at the nut: the barre string dots are not repeated", () => {
     expect(diagramLayout([1, 3, 3, 2, 1, 1])).toEqual({
       base: 1,
       dots: [
@@ -35,7 +35,7 @@ describe('diagramLayout', () => {
     });
   });
 
-  test('up the neck: frets relative to the lowest fretted fret', () => {
+  test("up the neck: frets relative to the lowest fretted fret", () => {
     expect(diagramLayout([null, 6, 8, 8, 8, 6])).toEqual({
       base: 6,
       dots: [
@@ -50,12 +50,12 @@ describe('diagramLayout', () => {
     });
   });
 
-  test('a shape that reaches the 5th fret still starts at the nut', () => {
+  test("a shape that reaches the 5th fret still starts at the nut", () => {
     expect(diagramLayout([null, null, 2, 4, 5, 2]).base).toBe(1);
     expect(diagramLayout([null, null, 3, 5, 6, 3]).base).toBe(3);
   });
 
-  test('a shape wider than five frets reports extra rows so no dot is drawn outside the box', () => {
+  test("a shape wider than five frets reports extra rows so no dot is drawn outside the box", () => {
     const layout = diagramLayout([1, null, null, null, null, 9]);
     expect(layout.base).toBe(1);
     expect(layout.rows).toBe(9);

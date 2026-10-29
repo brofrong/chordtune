@@ -1,4 +1,4 @@
-import type { TunerFrame } from '@chordtune/audio';
+import type { TunerFrame } from "@chordtune/audio";
 
 type Listener = (frame: TunerFrame) => void;
 

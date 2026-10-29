@@ -1,55 +1,65 @@
-'use client';
+"use client";
 
-import { MAX_TEMPO, MIN_TEMPO, parseAlphaTex } from '@chordtune/chord-sheet';
-import { Play, Square } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { MAX_TEMPO, MIN_TEMPO, parseAlphaTex } from "@chordtune/chord-sheet";
+import { Play, Square } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo, useState } from "react";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Textarea } from '@/components/ui/textarea';
-import { beatAt, type SongSound, tabPlayback } from '@/features/rhythm/playback';
-import type { StrumPlayerControls } from '@/features/rhythm/use-strum-player';
-import { readBlockMeta, setBlockMeta } from './tab-source';
-import { TabStaff } from './tab-staff';
+} from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  beatAt,
+  type SongSound,
+  tabPlayback,
+} from "@/features/rhythm/playback";
+import type { StrumPlayerControls } from "@/features/rhythm/use-strum-player";
 
-const PREVIEW_ID = 'tab-preview';
-const TIMES = ['4/4', '3/4', '6/8', '2/4'];
+import { readBlockMeta, setBlockMeta } from "./tab-source";
+import { TabStaff } from "./tab-staff";
+
+const PREVIEW_ID = "tab-preview";
+const TIMES = ["4/4", "3/4", "6/8", "2/4"];
 type CheatKey =
-  | 'note'
-  | 'duration'
-  | 'beatDuration'
-  | 'rest'
-  | 'chord'
-  | 'dead'
-  | 'effects'
-  | 'bend'
-  | 'text'
-  | 'lyrics'
-  | 'repeat'
-  | 'meta';
+  | "note"
+  | "duration"
+  | "beatDuration"
+  | "rest"
+  | "chord"
+  | "dead"
+  | "effects"
+  | "bend"
+  | "text"
+  | "lyrics"
+  | "repeat"
+  | "meta";
 const CHEATS: [code: string, key: CheatKey][] = [
-  ['5.3', 'note'],
-  [':8', 'duration'],
-  ['5.3.16', 'beatDuration'],
-  ['r  r.2', 'rest'],
-  ['(0.5 2.4).4', 'chord'],
-  ['x.3  -.3', 'dead'],
-  ['{d} {tu 3} {h} {sl} {pm}', 'effects'],
-  ['{b (0 4)} {v}', 'bend'],
-  ['{txt "тише"}', 'text'],
-  ['\\lyrics "сло-ва _ пес-ни"', 'lyrics'],
-  ['\\ro … \\rc 2', 'repeat'],
-  ['\\tempo 140\n\\ts 3 4', 'meta'],
+  ["5.3", "note"],
+  [":8", "duration"],
+  ["5.3.16", "beatDuration"],
+  ["r  r.2", "rest"],
+  ["(0.5 2.4).4", "chord"],
+  ["x.3  -.3", "dead"],
+  ["{d} {tu 3} {h} {sl} {pm}", "effects"],
+  ["{b (0 4)} {v}", "bend"],
+  ['{txt "тише"}', "text"],
+  ['\\lyrics "сло-ва _ пес-ни"', "lyrics"],
+  ["\\ro … \\rc 2", "repeat"],
+  ["\\tempo 140\n\\ts 3 4", "meta"],
 ];
 
 /** Writes one alphaTex block: the source, a live tablature, problems, and a play button. */
@@ -70,17 +80,22 @@ export function TabEditorSheet({
   onSave: (source: string[]) => void;
   onClose: () => void;
 }) {
-  const t = useTranslations('tab');
-  const [text, setText] = useState(source?.join('\n') ?? '');
-  useEffect(() => setText(source?.join('\n') ?? ''), [source]);
+  const t = useTranslations("tab");
+  const [text, setText] = useState(source?.join("\n") ?? "");
+  useEffect(() => setText(source?.join("\n") ?? ""), [source]);
 
-  const lines = useMemo(() => text.split('\n'), [text]);
+  const lines = useMemo(() => text.split("\n"), [text]);
   const { block, diagnostics } = useMemo(() => parseAlphaTex(lines), [lines]);
-  const errors = diagnostics.filter((diagnostic) => diagnostic.severity === 'error');
-  const playback = useMemo(() => tabPlayback(block, { bpm, ...sound }), [block, bpm, sound]);
+  const errors = diagnostics.filter(
+    (diagnostic) => diagnostic.severity === "error",
+  );
+  const playback = useMemo(
+    () => tabPlayback(block, { bpm, ...sound }),
+    [block, bpm, sound],
+  );
   const previewing = player.playing === PREVIEW_ID;
   const activeBeat = previewing ? beatAt(playback, player.position) : null;
-  const time = readBlockMeta(lines, 'ts')?.replace(/\s+/, '/') ?? '4/4';
+  const time = readBlockMeta(lines, "ts")?.replace(/\s+/, "/") ?? "4/4";
 
   // Editing while the preview plays would otherwise keep sounding the old notes.
   const editText = (value: string) => {
@@ -90,8 +105,8 @@ export function TabEditorSheet({
     setText(value);
   };
 
-  const setMeta = (command: 'tempo' | 'ts', value: string | null) =>
-    editText(setBlockMeta(lines, command, value).join('\n'));
+  const setMeta = (command: "tempo" | "ts", value: string | null) =>
+    editText(setBlockMeta(lines, command, value).join("\n"));
 
   const close = () => {
     if (previewing) {
@@ -104,7 +119,7 @@ export function TabEditorSheet({
     if (previewing) {
       player.stop();
     }
-    const end = lines.findLastIndex((line) => line.trim() !== '');
+    const end = lines.findLastIndex((line) => line.trim() !== "");
     onSave(lines.slice(0, end + 1));
   };
 
@@ -117,12 +132,12 @@ export function TabEditorSheet({
         {source !== null && (
           <div className="flex flex-col gap-4 p-4 pt-0">
             <SheetHeader className="px-0">
-              <SheetTitle>{t('title')}</SheetTitle>
+              <SheetTitle>{t("title")}</SheetTitle>
             </SheetHeader>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="tab-tempo">{t('tempo')}</Label>
+                <Label htmlFor="tab-tempo">{t("tempo")}</Label>
                 <Input
                   id="tab-tempo"
                   type="number"
@@ -130,17 +145,23 @@ export function TabEditorSheet({
                   min={MIN_TEMPO}
                   max={MAX_TEMPO}
                   placeholder={String(bpm)}
-                  value={readBlockMeta(lines, 'tempo') ?? ''}
-                  onChange={(event) => setMeta('tempo', event.target.value || null)}
+                  value={readBlockMeta(lines, "tempo") ?? ""}
+                  onChange={(event) =>
+                    setMeta("tempo", event.target.value || null)
+                  }
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label>{t('time')}</Label>
+                <Label>{t("time")}</Label>
                 <Select
                   value={time}
                   items={TIMES.map((value) => ({ value, label: value }))}
                   onValueChange={(value) =>
-                    value && setMeta('ts', value === '4/4' ? null : value.replace('/', ' '))
+                    value &&
+                    setMeta(
+                      "ts",
+                      value === "4/4" ? null : value.replace("/", " "),
+                    )
                   }
                 >
                   <SelectTrigger className="w-full">
@@ -158,12 +179,12 @@ export function TabEditorSheet({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="tab-source">{t('source')}</Label>
+              <Label htmlFor="tab-source">{t("source")}</Label>
               <Textarea
                 id="tab-source"
                 value={text}
                 onChange={(event) => editText(event.target.value)}
-                placeholder={t('placeholder')}
+                placeholder={t("placeholder")}
                 spellCheck={false}
                 autoCapitalize="off"
                 autoCorrect="off"
@@ -185,22 +206,33 @@ export function TabEditorSheet({
                   <li
                     key={`${diagnostic.line}:${diagnostic.col}:${diagnostic.message}`}
                     className={
-                      diagnostic.severity === 'error' ? 'text-destructive' : 'text-muted-foreground'
+                      diagnostic.severity === "error"
+                        ? "text-destructive"
+                        : "text-muted-foreground"
                     }
                   >
-                    {t('lineError', { line: diagnostic.line, message: diagnostic.message })}
+                    {t("lineError", {
+                      line: diagnostic.line,
+                      message: diagnostic.message,
+                    })}
                   </li>
                 ))}
               </ul>
             )}
 
             <details className="text-sm">
-              <summary className="cursor-pointer text-muted-foreground">{t('cheatsheet')}</summary>
+              <summary className="cursor-pointer text-muted-foreground">
+                {t("cheatsheet")}
+              </summary>
               <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
                 {CHEATS.map(([code, key]) => (
                   <div key={key} className="contents">
-                    <dt className="whitespace-pre-line font-mono text-xs">{code}</dt>
-                    <dd className="text-muted-foreground text-xs">{t(`cheat.${key}`)}</dd>
+                    <dt className="whitespace-pre-line font-mono text-xs">
+                      {code}
+                    </dt>
+                    <dd className="text-muted-foreground text-xs">
+                      {t(`cheat.${key}`)}
+                    </dd>
                   </div>
                 ))}
               </dl>
@@ -211,17 +243,19 @@ export function TabEditorSheet({
                 variant="outline"
                 disabled={playback.notes.length === 0}
                 onClick={() =>
-                  previewing ? player.stop() : void player.play(PREVIEW_ID, playback.notes)
+                  previewing
+                    ? player.stop()
+                    : void player.play(PREVIEW_ID, playback.notes)
                 }
               >
                 {previewing ? <Square /> : <Play />}
-                {t('play')}
+                {t("play")}
               </Button>
               <Button variant="ghost" className="ml-auto" onClick={close}>
-                {t('cancel')}
+                {t("cancel")}
               </Button>
               <Button disabled={errors.length > 0} onClick={save}>
-                {t('done')}
+                {t("done")}
               </Button>
             </div>
           </div>

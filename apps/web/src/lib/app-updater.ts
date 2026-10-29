@@ -1,16 +1,25 @@
-import { decideUpdate, parseManifest, parsePending, settlePending } from '@/lib/app-update';
+import {
+  decideUpdate,
+  parseManifest,
+  parsePending,
+  settlePending,
+} from "@/lib/app-update";
 
-const PENDING_KEY = 'chordtune.update.pending';
-const FAILED_KEY = 'chordtune.update.failed';
+const PENDING_KEY = "chordtune.update.pending";
+const FAILED_KEY = "chordtune.update.failed";
 
-export type AppUpdateState = 'idle' | 'ready' | 'needs-native';
+export type AppUpdateState = "idle" | "ready" | "needs-native";
 
 type Plugin = {
   notifyAppReady(): Promise<unknown>;
-  download(options: { url: string; version: string; checksum: string }): Promise<{ id: string }>;
+  download(options: {
+    url: string;
+    version: string;
+    checksum: string;
+  }): Promise<{ id: string }>;
   next(options: { id: string }): Promise<unknown>;
 };
-type KeyValueStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+type KeyValueStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
 /**
  * The live update flow, kept apart from React and Capacitor so it can be tested: settles the
@@ -31,7 +40,7 @@ export function createAppUpdater({
   version: string;
   fingerprint: string;
 }) {
-  let state: AppUpdateState = 'idle';
+  let state: AppUpdateState = "idle";
   let dismissed = false;
   let busy = false;
   const downloaded = new Set<string>();
@@ -45,7 +54,7 @@ export function createAppUpdater({
 
   const readJson = (key: string): unknown => {
     try {
-      return JSON.parse(storage.getItem(key) ?? 'null');
+      return JSON.parse(storage.getItem(key) ?? "null");
     } catch {
       return null;
     }
@@ -53,12 +62,21 @@ export function createAppUpdater({
 
   const failedVersions = (): string[] => {
     const value = readJson(FAILED_KEY);
-    return Array.isArray(value) ? value.filter((item) => typeof item === 'string') : [];
+    return Array.isArray(value)
+      ? value.filter((item) => typeof item === "string")
+      : [];
   };
 
   const settle = () => {
-    const { failed } = settlePending(parsePending(readJson(PENDING_KEY)), version);
-    if (failed) storage.setItem(FAILED_KEY, JSON.stringify([...failedVersions(), failed]));
+    const { failed } = settlePending(
+      parsePending(readJson(PENDING_KEY)),
+      version,
+    );
+    if (failed)
+      storage.setItem(
+        FAILED_KEY,
+        JSON.stringify([...failedVersions(), failed]),
+      );
     storage.removeItem(PENDING_KEY);
   };
 
@@ -67,9 +85,19 @@ export function createAppUpdater({
     busy = true;
     try {
       const manifest = parseManifest(await fetchJson(manifestUrl));
-      const decision = decideUpdate({ manifest, version, fingerprint, failed: failedVersions() });
-      if (decision.kind === 'needs-native' && !dismissed) setState('needs-native');
-      if (decision.kind !== 'download' || downloaded.has(decision.manifest.version)) return;
+      const decision = decideUpdate({
+        manifest,
+        version,
+        fingerprint,
+        failed: failedVersions(),
+      });
+      if (decision.kind === "needs-native" && !dismissed)
+        setState("needs-native");
+      if (
+        decision.kind !== "download" ||
+        downloaded.has(decision.manifest.version)
+      )
+        return;
       const { url, checksum } = decision.manifest;
       const target = decision.manifest.version;
       const bundle = await plugin.download({
@@ -79,9 +107,12 @@ export function createAppUpdater({
       });
       await plugin.next({ id: bundle.id });
       // Recorded only once scheduled, so a failed `next()` is not later taken for a rollback.
-      storage.setItem(PENDING_KEY, JSON.stringify({ version: target, from: version }));
+      storage.setItem(
+        PENDING_KEY,
+        JSON.stringify({ version: target, from: version }),
+      );
       downloaded.add(target);
-      if (!dismissed) setState('ready');
+      if (!dismissed) setState("ready");
     } catch {
       // Offline, server down or a failed download: try again on the next check.
     } finally {
@@ -109,7 +140,7 @@ export function createAppUpdater({
     check,
     dismiss() {
       dismissed = true;
-      setState('idle');
+      setState("idle");
     },
     getState: () => state,
     subscribe(listener: () => void) {

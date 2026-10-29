@@ -87,12 +87,14 @@ Web (`apps/web/src`):
 ### Task 1: Переменные окружения и конфигурация способов входа
 
 **Files:**
+
 - Modify: `apps/api/src/env.ts`
 - Create: `apps/api/src/auth/config.ts`
 - Create: `apps/api/src/auth/placeholder-email.ts`
 - Test: `apps/api/src/auth/config.test.ts`
 
 **Interfaces:**
+
 - Produces:
   - `type ProviderId = 'yandex' | 'vk' | 'telegram' | 'google'`
   - `type AuthConfig = { google?: OAuthKeys; vk?: OAuthKeys; yandex?: OAuthKeys; telegram?: { botToken: string; botName: string; botId: string }; review?: { email: string; code: string }; passkey: { rpID: string; origins: string[]; ios: boolean; android: boolean } }`, `type OAuthKeys = { clientId: string; clientSecret: string }`
@@ -107,67 +109,91 @@ Web (`apps/web/src`):
 `apps/api/src/auth/config.test.ts`:
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 
-import { androidOrigin, authConfig, authMethods } from './config';
-import { isPlaceholderEmail, placeholderEmail } from './placeholder-email';
+import { androidOrigin, authConfig, authMethods } from "./config";
+import { isPlaceholderEmail, placeholderEmail } from "./placeholder-email";
 
 const base = {
-  DATABASE_URL: 'postgres://x',
-  BETTER_AUTH_URL: 'https://chordtune.app',
+  DATABASE_URL: "postgres://x",
+  BETTER_AUTH_URL: "https://chordtune.app",
   API_PORT: 4000,
-  MEILI_URL: 'http://localhost:7700',
-  WEB_ORIGINS: ['https://chordtune.app', 'capacitor://localhost', 'https://localhost'],
-  MAIL_FROM: 'ChordTune <no-reply@chordtune.app>',
+  MEILI_URL: "http://localhost:7700",
+  WEB_ORIGINS: [
+    "https://chordtune.app",
+    "capacitor://localhost",
+    "https://localhost",
+  ],
+  MAIL_FROM: "ChordTune <no-reply@chordtune.app>",
 };
 
-describe('authConfig', () => {
-  test('enables only providers with both keys, in a fixed order', () => {
+describe("authConfig", () => {
+  test("enables only providers with both keys, in a fixed order", () => {
     const config = authConfig({
       ...base,
-      GOOGLE_CLIENT_ID: 'g',
-      GOOGLE_CLIENT_SECRET: 'gs',
-      VK_CLIENT_ID: 'v',
-      YANDEX_CLIENT_ID: 'y',
-      YANDEX_CLIENT_SECRET: 'ys',
-      TELEGRAM_BOT_TOKEN: '123456:abc',
-      TELEGRAM_BOT_NAME: 'chordtune_bot',
+      GOOGLE_CLIENT_ID: "g",
+      GOOGLE_CLIENT_SECRET: "gs",
+      VK_CLIENT_ID: "v",
+      YANDEX_CLIENT_ID: "y",
+      YANDEX_CLIENT_SECRET: "ys",
+      TELEGRAM_BOT_TOKEN: "123456:abc",
+      TELEGRAM_BOT_NAME: "chordtune_bot",
     });
-    expect(authMethods(config).providers).toEqual(['yandex', 'telegram', 'google']);
-    expect(authMethods(config).telegramBot).toEqual({ name: 'chordtune_bot', id: '123456' });
-  });
-
-  test('passkey RP is the API host; origins are the http(s) web origins plus Android', () => {
-    const config = authConfig({ ...base, ANDROID_CERT_SHA256: 'FF:'.repeat(31) + 'FF' });
-    expect(config.passkey.rpID).toBe('chordtune.app');
-    expect(config.passkey.origins).toEqual([
-      'https://chordtune.app',
-      'https://localhost',
-      `android:apk-key-hash:${'_'.repeat(42)}8`,
+    expect(authMethods(config).providers).toEqual([
+      "yandex",
+      "telegram",
+      "google",
     ]);
-    expect(authMethods(config).passkey).toEqual({ web: true, ios: false, android: true });
+    expect(authMethods(config).telegramBot).toEqual({
+      name: "chordtune_bot",
+      id: "123456",
+    });
   });
 
-  test('review account needs both the email and the code', () => {
-    expect(authConfig({ ...base, REVIEW_EMAIL: 'review@chordtune.app' }).review).toBeUndefined();
+  test("passkey RP is the API host; origins are the http(s) web origins plus Android", () => {
+    const config = authConfig({
+      ...base,
+      ANDROID_CERT_SHA256: "FF:".repeat(31) + "FF",
+    });
+    expect(config.passkey.rpID).toBe("chordtune.app");
+    expect(config.passkey.origins).toEqual([
+      "https://chordtune.app",
+      "https://localhost",
+      `android:apk-key-hash:${"_".repeat(42)}8`,
+    ]);
+    expect(authMethods(config).passkey).toEqual({
+      web: true,
+      ios: false,
+      android: true,
+    });
+  });
+
+  test("review account needs both the email and the code", () => {
     expect(
-      authConfig({ ...base, REVIEW_EMAIL: 'Review@ChordTune.app', REVIEW_CODE: '424242' }).review,
-    ).toEqual({ email: 'review@chordtune.app', code: '424242' });
+      authConfig({ ...base, REVIEW_EMAIL: "review@chordtune.app" }).review,
+    ).toBeUndefined();
+    expect(
+      authConfig({
+        ...base,
+        REVIEW_EMAIL: "Review@ChordTune.app",
+        REVIEW_CODE: "424242",
+      }).review,
+    ).toEqual({ email: "review@chordtune.app", code: "424242" });
   });
 });
 
-describe('androidOrigin', () => {
-  test('accepts colon-separated and plain hex', () => {
-    const plain = 'ff'.repeat(32);
-    expect(androidOrigin(plain)).toBe(androidOrigin('FF:'.repeat(31) + 'FF'));
+describe("androidOrigin", () => {
+  test("accepts colon-separated and plain hex", () => {
+    const plain = "ff".repeat(32);
+    expect(androidOrigin(plain)).toBe(androidOrigin("FF:".repeat(31) + "FF"));
   });
 });
 
-describe('placeholder emails', () => {
-  test('are recognised and never collide with real domains', () => {
-    expect(placeholderEmail('tg', '42')).toBe('tg-42@users.invalid');
-    expect(isPlaceholderEmail('tg-42@users.invalid')).toBe(true);
-    expect(isPlaceholderEmail('vasya@gmail.com')).toBe(false);
+describe("placeholder emails", () => {
+  test("are recognised and never collide with real domains", () => {
+    expect(placeholderEmail("tg", "42")).toBe("tg-42@users.invalid");
+    expect(isPlaceholderEmail("tg-42@users.invalid")).toBe(true);
+    expect(isPlaceholderEmail("vasya@gmail.com")).toBe(false);
   });
 });
 ```
@@ -215,10 +241,10 @@ export type Env = z.infer<typeof schema>;
 
 ```ts
 /** `.invalid` is reserved (RFC 2606), so these addresses can never belong to a real mailbox. */
-const DOMAIN = 'users.invalid';
+const DOMAIN = "users.invalid";
 
 /** Stands in for the email Better Auth requires when the provider gives none (Telegram, some VK). */
-export function placeholderEmail(kind: 'tg' | 'vk', id: string) {
+export function placeholderEmail(kind: "tg" | "vk", id: string) {
   return `${kind}-${id}@${DOMAIN}`;
 }
 
@@ -230,9 +256,9 @@ export function isPlaceholderEmail(email: string) {
 `apps/api/src/auth/config.ts`:
 
 ```ts
-import type { Env } from '../env';
+import type { Env } from "../env";
 
-export type ProviderId = 'yandex' | 'vk' | 'telegram' | 'google';
+export type ProviderId = "yandex" | "vk" | "telegram" | "google";
 export type OAuthKeys = { clientId: string; clientSecret: string };
 
 export type AuthConfig = {
@@ -253,23 +279,23 @@ export type AuthMethods = {
 
 type AuthEnv = Pick<
   Env,
-  | 'BETTER_AUTH_URL'
-  | 'WEB_ORIGINS'
-  | 'GOOGLE_CLIENT_ID'
-  | 'GOOGLE_CLIENT_SECRET'
-  | 'YANDEX_CLIENT_ID'
-  | 'YANDEX_CLIENT_SECRET'
-  | 'VK_CLIENT_ID'
-  | 'VK_CLIENT_SECRET'
-  | 'TELEGRAM_BOT_TOKEN'
-  | 'TELEGRAM_BOT_NAME'
-  | 'REVIEW_EMAIL'
-  | 'REVIEW_CODE'
-  | 'APPLE_TEAM_ID'
-  | 'ANDROID_CERT_SHA256'
+  | "BETTER_AUTH_URL"
+  | "WEB_ORIGINS"
+  | "GOOGLE_CLIENT_ID"
+  | "GOOGLE_CLIENT_SECRET"
+  | "YANDEX_CLIENT_ID"
+  | "YANDEX_CLIENT_SECRET"
+  | "VK_CLIENT_ID"
+  | "VK_CLIENT_SECRET"
+  | "TELEGRAM_BOT_TOKEN"
+  | "TELEGRAM_BOT_NAME"
+  | "REVIEW_EMAIL"
+  | "REVIEW_CODE"
+  | "APPLE_TEAM_ID"
+  | "ANDROID_CERT_SHA256"
 >;
 
-const ORDER: ProviderId[] = ['yandex', 'vk', 'telegram', 'google'];
+const ORDER: ProviderId[] = ["yandex", "vk", "telegram", "google"];
 
 function keys(clientId?: string, clientSecret?: string): OAuthKeys | undefined {
   return clientId && clientSecret ? { clientId, clientSecret } : undefined;
@@ -277,20 +303,24 @@ function keys(clientId?: string, clientSecret?: string): OAuthKeys | undefined {
 
 /** The origin Android's Credential Manager reports for our APK: its signing key hash, base64url. */
 export function androidOrigin(sha256: string) {
-  const hex = sha256.replaceAll(':', '').toLowerCase();
-  return `android:apk-key-hash:${Buffer.from(hex, 'hex').toString('base64url')}`;
+  const hex = sha256.replaceAll(":", "").toLowerCase();
+  return `android:apk-key-hash:${Buffer.from(hex, "hex").toString("base64url")}`;
 }
 
-export function authConfig(env: Partial<AuthEnv> & Pick<AuthEnv, 'BETTER_AUTH_URL' | 'WEB_ORIGINS'>): AuthConfig {
+export function authConfig(
+  env: Partial<AuthEnv> & Pick<AuthEnv, "BETTER_AUTH_URL" | "WEB_ORIGINS">,
+): AuthConfig {
   const { TELEGRAM_BOT_TOKEN: botToken, TELEGRAM_BOT_NAME: botName } = env;
-  const webOrigins = env.WEB_ORIGINS.filter((origin) => /^https?:\/\//.test(origin));
+  const webOrigins = env.WEB_ORIGINS.filter((origin) =>
+    /^https?:\/\//.test(origin),
+  );
   return {
     google: keys(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET),
     vk: keys(env.VK_CLIENT_ID, env.VK_CLIENT_SECRET),
     yandex: keys(env.YANDEX_CLIENT_ID, env.YANDEX_CLIENT_SECRET),
     telegram:
       botToken && botName
-        ? { botToken, botName, botId: botToken.split(':')[0] ?? '' }
+        ? { botToken, botName, botId: botToken.split(":")[0] ?? "" }
         : undefined,
     review:
       env.REVIEW_EMAIL && env.REVIEW_CODE
@@ -314,7 +344,11 @@ export function authMethods(config: AuthConfig): AuthMethods {
     telegramBot: config.telegram
       ? { name: config.telegram.botName, id: config.telegram.botId }
       : null,
-    passkey: { web: true, ios: config.passkey.ios, android: config.passkey.android },
+    passkey: {
+      web: true,
+      ios: config.passkey.ios,
+      android: config.passkey.android,
+    },
   };
 }
 ```
@@ -336,12 +370,14 @@ git commit -m "Read sign-in provider settings from the environment"
 ### Task 2: Почта
 
 **Files:**
+
 - Modify: `apps/api/package.json` (зависимость `nodemailer`, dev `@types/nodemailer`)
 - Create: `apps/api/src/mail/index.ts`
 - Create: `apps/api/src/mail/otp-message.ts`
 - Test: `apps/api/src/mail/otp-message.test.ts`
 
 **Interfaces:**
+
 - Produces:
   - `type Mail = { to: string; subject: string; text: string }`, `type Mailer = (mail: Mail) => Promise<void>`
   - `createMailer(options: { smtpUrl?: string; from: string }): Mailer`
@@ -359,29 +395,29 @@ cd apps/api && bun add nodemailer && bun add -d @types/nodemailer
 `apps/api/src/mail/otp-message.test.ts`:
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 
-import { otpMessage, pickLocale } from './otp-message';
+import { otpMessage, pickLocale } from "./otp-message";
 
-describe('pickLocale', () => {
-  test('takes the language part and falls back to Russian', () => {
-    expect(pickLocale('en')).toBe('en');
-    expect(pickLocale('en-US')).toBe('en');
-    expect(pickLocale('de')).toBe('ru');
-    expect(pickLocale(null)).toBe('ru');
+describe("pickLocale", () => {
+  test("takes the language part and falls back to Russian", () => {
+    expect(pickLocale("en")).toBe("en");
+    expect(pickLocale("en-US")).toBe("en");
+    expect(pickLocale("de")).toBe("ru");
+    expect(pickLocale(null)).toBe("ru");
   });
 });
 
-describe('otpMessage', () => {
-  test('puts the code in the subject and the body', () => {
-    const ru = otpMessage('ru', '123456', 'sign-in');
-    expect(ru.subject).toBe('123456 — код для входа в ChordTune');
-    expect(ru.text).toContain('123456');
-    expect(ru.text).toContain('5 минут');
+describe("otpMessage", () => {
+  test("puts the code in the subject and the body", () => {
+    const ru = otpMessage("ru", "123456", "sign-in");
+    expect(ru.subject).toBe("123456 — код для входа в ChordTune");
+    expect(ru.text).toContain("123456");
+    expect(ru.text).toContain("5 минут");
 
-    const en = otpMessage('en', '654321', 'change-email');
-    expect(en.subject).toBe('654321 — your ChordTune email confirmation code');
-    expect(en.text).toContain('654321');
+    const en = otpMessage("en", "654321", "change-email");
+    expect(en.subject).toBe("654321 — your ChordTune email confirmation code");
+    expect(en.text).toContain("654321");
   });
 });
 ```
@@ -396,29 +432,35 @@ Expected: FAIL — `Cannot find module './otp-message'`.
 `apps/api/src/mail/otp-message.ts`:
 
 ```ts
-export type MailLocale = 'ru' | 'en';
+export type MailLocale = "ru" | "en";
 
 /** The web app sends its interface language in `x-locale`; anything else reads Russian. */
 export function pickLocale(value: string | null | undefined): MailLocale {
-  return value?.split('-')[0]?.toLowerCase() === 'en' ? 'en' : 'ru';
+  return value?.split("-")[0]?.toLowerCase() === "en" ? "en" : "ru";
 }
 
 const TEXTS = {
   ru: {
-    'sign-in': (code: string) => `${code} — код для входа в ChordTune`,
-    'change-email': (code: string) => `${code} — код подтверждения почты в ChordTune`,
+    "sign-in": (code: string) => `${code} — код для входа в ChordTune`,
+    "change-email": (code: string) =>
+      `${code} — код подтверждения почты в ChordTune`,
     body: (code: string) =>
       `Ваш код: ${code}\n\nОн действует 5 минут. Если вы не запрашивали код, просто удалите это письмо.`,
   },
   en: {
-    'sign-in': (code: string) => `${code} — your ChordTune sign-in code`,
-    'change-email': (code: string) => `${code} — your ChordTune email confirmation code`,
+    "sign-in": (code: string) => `${code} — your ChordTune sign-in code`,
+    "change-email": (code: string) =>
+      `${code} — your ChordTune email confirmation code`,
     body: (code: string) =>
       `Your code: ${code}\n\nIt is valid for 5 minutes. If you did not ask for it, just delete this email.`,
   },
 } as const;
 
-export function otpMessage(locale: MailLocale, code: string, purpose: 'sign-in' | 'change-email') {
+export function otpMessage(
+  locale: MailLocale,
+  code: string,
+  purpose: "sign-in" | "change-email",
+) {
   const texts = TEXTS[locale];
   return { subject: texts[purpose](code), text: texts.body(code) };
 }
@@ -427,13 +469,19 @@ export function otpMessage(locale: MailLocale, code: string, purpose: 'sign-in' 
 `apps/api/src/mail/index.ts`:
 
 ```ts
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
 
 export type Mail = { to: string; subject: string; text: string };
 export type Mailer = (mail: Mail) => Promise<void>;
 
 /** SMTP when configured; otherwise the message goes to the log, which is enough for local work. */
-export function createMailer({ smtpUrl, from }: { smtpUrl?: string; from: string }): Mailer {
+export function createMailer({
+  smtpUrl,
+  from,
+}: {
+  smtpUrl?: string;
+  from: string;
+}): Mailer {
   if (!smtpUrl) {
     return async (mail) => {
       console.info(`[mail] to ${mail.to}: ${mail.subject}\n${mail.text}`);
@@ -463,6 +511,7 @@ git commit -m "Send mail over any SMTP provider"
 ### Task 3: Фабрика Better Auth и вход по коду вместо пароля
 
 **Files:**
+
 - Create: `apps/api/src/auth/create-auth.ts`
 - Modify: `apps/api/src/auth.ts` (весь файл)
 - Modify: `apps/api/src/app.ts` (CORS: заголовок `x-locale`)
@@ -470,6 +519,7 @@ git commit -m "Send mail over any SMTP provider"
 - Test: `apps/api/src/auth/email-otp.test.ts`
 
 **Interfaces:**
+
 - Consumes: `AuthConfig` (Task 1), `Mailer`, `otpMessage`, `pickLocale` (Task 2), `isPlaceholderEmail` (Task 1).
 - Produces:
   - `type AuthDeps = { db: Database; secret: string; baseURL: string; trustedOrigins: string[]; config: AuthConfig; mailer: Mailer }`
@@ -482,72 +532,85 @@ git commit -m "Send mail over any SMTP provider"
 `apps/api/src/auth/email-otp.test.ts`:
 
 ```ts
-import { beforeEach, describe, expect, test } from 'bun:test';
-import { eq } from 'drizzle-orm';
+import { beforeEach, describe, expect, test } from "bun:test";
 
-import { account, user } from '../db/schema';
-import { createTestAuth } from '../test/auth';
+import { eq } from "drizzle-orm";
+
+import { account, user } from "../db/schema";
+import { createTestAuth } from "../test/auth";
 
 let t: Awaited<ReturnType<typeof createTestAuth>>;
 
 beforeEach(async () => {
-  t = await createTestAuth({ review: { email: 'review@chordtune.app', code: '424242' } });
+  t = await createTestAuth({
+    review: { email: "review@chordtune.app", code: "424242" },
+  });
 });
 
-describe('email code sign-in', () => {
-  test('a new email creates a verified user', async () => {
-    const { userId } = await t.signIn('new@test.local');
+describe("email code sign-in", () => {
+  test("a new email creates a verified user", async () => {
+    const { userId } = await t.signIn("new@test.local");
     const [row] = await t.db.select().from(user).where(eq(user.id, userId));
-    expect(row).toMatchObject({ email: 'new@test.local', emailVerified: true });
-    expect(t.sent[0]?.subject).toContain('код для входа');
+    expect(row).toMatchObject({ email: "new@test.local", emailVerified: true });
+    expect(t.sent[0]?.subject).toContain("код для входа");
   });
 
-  test('a former password user signs in to the same account, even with capitals', async () => {
-    await t.db.insert(user).values({ id: 'old', name: 'Old', email: 'alice@test.local' });
+  test("a former password user signs in to the same account, even with capitals", async () => {
+    await t.db
+      .insert(user)
+      .values({ id: "old", name: "Old", email: "alice@test.local" });
     await t.db.insert(account).values({
-      id: 'old-credential',
-      userId: 'old',
-      accountId: 'old',
-      providerId: 'credential',
-      password: 'hash',
+      id: "old-credential",
+      userId: "old",
+      accountId: "old",
+      providerId: "credential",
+      password: "hash",
       updatedAt: new Date(),
     });
-    const { userId } = await t.signIn('Alice@Test.local');
-    expect(userId).toBe('old');
+    const { userId } = await t.signIn("Alice@Test.local");
+    expect(userId).toBe("old");
   });
 
-  test('three wrong codes burn the code', async () => {
-    await t.auth.api.sendVerificationOTP({ body: { email: 'a@test.local', type: 'sign-in' } });
+  test("three wrong codes burn the code", async () => {
+    await t.auth.api.sendVerificationOTP({
+      body: { email: "a@test.local", type: "sign-in" },
+    });
     const code = t.lastCode();
     for (let i = 0; i < 3; i++) {
       await expect(
-        t.auth.api.signInEmailOTP({ body: { email: 'a@test.local', otp: '000000' } }),
+        t.auth.api.signInEmailOTP({
+          body: { email: "a@test.local", otp: "000000" },
+        }),
       ).rejects.toThrow();
     }
     await expect(
-      t.auth.api.signInEmailOTP({ body: { email: 'a@test.local', otp: code } }),
+      t.auth.api.signInEmailOTP({ body: { email: "a@test.local", otp: code } }),
     ).rejects.toThrow();
   });
 
-  test('the review account takes its fixed code and gets no mail', async () => {
+  test("the review account takes its fixed code and gets no mail", async () => {
     await t.auth.api.sendVerificationOTP({
-      body: { email: 'review@chordtune.app', type: 'sign-in' },
+      body: { email: "review@chordtune.app", type: "sign-in" },
     });
     expect(t.sent).toHaveLength(0);
     const result = await t.auth.api.signInEmailOTP({
-      body: { email: 'review@chordtune.app', otp: '424242' },
+      body: { email: "review@chordtune.app", otp: "424242" },
     });
-    expect(result.user.email).toBe('review@chordtune.app');
+    expect(result.user.email).toBe("review@chordtune.app");
   });
 
-  test('placeholder addresses get no mail', async () => {
-    await t.auth.api.sendVerificationOTP({ body: { email: 'tg-1@users.invalid', type: 'sign-in' } });
+  test("placeholder addresses get no mail", async () => {
+    await t.auth.api.sendVerificationOTP({
+      body: { email: "tg-1@users.invalid", type: "sign-in" },
+    });
     expect(t.sent).toHaveLength(0);
   });
 
-  test('passwords are gone', async () => {
+  test("passwords are gone", async () => {
     await expect(
-      t.auth.api.signUpEmail({ body: { email: 'p@test.local', password: '12345678', name: 'p' } }),
+      t.auth.api.signUpEmail({
+        body: { email: "p@test.local", password: "12345678", name: "p" },
+      }),
     ).rejects.toThrow();
   });
 });
@@ -563,17 +626,17 @@ Expected: FAIL — `Cannot find module '../test/auth'`.
 `apps/api/src/auth/create-auth.ts`:
 
 ```ts
-import { drizzleAdapter } from '@better-auth/drizzle-adapter/relations-v2';
-import { betterAuth } from 'better-auth';
-import { APIError } from 'better-auth/api';
-import { bearer, emailOTP } from 'better-auth/plugins';
+import { drizzleAdapter } from "@better-auth/drizzle-adapter/relations-v2";
+import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
+import { bearer, emailOTP } from "better-auth/plugins";
 
-import type { Database } from '../db';
-import { tables } from '../db/schema';
-import { type Mailer } from '../mail';
-import { otpMessage, pickLocale } from '../mail/otp-message';
-import type { AuthConfig } from './config';
-import { isPlaceholderEmail } from './placeholder-email';
+import type { Database } from "../db";
+import { tables } from "../db/schema";
+import { type Mailer } from "../mail";
+import { otpMessage, pickLocale } from "../mail/otp-message";
+import type { AuthConfig } from "./config";
+import { isPlaceholderEmail } from "./placeholder-email";
 
 export type AuthDeps = {
   db: Database;
@@ -584,36 +647,51 @@ export type AuthDeps = {
   mailer: Mailer;
 };
 
-export const MAIL_FAILED = 'MAIL_FAILED';
+export const MAIL_FAILED = "MAIL_FAILED";
 
-export function createAuth({ db, secret, baseURL, trustedOrigins, config, mailer }: AuthDeps) {
+export function createAuth({
+  db,
+  secret,
+  baseURL,
+  trustedOrigins,
+  config,
+  mailer,
+}: AuthDeps) {
   const isReviewEmail = (email: string) => email === config.review?.email;
 
   return betterAuth({
     baseURL,
     secret,
-    database: drizzleAdapter(db, { provider: 'pg', schema: tables }),
+    database: drizzleAdapter(db, { provider: "pg", schema: tables }),
     trustedOrigins,
     plugins: [
       emailOTP({
         otpLength: 6,
         expiresIn: 300,
         allowedAttempts: 3,
-        storeOTP: 'hashed',
+        storeOTP: "hashed",
         changeEmail: { enabled: true },
         // Store reviewers cannot read our mail, so their address always takes the configured code.
-        generateOTP: ({ email }) => (isReviewEmail(email) ? config.review?.code : undefined),
+        generateOTP: ({ email }) =>
+          isReviewEmail(email) ? config.review?.code : undefined,
         async sendVerificationOTP({ email, otp, type }, ctx) {
           if (isPlaceholderEmail(email) || isReviewEmail(email)) {
             return;
           }
-          const locale = pickLocale(ctx?.request?.headers.get('x-locale'));
-          const message = otpMessage(locale, otp, type === 'change-email' ? 'change-email' : 'sign-in');
+          const locale = pickLocale(ctx?.request?.headers.get("x-locale"));
+          const message = otpMessage(
+            locale,
+            otp,
+            type === "change-email" ? "change-email" : "sign-in",
+          );
           try {
             await mailer({ to: email, ...message });
           } catch (error) {
-            console.error('[mail] sending the code failed', error);
-            throw new APIError('SERVICE_UNAVAILABLE', { message: 'Mail failed', code: MAIL_FAILED });
+            console.error("[mail] sending the code failed", error);
+            throw new APIError("SERVICE_UNAVAILABLE", {
+              message: "Mail failed",
+              code: MAIL_FAILED,
+            });
           }
         },
       }),
@@ -630,12 +708,12 @@ export type Auth = ReturnType<typeof createAuth>;
 `apps/api/src/auth.ts` (весь файл):
 
 ```ts
-import { authConfig } from './auth/config';
-import { createAuth } from './auth/create-auth';
-import { authSecret } from './config-store';
-import { db } from './db';
-import { env } from './env';
-import { createMailer } from './mail';
+import { authConfig } from "./auth/config";
+import { createAuth } from "./auth/create-auth";
+import { authSecret } from "./config-store";
+import { db } from "./db";
+import { env } from "./env";
+import { createMailer } from "./mail";
 
 export const auth = createAuth({
   db,
@@ -659,13 +737,18 @@ export type Session = typeof auth.$Infer.Session;
 `apps/api/src/test/auth.ts`:
 
 ```ts
-import { type AuthConfig } from '../auth/config';
-import { createAuth } from '../auth/create-auth';
-import type { Mail } from '../mail';
-import { createTestDb } from './db';
+import { type AuthConfig } from "../auth/config";
+import { createAuth } from "../auth/create-auth";
+import type { Mail } from "../mail";
+import { createTestDb } from "./db";
 
 const DEFAULT_CONFIG: AuthConfig = {
-  passkey: { rpID: 'localhost', origins: ['http://localhost:3000'], ios: false, android: false },
+  passkey: {
+    rpID: "localhost",
+    origins: ["http://localhost:3000"],
+    ios: false,
+    android: false,
+  },
 };
 
 /** Better Auth on a fresh PGlite database; mail lands in `sent` instead of SMTP. */
@@ -674,9 +757,9 @@ export async function createTestAuth(config: Partial<AuthConfig> = {}) {
   const sent: Mail[] = [];
   const auth = createAuth({
     db,
-    secret: 'test-secret-that-is-long-enough-for-better-auth',
-    baseURL: 'http://localhost:4000',
-    trustedOrigins: ['http://localhost:3000'],
+    secret: "test-secret-that-is-long-enough-for-better-auth",
+    baseURL: "http://localhost:4000",
+    trustedOrigins: ["http://localhost:3000"],
     config: { ...DEFAULT_CONFIG, ...config },
     mailer: async (mail) => {
       sent.push(mail);
@@ -686,15 +769,17 @@ export async function createTestAuth(config: Partial<AuthConfig> = {}) {
   const lastCode = () => {
     const code = sent.at(-1)?.text.match(/\d{6}/)?.[0];
     if (!code) {
-      throw new Error('No code was mailed');
+      throw new Error("No code was mailed");
     }
     return code;
   };
 
   /** Signs in by email code and returns what a client would keep. */
   const signIn = async (email: string) => {
-    await auth.api.sendVerificationOTP({ body: { email, type: 'sign-in' } });
-    const result = await auth.api.signInEmailOTP({ body: { email, otp: lastCode() } });
+    await auth.api.sendVerificationOTP({ body: { email, type: "sign-in" } });
+    const result = await auth.api.signInEmailOTP({
+      body: { email, otp: lastCode() },
+    });
     return {
       token: result.token,
       userId: result.user.id,
@@ -728,6 +813,7 @@ git commit -m "Sign in with a mailed code instead of a password"
 ### Task 4: Ник
 
 **Files:**
+
 - Create: `apps/api/src/auth/username.ts`
 - Modify: `apps/api/src/auth/create-auth.ts` (плагин `username`, `databaseHooks`)
 - Modify: `apps/api/src/db/auth-schema.ts` (перегенерируется), `apps/api/src/db/schema.ts`
@@ -736,6 +822,7 @@ git commit -m "Sign in with a mailed code instead of a password"
 - Test: `apps/api/src/auth/username.test.ts`
 
 **Interfaces:**
+
 - Consumes: `isPlaceholderEmail` (Task 1), `toLatin` (`src/lib/translit.ts`), `createTestAuth` (Task 3).
 - Produces:
   - `RESERVED_USERNAMES: ReadonlySet<string>`, `isValidUsername(value: string): boolean`
@@ -750,68 +837,84 @@ git commit -m "Sign in with a mailed code instead of a password"
 `apps/api/src/auth/username.test.ts`:
 
 ```ts
-import { describe, expect, test } from 'bun:test';
-import { eq } from 'drizzle-orm';
+import { describe, expect, test } from "bun:test";
 
-import { user } from '../db/schema';
-import { createTestAuth } from '../test/auth';
-import { createTestDb } from '../test/db';
-import { backfillUsernames, isValidUsername, uniqueUsername, usernameBase } from './username';
+import { eq } from "drizzle-orm";
 
-describe('usernameBase', () => {
-  test('first usable candidate, transliterated and cleaned', () => {
-    expect(usernameBase(['Вася Пупкин'])).toBe('vasya_pupkin');
-    expect(usernameBase([null, 'ivan.petrov+tag'])).toBe('ivan_petrov_tag');
-    expect(usernameBase(['!!!', 'Kino'])).toBe('kino');
+import { user } from "../db/schema";
+import { createTestAuth } from "../test/auth";
+import { createTestDb } from "../test/db";
+import {
+  backfillUsernames,
+  isValidUsername,
+  uniqueUsername,
+  usernameBase,
+} from "./username";
+
+describe("usernameBase", () => {
+  test("first usable candidate, transliterated and cleaned", () => {
+    expect(usernameBase(["Вася Пупкин"])).toBe("vasya_pupkin");
+    expect(usernameBase([null, "ivan.petrov+tag"])).toBe("ivan_petrov_tag");
+    expect(usernameBase(["!!!", "Kino"])).toBe("kino");
   });
 
-  test('pads short results, trims long ones, avoids reserved names', () => {
-    expect(usernameBase(['ab'])).toMatch(/^ab\d{1,}$/);
-    expect(usernameBase(['ab']).length).toBeGreaterThanOrEqual(3);
-    expect(usernameBase(['a'.repeat(50)])).toHaveLength(30);
-    expect(usernameBase(['admin'])).not.toBe('admin');
-    expect(usernameBase([])).toBe('user');
-  });
-});
-
-describe('isValidUsername', () => {
-  test('format and reserved list', () => {
-    expect(isValidUsername('vasya_2')).toBe(true);
-    expect(isValidUsername('Vasya')).toBe(false);
-    expect(isValidUsername('va')).toBe(false);
-    expect(isValidUsername('profile')).toBe(false);
+  test("pads short results, trims long ones, avoids reserved names", () => {
+    expect(usernameBase(["ab"])).toMatch(/^ab\d{1,}$/);
+    expect(usernameBase(["ab"]).length).toBeGreaterThanOrEqual(3);
+    expect(usernameBase(["a".repeat(50)])).toHaveLength(30);
+    expect(usernameBase(["admin"])).not.toBe("admin");
+    expect(usernameBase([])).toBe("user");
   });
 });
 
-describe('uniqueUsername', () => {
-  test('adds a number on collision', async () => {
+describe("isValidUsername", () => {
+  test("format and reserved list", () => {
+    expect(isValidUsername("vasya_2")).toBe(true);
+    expect(isValidUsername("Vasya")).toBe(false);
+    expect(isValidUsername("va")).toBe(false);
+    expect(isValidUsername("profile")).toBe(false);
+  });
+});
+
+describe("uniqueUsername", () => {
+  test("adds a number on collision", async () => {
     const db = await createTestDb();
-    await db.insert(user).values({ id: '1', name: 'a', email: 'a@x', username: 'vasya' });
-    await db.insert(user).values({ id: '2', name: 'b', email: 'b@x', username: 'vasya2' });
-    expect(await uniqueUsername(db, 'vasya')).toBe('vasya3');
-    expect(await uniqueUsername(db, 'petya')).toBe('petya');
+    await db
+      .insert(user)
+      .values({ id: "1", name: "a", email: "a@x", username: "vasya" });
+    await db
+      .insert(user)
+      .values({ id: "2", name: "b", email: "b@x", username: "vasya2" });
+    expect(await uniqueUsername(db, "vasya")).toBe("vasya3");
+    expect(await uniqueUsername(db, "petya")).toBe("petya");
   });
 });
 
-describe('new users', () => {
-  test('get a username from the email, not from a placeholder', async () => {
+describe("new users", () => {
+  test("get a username from the email, not from a placeholder", async () => {
     const t = await createTestAuth();
-    const { userId } = await t.signIn('Ivan.Petrov@test.local');
+    const { userId } = await t.signIn("Ivan.Petrov@test.local");
     const [row] = await t.db.select().from(user).where(eq(user.id, userId));
-    expect(row?.username).toBe('ivan_petrov');
+    expect(row?.username).toBe("ivan_petrov");
   });
 });
 
-describe('backfillUsernames', () => {
-  test('fills only missing ones', async () => {
+describe("backfillUsernames", () => {
+  test("fills only missing ones", async () => {
     const db = await createTestDb();
-    await db.insert(user).values({ id: '1', name: 'Маша', email: 'masha@x.ru' });
-    await db.insert(user).values({ id: '2', name: 'Kept', email: 'kept@x.ru', username: 'kept' });
+    await db
+      .insert(user)
+      .values({ id: "1", name: "Маша", email: "masha@x.ru" });
+    await db
+      .insert(user)
+      .values({ id: "2", name: "Kept", email: "kept@x.ru", username: "kept" });
     expect(await backfillUsernames(db)).toBe(1);
-    const rows = await db.select({ id: user.id, username: user.username }).from(user);
+    const rows = await db
+      .select({ id: user.id, username: user.username })
+      .from(user);
     expect(rows.sort((a, b) => a.id.localeCompare(b.id))).toEqual([
-      { id: '1', username: 'masha' },
-      { id: '2', username: 'kept' },
+      { id: "1", username: "masha" },
+      { id: "2", username: "kept" },
     ]);
   });
 });
@@ -849,21 +952,44 @@ cd apps/api && bun run auth:generate && bun run db:generate
 `apps/api/src/auth/username.ts`:
 
 ```ts
-import { isNull, like, or, eq } from 'drizzle-orm';
+import { eq, isNull, like, or } from "drizzle-orm";
 
-import type { Database } from '../db';
-import { user } from '../db/schema';
-import { toLatin } from '../lib/translit';
-import { isPlaceholderEmail } from './placeholder-email';
+import type { Database } from "../db";
+import { user } from "../db/schema";
+import { toLatin } from "../lib/translit";
+import { isPlaceholderEmail } from "./placeholder-email";
 
 const MIN = 3;
 const MAX = 30;
 
 /** Path segments and words that would read as official if someone took them. */
 export const RESERVED_USERNAMES: ReadonlySet<string> = new Set([
-  'admin', 'administrator', 'api', 'app', 'auth', 'chordtune', 'edit', 'help', 'login', 'logout',
-  'me', 'moderator', 'new', 'null', 'profile', 'root', 'security', 'settings', 'signin', 'signup',
-  'support', 'system', 'u', 'undefined', 'user', 'users',
+  "admin",
+  "administrator",
+  "api",
+  "app",
+  "auth",
+  "chordtune",
+  "edit",
+  "help",
+  "login",
+  "logout",
+  "me",
+  "moderator",
+  "new",
+  "null",
+  "profile",
+  "root",
+  "security",
+  "settings",
+  "signin",
+  "signup",
+  "support",
+  "system",
+  "u",
+  "undefined",
+  "user",
+  "users",
 ]);
 
 export function isValidUsername(value: string) {
@@ -873,16 +999,18 @@ export function isValidUsername(value: string) {
 function clean(value: string) {
   return toLatin(value)
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
     .slice(0, MAX)
-    .replace(/_+$/, '');
+    .replace(/_+$/, "");
 }
 
 /** A valid starting point for a username; `uniqueUsername` resolves collisions. */
-export function usernameBase(candidates: (string | null | undefined)[]): string {
+export function usernameBase(
+  candidates: (string | null | undefined)[],
+): string {
   for (const candidate of candidates) {
-    let base = candidate ? clean(candidate) : '';
+    let base = candidate ? clean(candidate) : "";
     if (!base) {
       continue;
     }
@@ -894,11 +1022,14 @@ export function usernameBase(candidates: (string | null | undefined)[]): string 
     }
     return base;
   }
-  return 'user';
+  return "user";
 }
 
 /** `base`, or `base2`, `base3`… whichever is free. Suffixes may push past 30 characters, so trim first. */
-export async function uniqueUsername(db: Database, base: string): Promise<string> {
+export async function uniqueUsername(
+  db: Database,
+  base: string,
+): Promise<string> {
   const taken = new Set(
     (
       await db
@@ -907,7 +1038,7 @@ export async function uniqueUsername(db: Database, base: string): Promise<string
         .where(or(eq(user.username, base), like(user.username, `${base}%`)))
     ).map((row) => row.username),
   );
-  if (!taken.has(base) && base !== 'user') {
+  if (!taken.has(base) && base !== "user") {
     return base;
   }
   for (let n = 2; ; n++) {
@@ -920,9 +1051,17 @@ export async function uniqueUsername(db: Database, base: string): Promise<string
 }
 
 /** Where a new user's username comes from, best first. */
-export function usernameHints(data: { email: string; name: string; username?: string | null }) {
-  const local = isPlaceholderEmail(data.email) ? null : data.email.split('@')[0];
-  return [data.username, local, data.name].filter((value): value is string => Boolean(value));
+export function usernameHints(data: {
+  email: string;
+  name: string;
+  username?: string | null;
+}) {
+  const local = isPlaceholderEmail(data.email)
+    ? null
+    : data.email.split("@")[0];
+  return [data.username, local, data.name].filter((value): value is string =>
+    Boolean(value),
+  );
 }
 
 /** Gives a username to users created before usernames existed. Safe to run on every start. */
@@ -961,8 +1100,8 @@ export async function backfillUsernames(db: Database): Promise<number> {
 
 ```ts
 // Users from before usernames get theirs once; later starts find nothing to do.
-const { backfillUsernames } = await import('./auth/username');
-const { db } = await import('./db');
+const { backfillUsernames } = await import("./auth/username");
+const { db } = await import("./db");
 await backfillUsernames(db);
 ```
 
@@ -983,11 +1122,13 @@ git commit -m "Give every user a username"
 ### Task 5: Google, VK и Яндекс
 
 **Files:**
+
 - Create: `apps/api/src/auth/providers.ts`
 - Modify: `apps/api/src/auth/create-auth.ts`
 - Test: `apps/api/src/auth/providers.test.ts`
 
 **Interfaces:**
+
 - Consumes: `AuthConfig`, `placeholderEmail` (Task 1).
 - Produces:
   - `socialProviders(config: AuthConfig)` — объект для `betterAuth({ socialProviders })`
@@ -1001,34 +1142,45 @@ git commit -m "Give every user a username"
 `apps/api/src/auth/providers.test.ts`:
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 
-import type { AuthConfig } from './config';
-import { genericProviders, socialProviders, TRUSTED_PROVIDERS, vkProfileToUser } from './providers';
+import type { AuthConfig } from "./config";
+import {
+  genericProviders,
+  socialProviders,
+  TRUSTED_PROVIDERS,
+  vkProfileToUser,
+} from "./providers";
 
-const passkey = { rpID: 'localhost', origins: [], ios: false, android: false };
+const passkey = { rpID: "localhost", origins: [], ios: false, android: false };
 
-describe('providers', () => {
-  test('only configured providers are registered', () => {
+describe("providers", () => {
+  test("only configured providers are registered", () => {
     const config: AuthConfig = {
       passkey,
-      google: { clientId: 'g', clientSecret: 'gs' },
-      yandex: { clientId: 'y', clientSecret: 'ys' },
+      google: { clientId: "g", clientSecret: "gs" },
+      yandex: { clientId: "y", clientSecret: "ys" },
     };
-    expect(Object.keys(socialProviders(config))).toEqual(['google']);
-    expect(genericProviders(config).map((provider) => provider.providerId)).toEqual(['yandex']);
+    expect(Object.keys(socialProviders(config))).toEqual(["google"]);
+    expect(
+      genericProviders(config).map((provider) => provider.providerId),
+    ).toEqual(["yandex"]);
     expect(Object.keys(socialProviders({ passkey }))).toEqual([]);
   });
 
-  test('only providers that verify email link by it', () => {
-    expect([...TRUSTED_PROVIDERS]).toEqual(['google', 'yandex']);
+  test("only providers that verify email link by it", () => {
+    expect([...TRUSTED_PROVIDERS]).toEqual(["google", "yandex"]);
   });
 });
 
-describe('vkProfileToUser', () => {
-  test('keeps the VK email or stands in a placeholder', () => {
-    expect(vkProfileToUser({ user: { user_id: 7, email: 'v@vk.com' } })).toEqual({});
-    expect(vkProfileToUser({ user: { user_id: 7 } })).toEqual({ email: 'vk-7@users.invalid' });
+describe("vkProfileToUser", () => {
+  test("keeps the VK email or stands in a placeholder", () => {
+    expect(
+      vkProfileToUser({ user: { user_id: 7, email: "v@vk.com" } }),
+    ).toEqual({});
+    expect(vkProfileToUser({ user: { user_id: 7 } })).toEqual({
+      email: "vk-7@users.invalid",
+    });
   });
 });
 ```
@@ -1043,23 +1195,31 @@ Expected: FAIL — `Cannot find module './providers'`.
 `apps/api/src/auth/providers.ts`:
 
 ```ts
-import { yandex } from 'better-auth/plugins';
+import { yandex } from "better-auth/plugins";
 
-import type { AuthConfig } from './config';
-import { placeholderEmail } from './placeholder-email';
+import type { AuthConfig } from "./config";
+import { placeholderEmail } from "./placeholder-email";
 
 /** Providers whose email is verified, so signing in with them may join an account of that email. */
-export const TRUSTED_PROVIDERS = ['google', 'yandex'] as const;
+export const TRUSTED_PROVIDERS = ["google", "yandex"] as const;
 
 /** Better Auth drops a VK sign-in without an email; a placeholder keeps the account usable. */
-export function vkProfileToUser(profile: { user: { user_id: string | number; email?: string } }) {
-  return profile.user.email ? {} : { email: placeholderEmail('vk', String(profile.user.user_id)) };
+export function vkProfileToUser(profile: {
+  user: { user_id: string | number; email?: string };
+}) {
+  return profile.user.email
+    ? {}
+    : { email: placeholderEmail("vk", String(profile.user.user_id)) };
 }
 
 export function socialProviders(config: AuthConfig) {
   return {
-    ...(config.google && { google: { ...config.google, prompt: 'select_account' as const } }),
-    ...(config.vk && { vk: { ...config.vk, mapProfileToUser: vkProfileToUser } }),
+    ...(config.google && {
+      google: { ...config.google, prompt: "select_account" as const },
+    }),
+    ...(config.vk && {
+      vk: { ...config.vk, mapProfileToUser: vkProfileToUser },
+    }),
   };
 }
 
@@ -1113,12 +1273,14 @@ git commit -m "Sign in with Google, VK and Yandex"
 ### Task 6: Telegram
 
 **Files:**
+
 - Create: `apps/api/src/auth/telegram.ts`
 - Create: `apps/api/src/auth/telegram-plugin.ts`
 - Modify: `apps/api/src/auth/create-auth.ts`
 - Test: `apps/api/src/auth/telegram.test.ts`
 
 **Interfaces:**
+
 - Consumes: `placeholderEmail` (Task 1), `createTestAuth` (Task 3), username hook (Task 4).
 - Produces:
   - `type TelegramLogin = { id: number; first_name: string; last_name?: string; username?: string; photo_url?: string; auth_date: number; hash: string }`
@@ -1131,75 +1293,113 @@ git commit -m "Sign in with Google, VK and Yandex"
 `apps/api/src/auth/telegram.test.ts`:
 
 ```ts
-import { createHash, createHmac } from 'node:crypto';
-import { describe, expect, test } from 'bun:test';
-import { eq } from 'drizzle-orm';
+import { describe, expect, test } from "bun:test";
+import { createHash, createHmac } from "node:crypto";
 
-import { account, user } from '../db/schema';
-import { createTestAuth } from '../test/auth';
-import { verifyTelegramLogin } from './telegram';
+import { eq } from "drizzle-orm";
 
-const BOT = '123456:test-token';
+import { account, user } from "../db/schema";
+import { createTestAuth } from "../test/auth";
+import { verifyTelegramLogin } from "./telegram";
+
+const BOT = "123456:test-token";
 
 /** Signs widget fields the way Telegram documents it, independently of the code under test. */
 function sign(fields: Record<string, string | number>, botToken = BOT) {
   const check = Object.keys(fields)
     .sort()
     .map((key) => `${key}=${fields[key]}`)
-    .join('\n');
-  const secret = createHash('sha256').update(botToken).digest();
-  return { ...fields, hash: createHmac('sha256', secret).update(check).digest('hex') };
+    .join("\n");
+  const secret = createHash("sha256").update(botToken).digest();
+  return {
+    ...fields,
+    hash: createHmac("sha256", secret).update(check).digest("hex"),
+  };
 }
 
 const now = () => Math.floor(Date.now() / 1000);
 
-describe('verifyTelegramLogin', () => {
-  const fields = { id: 42, first_name: 'Вася', username: 'vasya_tg', auth_date: 1_700_000_000 };
+describe("verifyTelegramLogin", () => {
+  const fields = {
+    id: 42,
+    first_name: "Вася",
+    username: "vasya_tg",
+    auth_date: 1_700_000_000,
+  };
 
-  test('accepts a fresh signed login', () => {
-    expect(verifyTelegramLogin(sign(fields), BOT, 1_700_000_100)).toMatchObject({ id: 42 });
+  test("accepts a fresh signed login", () => {
+    expect(verifyTelegramLogin(sign(fields), BOT, 1_700_000_100)).toMatchObject(
+      { id: 42 },
+    );
   });
 
-  test('accepts query-string values (redirect mode sends strings)', () => {
+  test("accepts query-string values (redirect mode sends strings)", () => {
     const signed = sign(fields);
-    const asStrings = Object.fromEntries(Object.entries(signed).map(([k, v]) => [k, String(v)]));
-    expect(verifyTelegramLogin(asStrings, BOT, 1_700_000_100)).toMatchObject({ id: 42 });
+    const asStrings = Object.fromEntries(
+      Object.entries(signed).map(([k, v]) => [k, String(v)]),
+    );
+    expect(verifyTelegramLogin(asStrings, BOT, 1_700_000_100)).toMatchObject({
+      id: 42,
+    });
   });
 
-  test('rejects a forged, re-signed or stale login', () => {
-    expect(verifyTelegramLogin({ ...sign(fields), id: 43 }, BOT, 1_700_000_100)).toBeNull();
-    expect(verifyTelegramLogin(sign(fields, '1:other'), BOT, 1_700_000_100)).toBeNull();
-    expect(verifyTelegramLogin(sign(fields), BOT, 1_700_000_000 + 601)).toBeNull();
+  test("rejects a forged, re-signed or stale login", () => {
+    expect(
+      verifyTelegramLogin({ ...sign(fields), id: 43 }, BOT, 1_700_000_100),
+    ).toBeNull();
+    expect(
+      verifyTelegramLogin(sign(fields, "1:other"), BOT, 1_700_000_100),
+    ).toBeNull();
+    expect(
+      verifyTelegramLogin(sign(fields), BOT, 1_700_000_000 + 601),
+    ).toBeNull();
     expect(verifyTelegramLogin({ id: 42 }, BOT, 1_700_000_100)).toBeNull();
   });
 });
 
-describe('telegram plugin', () => {
-  test('first sign-in creates a user without a real email; the next finds it', async () => {
+describe("telegram plugin", () => {
+  test("first sign-in creates a user without a real email; the next finds it", async () => {
     const t = await createTestAuth({
-      telegram: { botToken: BOT, botName: 'bot', botId: '123456' },
+      telegram: { botToken: BOT, botName: "bot", botId: "123456" },
     });
-    const body = sign({ id: 42, first_name: 'Вася', username: 'Vasya_TG', auth_date: now() });
+    const body = sign({
+      id: 42,
+      first_name: "Вася",
+      username: "Vasya_TG",
+      auth_date: now(),
+    });
     const first = await t.auth.api.signInTelegram({ body });
     const second = await t.auth.api.signInTelegram({ body });
     expect(second.user.id).toBe(first.user.id);
-    const [row] = await t.db.select().from(user).where(eq(user.id, first.user.id));
-    expect(row).toMatchObject({ email: 'tg-42@users.invalid', name: 'Вася', username: 'vasya_tg' });
+    const [row] = await t.db
+      .select()
+      .from(user)
+      .where(eq(user.id, first.user.id));
+    expect(row).toMatchObject({
+      email: "tg-42@users.invalid",
+      name: "Вася",
+      username: "vasya_tg",
+    });
   });
 
-  test('linking attaches Telegram to the signed-in user, once', async () => {
+  test("linking attaches Telegram to the signed-in user, once", async () => {
     const t = await createTestAuth({
-      telegram: { botToken: BOT, botName: 'bot', botId: '123456' },
+      telegram: { botToken: BOT, botName: "bot", botId: "123456" },
     });
-    const alice = await t.signIn('alice@test.local');
-    const bob = await t.signIn('bob@test.local');
-    const body = sign({ id: 7, first_name: 'A', auth_date: now() });
+    const alice = await t.signIn("alice@test.local");
+    const bob = await t.signIn("bob@test.local");
+    const body = sign({ id: 7, first_name: "A", auth_date: now() });
 
     await t.auth.api.linkTelegram({ body, headers: alice.headers });
-    const linked = await t.db.select().from(account).where(eq(account.providerId, 'telegram'));
+    const linked = await t.db
+      .select()
+      .from(account)
+      .where(eq(account.providerId, "telegram"));
     expect(linked.map((row) => row.userId)).toEqual([alice.userId]);
 
-    await expect(t.auth.api.linkTelegram({ body, headers: bob.headers })).rejects.toThrow();
+    await expect(
+      t.auth.api.linkTelegram({ body, headers: bob.headers }),
+    ).rejects.toThrow();
     const signedIn = await t.auth.api.signInTelegram({ body });
     expect(signedIn.user.id).toBe(alice.userId);
   });
@@ -1216,8 +1416,9 @@ Expected: FAIL — `Cannot find module './telegram'`.
 `apps/api/src/auth/telegram.ts`:
 
 ```ts
-import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
-import { z } from 'zod';
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+
+import { z } from "zod";
 
 export const TELEGRAM_MAX_AGE_SECONDS = 600;
 
@@ -1248,12 +1449,16 @@ export function verifyTelegramLogin(
     return null;
   }
   const check = Object.keys(data)
-    .filter((key) => key !== 'hash' && data[key] !== undefined && data[key] !== null)
+    .filter(
+      (key) => key !== "hash" && data[key] !== undefined && data[key] !== null,
+    )
     .sort()
     .map((key) => `${key}=${String(data[key])}`)
-    .join('\n');
-  const secret = createHash('sha256').update(botToken).digest();
-  const expected = Buffer.from(createHmac('sha256', secret).update(check).digest('hex'));
+    .join("\n");
+  const secret = createHash("sha256").update(botToken).digest();
+  const expected = Buffer.from(
+    createHmac("sha256", secret).update(check).digest("hex"),
+  );
   const given = Buffer.from(parsed.data.hash);
   if (expected.length !== given.length || !timingSafeEqual(expected, given)) {
     return null;
@@ -1268,67 +1473,82 @@ export function verifyTelegramLogin(
 `apps/api/src/auth/telegram-plugin.ts`:
 
 ```ts
-import type { BetterAuthPlugin } from 'better-auth';
-import { APIError, createAuthEndpoint, sessionMiddleware } from 'better-auth/api';
-import { setSessionCookie } from 'better-auth/cookies';
-import { z } from 'zod';
+import type { BetterAuthPlugin } from "better-auth";
+import {
+  APIError,
+  createAuthEndpoint,
+  sessionMiddleware,
+} from "better-auth/api";
+import { setSessionCookie } from "better-auth/cookies";
+import { z } from "zod";
 
-import { placeholderEmail } from './placeholder-email';
-import { verifyTelegramLogin } from './telegram';
+import { placeholderEmail } from "./placeholder-email";
+import { verifyTelegramLogin } from "./telegram";
 
 const body = z.record(z.string(), z.unknown());
 
 function invalid() {
-  return new APIError('UNAUTHORIZED', {
-    message: 'Invalid Telegram login',
-    code: 'INVALID_TELEGRAM_LOGIN',
+  return new APIError("UNAUTHORIZED", {
+    message: "Invalid Telegram login",
+    code: "INVALID_TELEGRAM_LOGIN",
   });
 }
 
 export function telegram({ botToken }: { botToken: string }) {
   return {
-    id: 'telegram',
+    id: "telegram",
     endpoints: {
       signInTelegram: createAuthEndpoint(
-        '/telegram/sign-in',
-        { method: 'POST', body },
+        "/telegram/sign-in",
+        { method: "POST", body },
         async (ctx) => {
           const login = verifyTelegramLogin(ctx.body, botToken);
           if (!login) {
             throw invalid();
           }
           const accountId = String(login.id);
-          const existing = await ctx.context.adapter.findOne<{ userId: string }>({
-            model: 'account',
+          const existing = await ctx.context.adapter.findOne<{
+            userId: string;
+          }>({
+            model: "account",
             where: [
-              { field: 'providerId', value: 'telegram' },
-              { field: 'accountId', value: accountId },
+              { field: "providerId", value: "telegram" },
+              { field: "accountId", value: accountId },
             ],
           });
-          let user = existing ? await ctx.context.internalAdapter.findUserById(existing.userId) : null;
+          let user = existing
+            ? await ctx.context.internalAdapter.findUserById(existing.userId)
+            : null;
           if (!user) {
             const profile = {
-              email: placeholderEmail('tg', accountId),
+              email: placeholderEmail("tg", accountId),
               emailVerified: false,
-              name: [login.first_name, login.last_name].filter(Boolean).join(' '),
+              name: [login.first_name, login.last_name]
+                .filter(Boolean)
+                .join(" "),
               image: login.photo_url ?? null,
               // A hint for the username hook (Task 4), not a field the client can set.
               username: login.username,
             };
-            const created = await ctx.context.internalAdapter.createOAuthUser(profile, {
-              providerId: 'telegram',
-              accountId,
-            });
+            const created = await ctx.context.internalAdapter.createOAuthUser(
+              profile,
+              {
+                providerId: "telegram",
+                accountId,
+              },
+            );
             user = created.user;
           }
-          const session = await ctx.context.internalAdapter.createSession(user.id);
+          const session = await ctx.context.internalAdapter.createSession(
+            user.id,
+          );
           await setSessionCookie(ctx, { session, user });
           return ctx.json({ token: session.token, user });
         },
       ),
       linkTelegram: createAuthEndpoint(
-        '/telegram/link',
-        { method: 'POST', body, use: [sessionMiddleware] },
+        "/telegram/link",
+        { method: "POST", body, use: [sessionMiddleware] },
         async (ctx) => {
           const login = verifyTelegramLogin(ctx.body, botToken);
           if (!login) {
@@ -1336,21 +1556,27 @@ export function telegram({ botToken }: { botToken: string }) {
           }
           const accountId = String(login.id);
           const userId = ctx.context.session.user.id;
-          const existing = await ctx.context.adapter.findOne<{ userId: string }>({
-            model: 'account',
+          const existing = await ctx.context.adapter.findOne<{
+            userId: string;
+          }>({
+            model: "account",
             where: [
-              { field: 'providerId', value: 'telegram' },
-              { field: 'accountId', value: accountId },
+              { field: "providerId", value: "telegram" },
+              { field: "accountId", value: accountId },
             ],
           });
           if (existing && existing.userId !== userId) {
-            throw new APIError('BAD_REQUEST', {
-              message: 'This Telegram account belongs to another user',
-              code: 'TELEGRAM_ALREADY_LINKED',
+            throw new APIError("BAD_REQUEST", {
+              message: "This Telegram account belongs to another user",
+              code: "TELEGRAM_ALREADY_LINKED",
             });
           }
           if (!existing) {
-            await ctx.context.internalAdapter.linkAccount({ userId, providerId: 'telegram', accountId });
+            await ctx.context.internalAdapter.linkAccount({
+              userId,
+              providerId: "telegram",
+              accountId,
+            });
           }
           return ctx.json({ linked: true });
         },
@@ -1385,6 +1611,7 @@ git commit -m "Sign in and link accounts with Telegram"
 ### Task 7: Одноразовый токен, passkeys, список способов входа и защита последнего
 
 **Files:**
+
 - Modify: `apps/api/package.json` (`@better-auth/passkey@1.7.6`)
 - Create: `apps/api/src/auth/sign-in-methods.ts`
 - Modify: `apps/api/src/auth/create-auth.ts`
@@ -1394,6 +1621,7 @@ git commit -m "Sign in and link accounts with Telegram"
 - Test: `apps/api/src/auth/sign-in-methods.test.ts`
 
 **Interfaces:**
+
 - Consumes: `authMethods`, `authConfig` (Task 1), `isPlaceholderEmail`, `createTestAuth`.
 - Produces:
   - `signInMethodCount(db: Database, userId: string): Promise<number>`
@@ -1411,9 +1639,19 @@ cd apps/api && bun add @better-auth/passkey@1.7.6
 В `create-auth.ts`:
 
 ```ts
-import { passkey } from '@better-auth/passkey';
-import { APIError, createAuthMiddleware, getSessionFromCtx } from 'better-auth/api';
-import { bearer, emailOTP, genericOAuth, oneTimeToken, username } from 'better-auth/plugins';
+import { passkey } from "@better-auth/passkey";
+import {
+  APIError,
+  createAuthMiddleware,
+  getSessionFromCtx,
+} from "better-auth/api";
+import {
+  bearer,
+  emailOTP,
+  genericOAuth,
+  oneTimeToken,
+  username,
+} from "better-auth/plugins";
 ```
 
 В `plugins` перед `bearer()`:
@@ -1431,46 +1669,81 @@ import { bearer, emailOTP, genericOAuth, oneTimeToken, username } from 'better-a
 `apps/api/src/auth/sign-in-methods.test.ts`:
 
 ```ts
-import { describe, expect, test } from 'bun:test';
-import { eq } from 'drizzle-orm';
+import { describe, expect, test } from "bun:test";
 
-import { account, user } from '../db/schema';
-import { createTestAuth } from '../test/auth';
-import { signInMethodCount } from './sign-in-methods';
+import { eq } from "drizzle-orm";
 
-describe('signInMethodCount', () => {
-  test('counts providers, passkeys and a real verified email; not old passwords', async () => {
+import { account, user } from "../db/schema";
+import { createTestAuth } from "../test/auth";
+import { signInMethodCount } from "./sign-in-methods";
+
+describe("signInMethodCount", () => {
+  test("counts providers, passkeys and a real verified email; not old passwords", async () => {
     const t = await createTestAuth();
-    const { userId } = await t.signIn('a@test.local');
+    const { userId } = await t.signIn("a@test.local");
     expect(await signInMethodCount(t.db, userId)).toBe(1);
 
     await t.db.insert(account).values([
-      { id: 'c', userId, accountId: userId, providerId: 'credential', updatedAt: new Date() },
-      { id: 'y', userId, accountId: 'y1', providerId: 'yandex', updatedAt: new Date() },
+      {
+        id: "c",
+        userId,
+        accountId: userId,
+        providerId: "credential",
+        updatedAt: new Date(),
+      },
+      {
+        id: "y",
+        userId,
+        accountId: "y1",
+        providerId: "yandex",
+        updatedAt: new Date(),
+      },
     ]);
     expect(await signInMethodCount(t.db, userId)).toBe(2);
 
-    await t.db.update(user).set({ email: 'tg-1@users.invalid' }).where(eq(user.id, userId));
+    await t.db
+      .update(user)
+      .set({ email: "tg-1@users.invalid" })
+      .where(eq(user.id, userId));
     expect(await signInMethodCount(t.db, userId)).toBe(1);
   });
 });
 
-describe('last sign-in method', () => {
-  test('cannot be unlinked; one of two can', async () => {
+describe("last sign-in method", () => {
+  test("cannot be unlinked; one of two can", async () => {
     const t = await createTestAuth();
-    const { userId, headers } = await t.signIn('a@test.local');
-    await t.db.insert(account).values([
-      { id: 'y', userId, accountId: 'y1', providerId: 'yandex', updatedAt: new Date() },
-    ]);
-    await t.auth.api.unlinkAccount({ body: { providerId: 'yandex' }, headers });
+    const { userId, headers } = await t.signIn("a@test.local");
+    await t.db
+      .insert(account)
+      .values([
+        {
+          id: "y",
+          userId,
+          accountId: "y1",
+          providerId: "yandex",
+          updatedAt: new Date(),
+        },
+      ]);
+    await t.auth.api.unlinkAccount({ body: { providerId: "yandex" }, headers });
     expect(await signInMethodCount(t.db, userId)).toBe(1);
 
-    await t.db.update(user).set({ email: 'tg-1@users.invalid' }).where(eq(user.id, userId));
-    await t.db.insert(account).values([
-      { id: 'v', userId, accountId: 'v1', providerId: 'vk', updatedAt: new Date() },
-    ]);
+    await t.db
+      .update(user)
+      .set({ email: "tg-1@users.invalid" })
+      .where(eq(user.id, userId));
+    await t.db
+      .insert(account)
+      .values([
+        {
+          id: "v",
+          userId,
+          accountId: "v1",
+          providerId: "vk",
+          updatedAt: new Date(),
+        },
+      ]);
     await expect(
-      t.auth.api.unlinkAccount({ body: { providerId: 'vk' }, headers }),
+      t.auth.api.unlinkAccount({ body: { providerId: "vk" }, headers }),
     ).rejects.toThrow();
   });
 });
@@ -1486,26 +1759,33 @@ Expected: FAIL — `Cannot find module './sign-in-methods'`.
 `apps/api/src/auth/sign-in-methods.ts`:
 
 ```ts
-import { and, eq, ne } from 'drizzle-orm';
+import { and, eq, ne } from "drizzle-orm";
 
-import type { Database } from '../db';
-import { account, passkey, user } from '../db/schema';
-import { isPlaceholderEmail } from './placeholder-email';
+import type { Database } from "../db";
+import { account, passkey, user } from "../db/schema";
+import { isPlaceholderEmail } from "./placeholder-email";
 
-export const LAST_SIGN_IN_METHOD = 'LAST_SIGN_IN_METHOD';
+export const LAST_SIGN_IN_METHOD = "LAST_SIGN_IN_METHOD";
 
 /** Ways a user can still get in: linked providers, passkeys and a real verified email. */
-export async function signInMethodCount(db: Database, userId: string): Promise<number> {
+export async function signInMethodCount(
+  db: Database,
+  userId: string,
+): Promise<number> {
   const [providers, passkeys, [owner]] = await Promise.all([
     // `credential` rows are passwords from before; they no longer sign anyone in.
-    db.$count(account, and(eq(account.userId, userId), ne(account.providerId, 'credential'))),
+    db.$count(
+      account,
+      and(eq(account.userId, userId), ne(account.providerId, "credential")),
+    ),
     db.$count(passkey, eq(passkey.userId, userId)),
     db
       .select({ email: user.email, emailVerified: user.emailVerified })
       .from(user)
       .where(eq(user.id, userId)),
   ]);
-  const email = owner?.emailVerified && !isPlaceholderEmail(owner.email) ? 1 : 0;
+  const email =
+    owner?.emailVerified && !isPlaceholderEmail(owner.email) ? 1 : 0;
   return providers + passkeys + email;
 }
 ```
@@ -1532,9 +1812,9 @@ export async function signInMethodCount(db: Database, userId: string): Promise<n
 `apps/api/src/trpc/routers/auth.ts`:
 
 ```ts
-import { authConfig, authMethods } from '../../auth/config';
-import { env } from '../../env';
-import { publicProcedure, router } from '../init';
+import { authConfig, authMethods } from "../../auth/config";
+import { env } from "../../env";
+import { publicProcedure, router } from "../init";
 
 const methods = authMethods(authConfig(env));
 
@@ -1563,6 +1843,7 @@ git commit -m "Add passkeys, one-time tokens and the list of sign-in methods"
 ### Task 8: Удаление аккаунта, разборы остаются без автора
 
 **Files:**
+
 - Modify: `apps/api/src/db/schema.ts` (`arrangement.authorId` nullable, `set null`; relation `optional: true`)
 - Create: миграция (через `db:generate`)
 - Modify: `apps/api/src/services/arrangements.ts` (`WITH_DETAILS.author` добавляет `username`)
@@ -1572,6 +1853,7 @@ git commit -m "Add passkeys, one-time tokens and the list of sign-in methods"
 - Test: `apps/api/src/auth/delete-account.test.ts`
 
 **Interfaces:**
+
 - Consumes: `createTestAuth`, `saveArrangement` (`src/services/save-arrangement.ts`), `noopSearch`.
 - Produces:
   - `REAUTH_REQUIRED` — код ошибки; `RECENT_SIGN_IN_MINUTES = 10`
@@ -1583,57 +1865,66 @@ git commit -m "Add passkeys, one-time tokens and the list of sign-in methods"
 `apps/api/src/auth/delete-account.test.ts`:
 
 ```ts
-import { describe, expect, test } from 'bun:test';
-import { eq } from 'drizzle-orm';
+import { describe, expect, test } from "bun:test";
 
-import { arrangement, session } from '../db/schema';
-import { noopSearch } from '../search';
-import { saveArrangement } from '../services/save-arrangement';
-import { createTestAuth } from '../test/auth';
-import { isRecentSignIn } from './delete-account';
+import { eq } from "drizzle-orm";
+
+import { arrangement, session } from "../db/schema";
+import { noopSearch } from "../search";
+import { saveArrangement } from "../services/save-arrangement";
+import { createTestAuth } from "../test/auth";
+import { isRecentSignIn } from "./delete-account";
 
 const input = {
-  artist: { name: 'LUMEN' },
-  song: { title: 'Гореть' },
-  content: '${Am}la',
+  artist: { name: "LUMEN" },
+  song: { title: "Гореть" },
+  content: "${Am}la",
   rhythms: [],
   capo: null,
   tempo: null,
   key: null,
-  notes: '',
-  tuning: 'standard' as const,
+  notes: "",
+  tuning: "standard" as const,
   voicings: {},
   zenMode: null,
 };
 
-describe('isRecentSignIn', () => {
-  test('ten minutes', () => {
-    const now = new Date('2026-10-07T12:00:00Z');
-    expect(isRecentSignIn(new Date('2026-10-07T11:51:00Z'), now)).toBe(true);
-    expect(isRecentSignIn(new Date('2026-10-07T11:49:00Z'), now)).toBe(false);
+describe("isRecentSignIn", () => {
+  test("ten minutes", () => {
+    const now = new Date("2026-10-07T12:00:00Z");
+    expect(isRecentSignIn(new Date("2026-10-07T11:51:00Z"), now)).toBe(true);
+    expect(isRecentSignIn(new Date("2026-10-07T11:49:00Z"), now)).toBe(false);
   });
 });
 
-describe('deleting an account', () => {
-  test('keeps published arrangements with no author', async () => {
+describe("deleting an account", () => {
+  test("keeps published arrangements with no author", async () => {
     const t = await createTestAuth();
-    const { userId, headers } = await t.signIn('a@test.local');
-    const saved = await saveArrangement(t.db, noopSearch, { authorId: userId, input });
+    const { userId, headers } = await t.signIn("a@test.local");
+    const saved = await saveArrangement(t.db, noopSearch, {
+      authorId: userId,
+      input,
+    });
 
     await t.auth.api.deleteUser({ body: {}, headers });
 
-    const [row] = await t.db.select().from(arrangement).where(eq(arrangement.id, saved.id));
+    const [row] = await t.db
+      .select()
+      .from(arrangement)
+      .where(eq(arrangement.id, saved.id));
     expect(row?.authorId).toBeNull();
   });
 
-  test('needs a recent sign-in', async () => {
+  test("needs a recent sign-in", async () => {
     const t = await createTestAuth();
-    const { userId, headers } = await t.signIn('a@test.local');
+    const { userId, headers } = await t.signIn("a@test.local");
     await t.db
       .update(session)
       .set({ createdAt: new Date(Date.now() - 20 * 60_000) })
       .where(eq(session.userId, userId));
-    await expect(t.auth.api.deleteUser({ body: {}, headers })).rejects.toThrow();
+    await expect(
+      t.auth.api.deleteUser({ body: {}, headers }),
+    ).rejects.toThrow();
   });
 });
 ```
@@ -1659,6 +1950,7 @@ Expected: FAIL — `Cannot find module './delete-account'`.
 Run: `cd apps/api && bun run db:generate` — миграция должна содержать `DROP NOT NULL` и пересоздание FK с `ON DELETE set null`.
 
 Run: `bun run check-types` в корне и исправь места, где `author` теперь может быть `null`:
+
 - `apps/web/src/features/song/song-header.tsx`: `const isAuthor = Boolean(arrangement.author) && session.data?.user.id === arrangement.author?.id;`
 - `apps/web/src/features/song/song-view.tsx:195`: `<span>{t('by', { name: arrangement.author?.name ?? t('anonymous') })}</span>` (ссылку на профиль добавит Task 14).
 - `messages/ru.json` → `song.anonymous: "Аноним"`, `messages/en.json` → `song.anonymous: "Anonymous"`.
@@ -1668,20 +1960,24 @@ Run: `bun run check-types` в корне и исправь места, где `a
 `apps/api/src/auth/delete-account.ts`:
 
 ```ts
-export const REAUTH_REQUIRED = 'REAUTH_REQUIRED';
+export const REAUTH_REQUIRED = "REAUTH_REQUIRED";
 export const RECENT_SIGN_IN_MINUTES = 10;
 
 /** Deleting an account needs a sign-in from the last few minutes, not a forgotten old session. */
 export function isRecentSignIn(sessionCreatedAt: Date, now = new Date()) {
-  return now.getTime() - sessionCreatedAt.getTime() <= RECENT_SIGN_IN_MINUTES * 60_000;
+  return (
+    now.getTime() - sessionCreatedAt.getTime() <=
+    RECENT_SIGN_IN_MINUTES * 60_000
+  );
 }
 ```
 
 В `create-auth.ts` — перед `return betterAuth(...)` объяви ссылку на `getSession` (функция замыкается на экземпляр, который ещё не создан):
 
 ```ts
-  let getSession: (headers: Headers) => Promise<{ session: { createdAt: Date } } | null> = async () =>
-    null;
+let getSession: (
+  headers: Headers,
+) => Promise<{ session: { createdAt: Date } } | null> = async () => null;
 ```
 
 в объект `betterAuth({...})`:
@@ -1703,9 +1999,9 @@ export function isRecentSignIn(sessionCreatedAt: Date, now = new Date()) {
 и вместо `return betterAuth({...})`:
 
 ```ts
-  const instance = betterAuth({ /* …как раньше… */ });
-  getSession = (headers) => instance.api.getSession({ headers });
-  return instance;
+const instance = betterAuth({/* …как раньше… */});
+getSession = (headers) => instance.api.getSession({ headers });
+return instance;
 ```
 
 Если `request` в `beforeDelete` при вызове через `auth.api.deleteUser({ headers })` приходит `undefined`, бери сессию так: в хуке `before` (Task 7) для `ctx.path === '/delete-user'` проверяй `getSessionFromCtx(ctx)` и `isRecentSignIn` там же — и тогда `beforeDelete` не нужен. Выбери вариант, при котором оба теста проходят.
@@ -1727,11 +2023,13 @@ git commit -m "Let users delete their account and keep their arrangements as ano
 ### Task 9: Профиль на сервере
 
 **Files:**
+
 - Create: `apps/api/src/services/profile.ts`
 - Create: `apps/api/src/trpc/routers/profile.ts`; Modify: `apps/api/src/trpc/router.ts`
 - Test: `apps/api/src/services/profile.test.ts`
 
 **Interfaces:**
+
 - Consumes: `toListItem`, `WITH_DETAILS` (`services/arrangements.ts`), `isPlaceholderEmail`, `saveArrangement`, `setLike`, `setSave`.
 - Produces:
   - `type Profile = { id: string; username: string; name: string; image: string | null; createdAt: Date; stats: { arrangements: number; likes: number; saves: number }; isMe: boolean }`
@@ -1745,16 +2043,17 @@ git commit -m "Let users delete their account and keep their arrangements as ano
 `apps/api/src/services/profile.test.ts`:
 
 ```ts
-import { beforeEach, describe, expect, test } from 'bun:test';
-import { eq } from 'drizzle-orm';
+import { beforeEach, describe, expect, test } from "bun:test";
 
-import type { Database } from '../db';
-import { arrangement, user } from '../db/schema';
-import { noopSearch } from '../search';
-import { createTestDb, createUser } from '../test/db';
-import { profileArrangements, profileByUsername } from './profile';
-import { saveArrangement } from './save-arrangement';
-import { setLike, setSave } from './social';
+import { eq } from "drizzle-orm";
+
+import type { Database } from "../db";
+import { arrangement, user } from "../db/schema";
+import { noopSearch } from "../search";
+import { createTestDb, createUser } from "../test/db";
+import { profileArrangements, profileByUsername } from "./profile";
+import { saveArrangement } from "./save-arrangement";
+import { setLike, setSave } from "./social";
 
 let db: Database;
 
@@ -1762,15 +2061,15 @@ async function create(authorId: string, title: string) {
   const saved = await saveArrangement(db, noopSearch, {
     authorId,
     input: {
-      artist: { name: 'LUMEN' },
+      artist: { name: "LUMEN" },
       song: { title },
-      content: '${Am}la',
+      content: "${Am}la",
       rhythms: [],
       capo: null,
       tempo: null,
       key: null,
-      notes: '',
-      tuning: 'standard',
+      notes: "",
+      tuning: "standard",
       voicings: {},
       zenMode: null,
     },
@@ -1780,52 +2079,65 @@ async function create(authorId: string, title: string) {
 
 beforeEach(async () => {
   db = await createTestDb();
-  await createUser(db, 'alice');
-  await createUser(db, 'bob');
-  await db.update(user).set({ username: 'alice' }).where(eq(user.id, 'alice'));
+  await createUser(db, "alice");
+  await createUser(db, "bob");
+  await db.update(user).set({ username: "alice" }).where(eq(user.id, "alice"));
 });
 
-describe('profileByUsername', () => {
-  test('counts published arrangements and what others did with them', async () => {
-    const first = await create('alice', 'Гореть');
-    const draft = await create('alice', 'Черновик');
-    await db.update(arrangement).set({ status: 'draft' }).where(eq(arrangement.id, draft));
-    await setLike(db, 'bob', first, true);
-    await setSave(db, 'bob', first, true);
-    await setLike(db, 'bob', draft, true);
+describe("profileByUsername", () => {
+  test("counts published arrangements and what others did with them", async () => {
+    const first = await create("alice", "Гореть");
+    const draft = await create("alice", "Черновик");
+    await db
+      .update(arrangement)
+      .set({ status: "draft" })
+      .where(eq(arrangement.id, draft));
+    await setLike(db, "bob", first, true);
+    await setSave(db, "bob", first, true);
+    await setLike(db, "bob", draft, true);
 
-    const profile = await profileByUsername(db, 'alice', 'bob');
+    const profile = await profileByUsername(db, "alice", "bob");
     expect(profile).toMatchObject({
-      id: 'alice',
-      username: 'alice',
+      id: "alice",
+      username: "alice",
       stats: { arrangements: 1, likes: 1, saves: 1 },
       isMe: false,
     });
-    expect((await profileByUsername(db, 'ALICE', 'alice')).isMe).toBe(true);
+    expect((await profileByUsername(db, "ALICE", "alice")).isMe).toBe(true);
   });
 
-  test('unknown username is not found', async () => {
-    await expect(profileByUsername(db, 'nobody')).rejects.toThrow();
+  test("unknown username is not found", async () => {
+    await expect(profileByUsername(db, "nobody")).rejects.toThrow();
   });
 });
 
-describe('profileArrangements', () => {
-  test('drafts only for the owner, newest first, paged', async () => {
-    const a = await create('alice', 'A');
+describe("profileArrangements", () => {
+  test("drafts only for the owner, newest first, paged", async () => {
+    const a = await create("alice", "A");
     await Bun.sleep(5);
-    const b = await create('alice', 'B');
+    const b = await create("alice", "B");
     await Bun.sleep(5);
-    const c = await create('alice', 'C');
-    await db.update(arrangement).set({ status: 'draft' }).where(eq(arrangement.id, c));
+    const c = await create("alice", "C");
+    await db
+      .update(arrangement)
+      .set({ status: "draft" })
+      .where(eq(arrangement.id, c));
 
-    const asBob = await profileArrangements(db, { userId: 'alice', viewerId: 'bob' });
+    const asBob = await profileArrangements(db, {
+      userId: "alice",
+      viewerId: "bob",
+    });
     expect(asBob.items.map((item) => item.id)).toEqual([b, a]);
 
-    const page1 = await profileArrangements(db, { userId: 'alice', viewerId: 'alice', limit: 2 });
+    const page1 = await profileArrangements(db, {
+      userId: "alice",
+      viewerId: "alice",
+      limit: 2,
+    });
     expect(page1.items.map((item) => item.id)).toEqual([c, b]);
     const page2 = await profileArrangements(db, {
-      userId: 'alice',
-      viewerId: 'alice',
+      userId: "alice",
+      viewerId: "alice",
       limit: 2,
       cursor: page1.nextCursor,
     });
@@ -1845,12 +2157,16 @@ Expected: FAIL — `Cannot find module './profile'`.
 `apps/api/src/services/profile.ts`:
 
 ```ts
-import { TRPCError } from '@trpc/server';
-import { and, eq, sql } from 'drizzle-orm';
+import { TRPCError } from "@trpc/server";
+import { and, eq, sql } from "drizzle-orm";
 
-import type { Database } from '../db';
-import { arrangement, user } from '../db/schema';
-import { type ArrangementListItem, toListItem, WITH_DETAILS } from './arrangements';
+import type { Database } from "../db";
+import { arrangement, user } from "../db/schema";
+import {
+  type ArrangementListItem,
+  toListItem,
+  WITH_DETAILS,
+} from "./arrangements";
 
 export type Profile = {
   id: string;
@@ -1863,7 +2179,7 @@ export type Profile = {
 };
 
 export type ProfileArrangement = ArrangementListItem & {
-  status: 'draft' | 'published';
+  status: "draft" | "published";
   createdAt: Date;
 };
 
@@ -1873,7 +2189,7 @@ async function toProfile(
   viewerId: string | undefined,
 ): Promise<Profile> {
   if (!row?.username) {
-    throw new TRPCError({ code: 'NOT_FOUND' });
+    throw new TRPCError({ code: "NOT_FOUND" });
   }
   const [stats] = await db
     .select({
@@ -1882,7 +2198,12 @@ async function toProfile(
       saves: sql<number>`coalesce(sum(${arrangement.saveCount}), 0)::int`,
     })
     .from(arrangement)
-    .where(and(eq(arrangement.authorId, row.id), eq(arrangement.status, 'published')));
+    .where(
+      and(
+        eq(arrangement.authorId, row.id),
+        eq(arrangement.status, "published"),
+      ),
+    );
   return {
     id: row.id,
     username: row.username,
@@ -1894,27 +2215,43 @@ async function toProfile(
   };
 }
 
-export async function profileById(db: Database, userId: string, viewerId?: string) {
+export async function profileById(
+  db: Database,
+  userId: string,
+  viewerId?: string,
+) {
   const [row] = await db.select().from(user).where(eq(user.id, userId));
   return toProfile(db, row, viewerId);
 }
 
-export async function profileByUsername(db: Database, username: string, viewerId?: string) {
-  const [row] = await db.select().from(user).where(eq(user.username, username.toLowerCase()));
+export async function profileByUsername(
+  db: Database,
+  username: string,
+  viewerId?: string,
+) {
+  const [row] = await db
+    .select()
+    .from(user)
+    .where(eq(user.username, username.toLowerCase()));
   return toProfile(db, row, viewerId);
 }
 
 /** The cursor is `<createdAt ISO>|<id>` of the last item: ties on time still page correctly. */
 export async function profileArrangements(
   db: Database,
-  params: { userId: string; viewerId?: string; cursor?: string | null; limit?: number },
+  params: {
+    userId: string;
+    viewerId?: string;
+    cursor?: string | null;
+    limit?: number;
+  },
 ) {
   const { userId, viewerId, cursor, limit = 20 } = params;
-  const [cursorTime, cursorId] = cursor ? cursor.split('|') : [];
+  const [cursorTime, cursorId] = cursor ? cursor.split("|") : [];
   const rows = await db.query.arrangement.findMany({
     where: {
       authorId: userId,
-      ...(viewerId === userId ? {} : { status: 'published' }),
+      ...(viewerId === userId ? {} : { status: "published" }),
       ...(cursorTime && cursorId
         ? {
             OR: [
@@ -1924,17 +2261,22 @@ export async function profileArrangements(
           }
         : {}),
     },
-    orderBy: { createdAt: 'desc', id: 'desc' },
+    orderBy: { createdAt: "desc", id: "desc" },
     limit: limit + 1,
     with: WITH_DETAILS,
   });
   const page = rows.slice(0, limit);
   const last = page.at(-1);
   return {
-    items: page.map(
-      (row): ProfileArrangement => ({ ...toListItem(row), status: row.status, createdAt: row.createdAt }),
-    ),
-    nextCursor: rows.length > limit && last ? `${last.createdAt.toISOString()}|${last.id}` : null,
+    items: page.map((row): ProfileArrangement => ({
+      ...toListItem(row),
+      status: row.status,
+      createdAt: row.createdAt,
+    })),
+    nextCursor:
+      rows.length > limit && last
+        ? `${last.createdAt.toISOString()}|${last.id}`
+        : null,
   };
 }
 ```
@@ -1944,10 +2286,14 @@ export async function profileArrangements(
 `apps/api/src/trpc/routers/profile.ts`:
 
 ```ts
-import { z } from 'zod';
+import { z } from "zod";
 
-import { profileArrangements, profileById, profileByUsername } from '../../services/profile';
-import { protectedProcedure, publicProcedure, router } from '../init';
+import {
+  profileArrangements,
+  profileById,
+  profileByUsername,
+} from "../../services/profile";
+import { protectedProcedure, publicProcedure, router } from "../init";
 
 export const profileRouter = router({
   me: protectedProcedure.query(({ ctx }) =>
@@ -1955,7 +2301,9 @@ export const profileRouter = router({
   ),
   byUsername: publicProcedure
     .input(z.object({ username: z.string().min(1).max(30) }))
-    .query(({ ctx, input }) => profileByUsername(ctx.db, input.username, ctx.session?.user.id)),
+    .query(({ ctx, input }) =>
+      profileByUsername(ctx.db, input.username, ctx.session?.user.id),
+    ),
   arrangements: publicProcedure
     .input(z.object({ userId: z.string(), cursor: z.string().nullish() }))
     .query(({ ctx, input }) =>
@@ -1983,6 +2331,7 @@ git commit -m "Serve user profiles with arrangement stats"
 ### Task 10: Новый экран входа в вебе (провайдеры и код на почту)
 
 **Files:**
+
 - Modify: `apps/web/package.json` (`@better-auth/passkey@1.7.6`)
 - Modify: `apps/web/src/lib/auth-client.ts`
 - Create: `apps/web/src/features/auth/otp.ts`, `apps/web/src/features/auth/auth-errors.ts`, `apps/web/src/features/auth/placeholder-email.ts`, `apps/web/src/features/auth/use-auth-methods.ts`
@@ -1992,6 +2341,7 @@ git commit -m "Serve user profiles with arrangement stats"
 - Test: `apps/web/src/features/auth/otp.test.ts`, `apps/web/src/features/auth/auth-errors.test.ts`
 
 **Interfaces:**
+
 - Consumes: tRPC `auth.methods` (Task 7), эндпоинты Better Auth (Tasks 3–7).
 - Produces:
   - `authClient` с `emailOTPClient`, `usernameClient`, `oneTimeTokenClient`, `passkeyClient` (no `genericOAuthClient` in 1.7.6 — Yandex goes through `signIn.social`/`linkSocial`); каждый запрос шлёт `x-locale`
@@ -2007,17 +2357,17 @@ git commit -m "Serve user profiles with arrangement stats"
 `apps/web/src/features/auth/otp.test.ts`:
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 
-import { normalizeOtp } from './otp';
+import { normalizeOtp } from "./otp";
 
-describe('normalizeOtp', () => {
-  test('keeps digits only, at most six', () => {
-    expect(normalizeOtp('123 456')).toBe('123456');
-    expect(normalizeOtp('123-456')).toBe('123456');
-    expect(normalizeOtp('Код: 654321.')).toBe('654321');
-    expect(normalizeOtp('1234567')).toBe('123456');
-    expect(normalizeOtp('12a')).toBe('12');
+describe("normalizeOtp", () => {
+  test("keeps digits only, at most six", () => {
+    expect(normalizeOtp("123 456")).toBe("123456");
+    expect(normalizeOtp("123-456")).toBe("123456");
+    expect(normalizeOtp("Код: 654321.")).toBe("654321");
+    expect(normalizeOtp("1234567")).toBe("123456");
+    expect(normalizeOtp("12a")).toBe("12");
   });
 });
 ```
@@ -2025,28 +2375,30 @@ describe('normalizeOtp', () => {
 `apps/web/src/features/auth/auth-errors.test.ts`:
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 
-import { authErrorKey } from './auth-errors';
+import { authErrorKey } from "./auth-errors";
 
-describe('authErrorKey', () => {
-  test('maps Better Auth and our codes', () => {
-    expect(authErrorKey({ code: 'INVALID_OTP' })).toBe('wrongCode');
-    expect(authErrorKey({ code: 'OTP_EXPIRED' })).toBe('codeExpired');
-    expect(authErrorKey({ code: 'TOO_MANY_ATTEMPTS' })).toBe('tooManyAttempts');
-    expect(authErrorKey({ code: 'MAIL_FAILED' })).toBe('mailFailed');
-    expect(authErrorKey({ code: 'LAST_SIGN_IN_METHOD' })).toBe('lastMethod');
-    expect(authErrorKey({ code: 'TELEGRAM_ALREADY_LINKED' })).toBe('telegramTaken');
-    expect(authErrorKey({ code: 'REAUTH_REQUIRED' })).toBe('reauth');
+describe("authErrorKey", () => {
+  test("maps Better Auth and our codes", () => {
+    expect(authErrorKey({ code: "INVALID_OTP" })).toBe("wrongCode");
+    expect(authErrorKey({ code: "OTP_EXPIRED" })).toBe("codeExpired");
+    expect(authErrorKey({ code: "TOO_MANY_ATTEMPTS" })).toBe("tooManyAttempts");
+    expect(authErrorKey({ code: "MAIL_FAILED" })).toBe("mailFailed");
+    expect(authErrorKey({ code: "LAST_SIGN_IN_METHOD" })).toBe("lastMethod");
+    expect(authErrorKey({ code: "TELEGRAM_ALREADY_LINKED" })).toBe(
+      "telegramTaken",
+    );
+    expect(authErrorKey({ code: "REAUTH_REQUIRED" })).toBe("reauth");
   });
 
-  test('maps the OAuth redirect error for an existing email', () => {
-    expect(authErrorKey('account_not_linked')).toBe('accountNotLinked');
+  test("maps the OAuth redirect error for an existing email", () => {
+    expect(authErrorKey("account_not_linked")).toBe("accountNotLinked");
   });
 
-  test('anything else is a generic failure', () => {
-    expect(authErrorKey({ code: 'SOMETHING' })).toBe('failed');
-    expect(authErrorKey(null)).toBe('failed');
+  test("anything else is a generic failure", () => {
+    expect(authErrorKey({ code: "SOMETHING" })).toBe("failed");
+    expect(authErrorKey(null)).toBe("failed");
   });
 });
 ```
@@ -2065,7 +2417,7 @@ export const OTP_LENGTH = 6;
 
 /** Codes get pasted as «123 456» or «Код: 123456»; only the digits matter. */
 export function normalizeOtp(value: string) {
-  return value.replace(/\D/g, '').slice(0, OTP_LENGTH);
+  return value.replace(/\D/g, "").slice(0, OTP_LENGTH);
 }
 ```
 
@@ -2073,36 +2425,36 @@ export function normalizeOtp(value: string) {
 
 ```ts
 export type AuthErrorKey =
-  | 'wrongCode'
-  | 'codeExpired'
-  | 'tooManyAttempts'
-  | 'mailFailed'
-  | 'accountNotLinked'
-  | 'lastMethod'
-  | 'telegramTaken'
-  | 'reauth'
-  | 'failed';
+  | "wrongCode"
+  | "codeExpired"
+  | "tooManyAttempts"
+  | "mailFailed"
+  | "accountNotLinked"
+  | "lastMethod"
+  | "telegramTaken"
+  | "reauth"
+  | "failed";
 
 const BY_CODE: Record<string, AuthErrorKey> = {
-  INVALID_OTP: 'wrongCode',
-  OTP_EXPIRED: 'codeExpired',
-  TOO_MANY_ATTEMPTS: 'tooManyAttempts',
-  MAIL_FAILED: 'mailFailed',
-  LAST_SIGN_IN_METHOD: 'lastMethod',
-  TELEGRAM_ALREADY_LINKED: 'telegramTaken',
-  REAUTH_REQUIRED: 'reauth',
+  INVALID_OTP: "wrongCode",
+  OTP_EXPIRED: "codeExpired",
+  TOO_MANY_ATTEMPTS: "tooManyAttempts",
+  MAIL_FAILED: "mailFailed",
+  LAST_SIGN_IN_METHOD: "lastMethod",
+  TELEGRAM_ALREADY_LINKED: "telegramTaken",
+  REAUTH_REQUIRED: "reauth",
   // OAuth redirects back with `?error=account_not_linked` when the email has an account that
   // cannot be joined automatically (e.g. VK, or a former password user who never confirmed it).
-  account_not_linked: 'accountNotLinked',
-  ACCOUNT_NOT_LINKED: 'accountNotLinked',
+  account_not_linked: "accountNotLinked",
+  ACCOUNT_NOT_LINKED: "accountNotLinked",
 };
 
 /** A message key under `auth.errors` for a Better Auth error object or an OAuth `?error=` value. */
 export function authErrorKey(
   error: { code?: string; status?: number } | string | null | undefined,
 ): AuthErrorKey {
-  const code = typeof error === 'string' ? error : error?.code;
-  return (code && BY_CODE[code]) || 'failed';
+  const code = typeof error === "string" ? error : error?.code;
+  return (code && BY_CODE[code]) || "failed";
 }
 ```
 
@@ -2113,7 +2465,7 @@ export function authErrorKey(
 ```ts
 /** Same domain as the API's placeholder addresses: accounts without a real email. */
 export function isPlaceholderEmail(email: string | null | undefined) {
-  return !email || email.endsWith('@users.invalid');
+  return !email || email.endsWith("@users.invalid");
 }
 ```
 
@@ -2126,15 +2478,15 @@ cd apps/web && bun add @better-auth/passkey@1.7.6
 `apps/web/src/lib/auth-client.ts` (весь файл):
 
 ```ts
-import { passkeyClient } from '@better-auth/passkey/client';
+import { passkeyClient } from "@better-auth/passkey/client";
 import {
   emailOTPClient,
   oneTimeTokenClient,
   usernameClient,
-} from 'better-auth/client/plugins';
-import { createAuthClient } from 'better-auth/react';
+} from "better-auth/client/plugins";
+import { createAuthClient } from "better-auth/react";
 
-import { API_URL, authToken } from './api';
+import { API_URL, authToken } from "./api";
 
 export const authClient = createAuthClient({
   baseURL: API_URL,
@@ -2146,18 +2498,18 @@ export const authClient = createAuthClient({
   ],
   fetchOptions: {
     auth: {
-      type: 'Bearer',
-      token: () => authToken.get() ?? '',
+      type: "Bearer",
+      token: () => authToken.get() ?? "",
     },
     // The code email is written in the interface language, not the browser's.
     onRequest: (context) => {
-      if (typeof document !== 'undefined') {
-        context.headers.set('x-locale', document.documentElement.lang);
+      if (typeof document !== "undefined") {
+        context.headers.set("x-locale", document.documentElement.lang);
       }
       return context;
     },
     onSuccess: (context) => {
-      const token = context.response.headers.get('set-auth-token');
+      const token = context.response.headers.get("set-auth-token");
       if (token) {
         authToken.set(token);
       }
@@ -2169,15 +2521,18 @@ export const authClient = createAuthClient({
 `apps/web/src/features/auth/use-auth-methods.ts`:
 
 ```ts
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from "@tanstack/react-query";
 
-import { useTRPC } from '@/lib/trpc';
+import { useTRPC } from "@/lib/trpc";
 
 export function useAuthMethods() {
   const trpc = useTRPC();
-  return useQuery({ ...trpc.auth.methods.queryOptions(), staleTime: Number.POSITIVE_INFINITY });
+  return useQuery({
+    ...trpc.auth.methods.queryOptions(),
+    staleTime: Number.POSITIVE_INFINITY,
+  });
 }
 ```
 
@@ -2268,31 +2623,39 @@ export function useAuthMethods() {
 `apps/web/src/features/auth/provider-buttons.tsx`:
 
 ```tsx
-'use client';
+"use client";
 
-import type { ProviderId } from '@chordtune/api';
-import { useTranslations } from 'next-intl';
+import type { ProviderId } from "@chordtune/api";
+import { useTranslations } from "next-intl";
 
-import { Button } from '@/components/ui/button';
-import { isCapacitor } from '@/features/song/links';
-import { authClient } from '@/lib/auth-client';
-import { startNativeSignIn } from './native-sign-in';
-import { useAuthMethods } from './use-auth-methods';
+import { Button } from "@/components/ui/button";
+import { isCapacitor } from "@/features/song/links";
+import { authClient } from "@/lib/auth-client";
+
+import { startNativeSignIn } from "./native-sign-in";
+import { useAuthMethods } from "./use-auth-methods";
 
 /** Full-page redirect on the web; the system browser in the app (Task 12). */
-export async function signInWithProvider(provider: ProviderId, callbackURL: string) {
+export async function signInWithProvider(
+  provider: ProviderId,
+  callbackURL: string,
+) {
   if (isCapacitor) {
     await startNativeSignIn({ provider });
     return;
   }
-  if (provider !== 'telegram') {
+  if (provider !== "telegram") {
     // Yandex is a genericOAuth provider, which Better Auth 1.7 serves through `signIn.social` too.
-    await authClient.signIn.social({ provider, callbackURL, errorCallbackURL: callbackURL });
+    await authClient.signIn.social({
+      provider,
+      callbackURL,
+      errorCallbackURL: callbackURL,
+    });
   }
 }
 
 export function ProviderButtons({ onTelegram }: { onTelegram: () => void }) {
-  const t = useTranslations('auth');
+  const t = useTranslations("auth");
   const methods = useAuthMethods();
   const providers = methods.data?.providers ?? [];
   if (providers.length === 0) {
@@ -2306,12 +2669,12 @@ export function ProviderButtons({ onTelegram }: { onTelegram: () => void }) {
           variant="outline"
           size="lg"
           onClick={() =>
-            provider === 'telegram' && !isCapacitor
+            provider === "telegram" && !isCapacitor
               ? onTelegram()
               : signInWithProvider(provider, window.location.href)
           }
         >
-          {t('providers.' + provider)}
+          {t("providers." + provider)}
         </Button>
       ))}
     </div>
@@ -2324,10 +2687,12 @@ export function ProviderButtons({ onTelegram }: { onTelegram: () => void }) {
 `startNativeSignIn` появится в Task 12. Чтобы этот шаг компилировался, создай сейчас `apps/web/src/features/auth/native-sign-in.ts` с заглушкой, которую Task 12 заменит целиком:
 
 ```ts
-import type { ProviderId } from '@chordtune/api';
+import type { ProviderId } from "@chordtune/api";
 
-export async function startNativeSignIn(_params: { provider: ProviderId }): Promise<void> {
-  throw new Error('Native sign-in is not wired yet');
+export async function startNativeSignIn(_params: {
+  provider: ProviderId;
+}): Promise<void> {
+  throw new Error("Native sign-in is not wired yet");
 }
 ```
 
@@ -2336,25 +2701,30 @@ export async function startNativeSignIn(_params: { provider: ProviderId }): Prom
 `apps/web/src/features/auth/email-code-form.tsx`:
 
 ```tsx
-'use client';
+"use client";
 
-import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { authClient } from '@/lib/auth-client';
-import { authErrorKey } from './auth-errors';
-import { normalizeOtp, OTP_LENGTH } from './otp';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { authClient } from "@/lib/auth-client";
+
+import { authErrorKey } from "./auth-errors";
+import { normalizeOtp, OTP_LENGTH } from "./otp";
 
 const RESEND_SECONDS = 60;
 
-export function EmailCodeForm({ onDone }: { onDone: () => Promise<void> | void }) {
-  const t = useTranslations('auth');
-  const [email, setEmail] = useState('');
+export function EmailCodeForm({
+  onDone,
+}: {
+  onDone: () => Promise<void> | void;
+}) {
+  const t = useTranslations("auth");
+  const [email, setEmail] = useState("");
   const [sentTo, setSentTo] = useState<string | null>(null);
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [wait, setWait] = useState(0);
@@ -2370,14 +2740,17 @@ export function EmailCodeForm({ onDone }: { onDone: () => Promise<void> | void }
   const send = async (to: string) => {
     setPending(true);
     setError(null);
-    const result = await authClient.emailOtp.sendVerificationOtp({ email: to, type: 'sign-in' });
+    const result = await authClient.emailOtp.sendVerificationOtp({
+      email: to,
+      type: "sign-in",
+    });
     setPending(false);
     if (result.error) {
       setError(t(`errors.${authErrorKey(result.error)}`));
       return;
     }
     setSentTo(to);
-    setCode('');
+    setCode("");
     setWait(RESEND_SECONDS);
   };
 
@@ -2405,7 +2778,7 @@ export function EmailCodeForm({ onDone }: { onDone: () => Promise<void> | void }
           send(email.trim());
         }}
       >
-        <Label htmlFor="auth-email">{t('email')}</Label>
+        <Label htmlFor="auth-email">{t("email")}</Label>
         <Input
           id="auth-email"
           type="email"
@@ -2417,7 +2790,7 @@ export function EmailCodeForm({ onDone }: { onDone: () => Promise<void> | void }
         />
         {error && <p className="text-destructive text-sm">{error}</p>}
         <Button type="submit" size="lg" disabled={pending}>
-          {t('getCode')}
+          {t("getCode")}
         </Button>
       </form>
     );
@@ -2425,8 +2798,10 @@ export function EmailCodeForm({ onDone }: { onDone: () => Promise<void> | void }
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-muted-foreground text-sm">{t('codeSent', { email: sentTo })}</p>
-      <Label htmlFor="auth-code">{t('code')}</Label>
+      <p className="text-muted-foreground text-sm">
+        {t("codeSent", { email: sentTo })}
+      </p>
+      <Label htmlFor="auth-code">{t("code")}</Label>
       <Input
         id="auth-code"
         inputMode="numeric"
@@ -2446,8 +2821,13 @@ export function EmailCodeForm({ onDone }: { onDone: () => Promise<void> | void }
       />
       {error && <p className="text-destructive text-sm">{error}</p>}
       <div className="flex justify-between text-sm">
-        <Button variant="link" size="sm" className="px-0" onClick={() => setSentTo(null)}>
-          {t('changeEmail')}
+        <Button
+          variant="link"
+          size="sm"
+          className="px-0"
+          onClick={() => setSentTo(null)}
+        >
+          {t("changeEmail")}
         </Button>
         <Button
           variant="link"
@@ -2456,7 +2836,7 @@ export function EmailCodeForm({ onDone }: { onDone: () => Promise<void> | void }
           disabled={wait > 0 || pending}
           onClick={() => send(sentTo)}
         >
-          {wait > 0 ? t('resendIn', { seconds: wait }) : t('resend')}
+          {wait > 0 ? t("resendIn", { seconds: wait }) : t("resend")}
         </Button>
       </div>
     </div>
@@ -2469,29 +2849,36 @@ export function EmailCodeForm({ onDone }: { onDone: () => Promise<void> | void }
 `apps/web/src/features/auth/auth-sheet.tsx` — убрать `MODES`, вкладки и парольную форму; контекст становится `() => void`:
 
 ```tsx
-'use client';
+"use client";
 
-import { useQueryClient } from '@tanstack/react-query';
-import { KeyRound } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { useQueryClient } from "@tanstack/react-query";
+import { KeyRound } from "lucide-react";
+import { useTranslations } from "next-intl";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from '@/components/ui/sheet';
-import { authErrorKey } from './auth-errors';
-import { EmailCodeForm } from './email-code-form';
-import { signInWithPasskey } from './passkeys';
-import { ProviderButtons } from './provider-buttons';
-import { openTelegramLogin } from './telegram-login';
-import { useAuthMethods } from './use-auth-methods';
-import { useSession } from './use-session';
+} from "@/components/ui/sheet";
+
+import { authErrorKey } from "./auth-errors";
+import { EmailCodeForm } from "./email-code-form";
+import { signInWithPasskey } from "./passkeys";
+import { ProviderButtons } from "./provider-buttons";
+import { openTelegramLogin } from "./telegram-login";
+import { useAuthMethods } from "./use-auth-methods";
+import { useSession } from "./use-session";
 
 const AuthSheetContext = createContext<() => void>(() => {});
 
@@ -2508,13 +2895,17 @@ export function AuthSheetProvider({ children }: { children: React.ReactNode }) {
   // OAuth comes back with `?error=…` on failure: reopen the sheet and say why.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const oauthError = params.get('error');
+    const oauthError = params.get("error");
     if (!oauthError) {
       return;
     }
-    params.delete('error');
+    params.delete("error");
     const query = params.toString();
-    window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${query ? `?${query}` : ""}`,
+    );
     setError(oauthError);
     setOpen(true);
   }, []);
@@ -2523,7 +2914,10 @@ export function AuthSheetProvider({ children }: { children: React.ReactNode }) {
     <AuthSheetContext.Provider value={show}>
       {children}
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="bottom" className="mx-auto max-w-md rounded-t-xl sm:mb-8 sm:rounded-xl">
+        <SheetContent
+          side="bottom"
+          className="mx-auto max-w-md rounded-t-xl sm:mb-8 sm:rounded-xl"
+        >
           <AuthForm initialError={error} onDone={() => setOpen(false)} />
         </SheetContent>
       </Sheet>
@@ -2531,12 +2925,20 @@ export function AuthSheetProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-function AuthForm({ initialError, onDone }: { initialError: string | null; onDone: () => void }) {
-  const t = useTranslations('auth');
+function AuthForm({
+  initialError,
+  onDone,
+}: {
+  initialError: string | null;
+  onDone: () => void;
+}) {
+  const t = useTranslations("auth");
   const queryClient = useQueryClient();
   const session = useSession();
   const methods = useAuthMethods();
-  const [error, setError] = useState(initialError ? t(`errors.${authErrorKey(initialError)}`) : null);
+  const [error, setError] = useState(
+    initialError ? t(`errors.${authErrorKey(initialError)}`) : null,
+  );
 
   const finish = async () => {
     await session.refetch();
@@ -2544,7 +2946,9 @@ function AuthForm({ initialError, onDone }: { initialError: string | null; onDon
     onDone();
   };
 
-  const run = async (action: () => Promise<{ error?: { code?: string } | null } | void>) => {
+  const run = async (
+    action: () => Promise<{ error?: { code?: string } | null } | void>,
+  ) => {
     setError(null);
     const result = await action();
     if (result && result.error) {
@@ -2559,21 +2963,26 @@ function AuthForm({ initialError, onDone }: { initialError: string | null; onDon
   return (
     <div className="flex flex-col gap-4 p-4 pt-0">
       <SheetHeader className="px-0">
-        <SheetTitle>{t('title')}</SheetTitle>
-        <SheetDescription>{t('description')}</SheetDescription>
+        <SheetTitle>{t("title")}</SheetTitle>
+        <SheetDescription>{t("description")}</SheetDescription>
       </SheetHeader>
       <ProviderButtons
         onTelegram={() =>
-          methods.data?.telegramBot && run(() => openTelegramLogin(methods.data.telegramBot!.id))
+          methods.data?.telegramBot &&
+          run(() => openTelegramLogin(methods.data.telegramBot!.id))
         }
       />
-      <Button variant="outline" size="lg" onClick={() => run(signInWithPasskey)}>
+      <Button
+        variant="outline"
+        size="lg"
+        onClick={() => run(signInWithPasskey)}
+      >
         <KeyRound />
-        {t('passkey')}
+        {t("passkey")}
       </Button>
       <div className="flex items-center gap-3 text-muted-foreground text-xs">
         <Separator className="flex-1" />
-        {t('orEmail')}
+        {t("orEmail")}
         <Separator className="flex-1" />
       </div>
       {error && <p className="text-destructive text-sm">{error}</p>}
@@ -2588,8 +2997,10 @@ function AuthForm({ initialError, onDone }: { initialError: string | null; onDon
 `apps/web/src/features/auth/passkeys.ts`:
 
 ```ts
-export async function signInWithPasskey(): Promise<{ error?: { code?: string } | null } | void> {
-  return { error: { code: 'NOT_READY' } };
+export async function signInWithPasskey(): Promise<{
+  error?: { code?: string } | null;
+} | void> {
+  return { error: { code: "NOT_READY" } };
 }
 ```
 
@@ -2599,7 +3010,7 @@ export async function signInWithPasskey(): Promise<{ error?: { code?: string } |
 export async function openTelegramLogin(
   _botId: string,
 ): Promise<{ error?: { code?: string } | null } | void> {
-  return { error: { code: 'NOT_READY' } };
+  return { error: { code: "NOT_READY" } };
 }
 ```
 
@@ -2610,16 +3021,16 @@ export async function openTelegramLogin(
 В `account-button.tsx`: показывать `user.image` в круге 28px, если есть (иначе `UserRound`); скрывать email через `isPlaceholderEmail(user.email)`; добавить в поповер ссылку «Профиль» перед `ThemeSwitcher`:
 
 ```tsx
-        <Button
-          variant="ghost"
-          size="sm"
-          className="justify-start"
-          nativeButton={false}
-          render={<Link href="/profile" />}
-        >
-          <UserRound />
-          {t('profile')}
-        </Button>
+<Button
+  variant="ghost"
+  size="sm"
+  className="justify-start"
+  nativeButton={false}
+  render={<Link href="/profile" />}
+>
+  <UserRound />
+  {t("profile")}
+</Button>
 ```
 
 (`Link` из `@/i18n/navigation`.) Строку email заменить на `{!isPlaceholderEmail(user.email) && <span …>{user.email}</span>}`.
@@ -2641,9 +3052,11 @@ git commit -m "Sign in on the web with providers or an email code"
 ### Task 11: Telegram в вебе
 
 **Files:**
+
 - Modify: `apps/web/src/features/auth/telegram-login.ts` (весь файл)
 
 **Interfaces:**
+
 - Consumes: `POST /api/auth/telegram/sign-in`, `POST /api/auth/telegram/link` (Task 6), `authClient.$fetch`.
 - Produces:
   - `openTelegramLogin(botId: string): Promise<{ error?: { code?: string } | null } | void>` — вход
@@ -2655,7 +3068,7 @@ git commit -m "Sign in on the web with providers or an email code"
 `apps/web/src/features/auth/telegram-login.ts`:
 
 ```ts
-import { authClient } from '@/lib/auth-client';
+import { authClient } from "@/lib/auth-client";
 
 type TelegramWidget = {
   Login: {
@@ -2672,7 +3085,7 @@ declare global {
   }
 }
 
-const SCRIPT = 'https://telegram.org/js/telegram-widget.js?22';
+const SCRIPT = "https://telegram.org/js/telegram-widget.js?22";
 let loading: Promise<TelegramWidget> | null = null;
 
 /** The widget script, loaded once on first use rather than on every page. */
@@ -2681,14 +3094,16 @@ function loadWidget(): Promise<TelegramWidget> {
     return Promise.resolve(window.Telegram);
   }
   loading ??= new Promise((resolve, reject) => {
-    const script = document.createElement('script');
+    const script = document.createElement("script");
     script.src = SCRIPT;
     script.async = true;
     script.onload = () =>
-      window.Telegram?.Login ? resolve(window.Telegram) : reject(new Error('No Telegram widget'));
+      window.Telegram?.Login
+        ? resolve(window.Telegram)
+        : reject(new Error("No Telegram widget"));
     script.onerror = () => {
       loading = null;
-      reject(new Error('Telegram widget failed to load'));
+      reject(new Error("Telegram widget failed to load"));
     };
     document.head.append(script);
   });
@@ -2699,8 +3114,9 @@ function loadWidget(): Promise<TelegramWidget> {
 export async function requestTelegramAuth(botId: string) {
   const widget = await loadWidget();
   return new Promise<Record<string, unknown> | null>((resolve) => {
-    widget.Login.auth({ bot_id: botId, lang: document.documentElement.lang }, (data) =>
-      resolve(data || null),
+    widget.Login.auth(
+      { bot_id: botId, lang: document.documentElement.lang },
+      (data) => resolve(data || null),
     );
   });
 }
@@ -2710,7 +3126,7 @@ export async function openTelegramLogin(botId: string) {
   if (!data) {
     return;
   }
-  return authClient.$fetch('/telegram/sign-in', { method: 'POST', body: data });
+  return authClient.$fetch("/telegram/sign-in", { method: "POST", body: data });
 }
 
 export async function linkTelegram(botId: string) {
@@ -2718,7 +3134,7 @@ export async function linkTelegram(botId: string) {
   if (!data) {
     return;
   }
-  return authClient.$fetch('/telegram/link', { method: 'POST', body: data });
+  return authClient.$fetch("/telegram/link", { method: "POST", body: data });
 }
 ```
 
@@ -2745,6 +3161,7 @@ git commit -m "Sign in with Telegram on the web"
 ### Task 12: Вход в приложениях через системный браузер
 
 **Files:**
+
 - Modify: `apps/web/package.json` (`@capacitor/browser@^8`, `@capacitor/app@^8`)
 - Create: `apps/web/src/features/auth/mobile-link.ts`
 - Modify: `apps/web/src/features/auth/native-sign-in.ts` (весь файл)
@@ -2755,6 +3172,7 @@ git commit -m "Sign in with Telegram on the web"
 - Test: `apps/web/src/features/auth/mobile-link.test.ts`
 
 **Interfaces:**
+
 - Consumes: `/api/auth/one-time-token/*` (Task 7), `signInWithProvider` (Task 10), `requestTelegramAuth` не используется — в браузере Telegram идёт редиректом.
 - Produces:
   - `DEEP_LINK_PREFIX = 'app.chordtune://auth'`
@@ -2771,62 +3189,74 @@ git commit -m "Sign in with Telegram on the web"
 `apps/web/src/features/auth/mobile-link.test.ts`:
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 
 import {
   createPendingAuth,
   matchPendingAuth,
   mobileStartUrl,
-  PENDING_TTL_MS,
   parseAuthLink,
-} from './mobile-link';
+  PENDING_TTL_MS,
+} from "./mobile-link";
 
-describe('parseAuthLink', () => {
-  test('reads token, linked provider and error', () => {
-    expect(parseAuthLink('app.chordtune://auth?token=t1&state=s1')).toEqual({
-      state: 's1',
-      token: 't1',
+describe("parseAuthLink", () => {
+  test("reads token, linked provider and error", () => {
+    expect(parseAuthLink("app.chordtune://auth?token=t1&state=s1")).toEqual({
+      state: "s1",
+      token: "t1",
       linked: null,
       error: null,
     });
-    expect(parseAuthLink('app.chordtune://auth?linked=vk&state=s2')?.linked).toBe('vk');
-    expect(parseAuthLink('app.chordtune://auth?error=access_denied&state=s3')?.error).toBe(
-      'access_denied',
-    );
+    expect(
+      parseAuthLink("app.chordtune://auth?linked=vk&state=s2")?.linked,
+    ).toBe("vk");
+    expect(
+      parseAuthLink("app.chordtune://auth?error=access_denied&state=s3")?.error,
+    ).toBe("access_denied");
   });
 
-  test('ignores other links and links without state', () => {
-    expect(parseAuthLink('app.chordtune://song?id=1')).toBeNull();
-    expect(parseAuthLink('https://evil.example/auth?token=t&state=s')).toBeNull();
-    expect(parseAuthLink('app.chordtune://auth?token=t')).toBeNull();
+  test("ignores other links and links without state", () => {
+    expect(parseAuthLink("app.chordtune://song?id=1")).toBeNull();
+    expect(
+      parseAuthLink("https://evil.example/auth?token=t&state=s"),
+    ).toBeNull();
+    expect(parseAuthLink("app.chordtune://auth?token=t")).toBeNull();
   });
 });
 
-describe('matchPendingAuth', () => {
-  test('state must match and be fresh — even after the app restarts', () => {
-    const pending = createPendingAuth('sign-in', 'google', 1_000);
+describe("matchPendingAuth", () => {
+  test("state must match and be fresh — even after the app restarts", () => {
+    const pending = createPendingAuth("sign-in", "google", 1_000);
     expect(pending.state).toMatch(/^[A-Za-z0-9_-]{20,}$/);
-    expect(matchPendingAuth(pending, { state: pending.state }, 2_000)).toBe(true);
-    expect(matchPendingAuth(pending, { state: 'other' }, 2_000)).toBe(false);
-    expect(matchPendingAuth(pending, { state: pending.state }, 1_000 + PENDING_TTL_MS + 1)).toBe(
-      false,
+    expect(matchPendingAuth(pending, { state: pending.state }, 2_000)).toBe(
+      true,
     );
+    expect(matchPendingAuth(pending, { state: "other" }, 2_000)).toBe(false);
+    expect(
+      matchPendingAuth(
+        pending,
+        { state: pending.state },
+        1_000 + PENDING_TTL_MS + 1,
+      ),
+    ).toBe(false);
     expect(matchPendingAuth(null, { state: pending.state }, 2_000)).toBe(false);
   });
 });
 
-describe('mobileStartUrl', () => {
-  test('points the browser at the web page with everything it needs', () => {
+describe("mobileStartUrl", () => {
+  test("points the browser at the web page with everything it needs", () => {
     expect(
       mobileStartUrl({
-        origin: 'https://chordtune.app',
-        locale: 'ru',
-        provider: 'yandex',
-        state: 's',
-        mode: 'link',
-        ott: 'o',
+        origin: "https://chordtune.app",
+        locale: "ru",
+        provider: "yandex",
+        state: "s",
+        mode: "link",
+        ott: "o",
       }),
-    ).toBe('https://chordtune.app/ru/auth/mobile?provider=yandex&state=s&mode=link&ott=o');
+    ).toBe(
+      "https://chordtune.app/ru/auth/mobile?provider=yandex&state=s&mode=link&ott=o",
+    );
   });
 });
 ```
@@ -2841,29 +3271,29 @@ Expected: FAIL — модуль не найден.
 `apps/web/src/features/auth/mobile-link.ts`:
 
 ```ts
-import type { ProviderId } from '@chordtune/api';
+import type { ProviderId } from "@chordtune/api";
 
-export const DEEP_LINK_PREFIX = 'app.chordtune://auth';
+export const DEEP_LINK_PREFIX = "app.chordtune://auth";
 export const PENDING_TTL_MS = 10 * 60_000;
-const PENDING_KEY = 'chordtune.pending-auth';
+const PENDING_KEY = "chordtune.pending-auth";
 
 export type PendingAuth = {
   state: string;
-  mode: 'sign-in' | 'link';
+  mode: "sign-in" | "link";
   provider: ProviderId;
   createdAt: number;
 };
 
 export function createPendingAuth(
-  mode: PendingAuth['mode'],
+  mode: PendingAuth["mode"],
   provider: ProviderId,
   now = Date.now(),
 ): PendingAuth {
   const bytes = crypto.getRandomValues(new Uint8Array(24));
   const state = btoa(String.fromCharCode(...bytes))
-    .replaceAll('+', '-')
-    .replaceAll('/', '_')
-    .replaceAll('=', '');
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replaceAll("=", "");
   return { state, mode, provider, createdAt: now };
 }
 
@@ -2871,17 +3301,17 @@ export function parseAuthLink(url: string) {
   if (!url.startsWith(DEEP_LINK_PREFIX)) {
     return null;
   }
-  const query = url.slice(DEEP_LINK_PREFIX.length).replace(/^\/?\?/, '');
+  const query = url.slice(DEEP_LINK_PREFIX.length).replace(/^\/?\?/, "");
   const params = new URLSearchParams(query);
-  const state = params.get('state');
+  const state = params.get("state");
   if (!state) {
     return null;
   }
   return {
     state,
-    token: params.get('token'),
-    linked: params.get('linked'),
-    error: params.get('error'),
+    token: params.get("token"),
+    linked: params.get("linked"),
+    error: params.get("error"),
   };
 }
 
@@ -2891,7 +3321,11 @@ export function matchPendingAuth(
   link: { state: string },
   now = Date.now(),
 ) {
-  return Boolean(pending && pending.state === link.state && now - pending.createdAt <= PENDING_TTL_MS);
+  return Boolean(
+    pending &&
+    pending.state === link.state &&
+    now - pending.createdAt <= PENDING_TTL_MS,
+  );
 }
 
 export function mobileStartUrl(params: {
@@ -2899,7 +3333,7 @@ export function mobileStartUrl(params: {
   locale: string;
   provider: ProviderId;
   state: string;
-  mode: 'sign-in' | 'link';
+  mode: "sign-in" | "link";
   ott?: string;
 }) {
   const query = new URLSearchParams({
@@ -2949,19 +3383,20 @@ cd apps/web && bun add @capacitor/browser@^8 @capacitor/app@^8
 `apps/web/src/features/auth/native-sign-in.ts` (весь файл):
 
 ```ts
-import { App } from '@capacitor/app';
-import { Browser } from '@capacitor/browser';
-import type { ProviderId } from '@chordtune/api';
+import { App } from "@capacitor/app";
+import { Browser } from "@capacitor/browser";
+import type { ProviderId } from "@chordtune/api";
 
-import { API_URL, authToken } from '@/lib/api';
-import { authClient } from '@/lib/auth-client';
+import { API_URL, authToken } from "@/lib/api";
+import { authClient } from "@/lib/auth-client";
+
 import {
   createPendingAuth,
   matchPendingAuth,
   mobileStartUrl,
   parseAuthLink,
   pendingAuthStore,
-} from './mobile-link';
+} from "./mobile-link";
 
 /**
  * Opens the provider in the system browser via our web page. Linking needs the user's session in
@@ -2969,15 +3404,15 @@ import {
  */
 export async function startNativeSignIn({
   provider,
-  mode = 'sign-in',
+  mode = "sign-in",
 }: {
   provider: ProviderId;
-  mode?: 'sign-in' | 'link';
+  mode?: "sign-in" | "link";
 }) {
   const pending = createPendingAuth(mode, provider);
   pendingAuthStore.set(pending);
   let ott: string | undefined;
-  if (mode === 'link') {
+  if (mode === "link") {
     const { data } = await authClient.oneTimeToken.generate();
     ott = data?.token;
   }
@@ -2990,7 +3425,7 @@ export async function startNativeSignIn({
       mode,
       ott,
     }),
-    presentationStyle: 'popover',
+    presentationStyle: "popover",
   });
 }
 
@@ -2999,7 +3434,7 @@ export function listenForAuthLinks(
   onLinked: (provider: string) => void,
   onError: (code: string) => void,
 ) {
-  const handle = App.addListener('appUrlOpen', async ({ url }) => {
+  const handle = App.addListener("appUrlOpen", async ({ url }) => {
     const link = parseAuthLink(url);
     if (!link) {
       return;
@@ -3013,9 +3448,11 @@ export function listenForAuthLinks(
     if (link.error) {
       onError(link.error);
     } else if (link.token) {
-      const { data, error } = await authClient.oneTimeToken.verify({ token: link.token });
+      const { data, error } = await authClient.oneTimeToken.verify({
+        token: link.token,
+      });
       if (error || !data) {
-        onError(error?.code ?? 'failed');
+        onError(error?.code ?? "failed");
         return;
       }
       authToken.set(data.session.token);
@@ -3037,14 +3474,15 @@ export function listenForAuthLinks(
 `apps/web/src/features/auth/mobile-auth.tsx`:
 
 ```tsx
-'use client';
+"use client";
 
-import type { ProviderId } from '@chordtune/api';
-import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import type { ProviderId } from "@chordtune/api";
+import { useTranslations } from "next-intl";
+import { useEffect, useRef, useState } from "react";
 
-import { authClient } from '@/lib/auth-client';
-import { DEEP_LINK_PREFIX } from './mobile-link';
+import { authClient } from "@/lib/auth-client";
+
+import { DEEP_LINK_PREFIX } from "./mobile-link";
 
 function back(params: Record<string, string>) {
   window.location.replace(`${DEEP_LINK_PREFIX}?${new URLSearchParams(params)}`);
@@ -3060,11 +3498,11 @@ export function MobileAuthStart({
 }: {
   provider: ProviderId;
   state: string;
-  mode: 'sign-in' | 'link';
+  mode: "sign-in" | "link";
   ott: string | null;
   telegramBot: string | null;
 }) {
-  const t = useTranslations('auth');
+  const t = useTranslations("auth");
   const started = useRef(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -3074,18 +3512,18 @@ export function MobileAuthStart({
     }
     started.current = true;
     (async () => {
-      if (mode === 'link' && ott) {
+      if (mode === "link" && ott) {
         const { error } = await authClient.oneTimeToken.verify({ token: ott });
         if (error) {
-          back({ state, error: error.code ?? 'failed' });
+          back({ state, error: error.code ?? "failed" });
           return;
         }
       }
       const done = `${window.location.origin}${window.location.pathname}/done?${new URLSearchParams({ state, mode, provider })}`;
-      if (provider === 'telegram') {
+      if (provider === "telegram") {
         // Redirect mode: popups are unreliable inside Custom Tabs and Safari View Controller.
         if (!telegramBot) {
-          back({ state, error: 'failed' });
+          back({ state, error: "failed" });
           return;
         }
         const origin = window.location.origin;
@@ -3096,17 +3534,21 @@ export function MobileAuthStart({
       }
       const options = { callbackURL: done, errorCallbackURL: done };
       const result =
-        mode === 'link'
+        mode === "link"
           ? await authClient.linkSocial({ provider, ...options })
           : await authClient.signIn.social({ provider, ...options });
       if (result?.error) {
-        setMessage(t('errors.failed'));
-        back({ state, error: result.error.code ?? 'failed' });
+        setMessage(t("errors.failed"));
+        back({ state, error: result.error.code ?? "failed" });
       }
     })();
   }, [mode, ott, provider, state, telegramBot, t]);
 
-  return <p className="p-8 text-center text-muted-foreground">{message ?? t('redirecting')}</p>;
+  return (
+    <p className="p-8 text-center text-muted-foreground">
+      {message ?? t("redirecting")}
+    </p>
+  );
 }
 
 /** Step two: the provider is done; hand the app a one-time token or say the link worked. */
@@ -3116,10 +3558,10 @@ export function MobileAuthDone({
   provider,
 }: {
   state: string;
-  mode: 'sign-in' | 'link';
+  mode: "sign-in" | "link";
   provider: ProviderId;
 }) {
-  const t = useTranslations('auth');
+  const t = useTranslations("auth");
   const started = useRef(false);
 
   useEffect(() => {
@@ -3129,31 +3571,45 @@ export function MobileAuthDone({
     started.current = true;
     (async () => {
       const params = new URLSearchParams(window.location.search);
-      const oauthError = params.get('error');
+      const oauthError = params.get("error");
       if (oauthError) {
         back({ state, error: oauthError });
         return;
       }
-      if (provider === 'telegram' && window.location.hash.includes('tgAuthResult=')) {
-        const encoded = window.location.hash.split('tgAuthResult=')[1] ?? '';
-        const data = JSON.parse(atob(encoded.replaceAll('-', '+').replaceAll('_', '/')));
-        const path = mode === 'link' ? '/telegram/link' : '/telegram/sign-in';
-        const { error } = await authClient.$fetch(path, { method: 'POST', body: data });
+      if (
+        provider === "telegram" &&
+        window.location.hash.includes("tgAuthResult=")
+      ) {
+        const encoded = window.location.hash.split("tgAuthResult=")[1] ?? "";
+        const data = JSON.parse(
+          atob(encoded.replaceAll("-", "+").replaceAll("_", "/")),
+        );
+        const path = mode === "link" ? "/telegram/link" : "/telegram/sign-in";
+        const { error } = await authClient.$fetch(path, {
+          method: "POST",
+          body: data,
+        });
         if (error) {
-          back({ state, error: (error as { code?: string }).code ?? 'failed' });
+          back({ state, error: (error as { code?: string }).code ?? "failed" });
           return;
         }
       }
-      if (mode === 'link') {
+      if (mode === "link") {
         back({ state, linked: provider });
         return;
       }
       const { data, error } = await authClient.oneTimeToken.generate();
-      back(error || !data ? { state, error: 'failed' } : { state, token: data.token });
+      back(
+        error || !data
+          ? { state, error: "failed" }
+          : { state, token: data.token },
+      );
     })();
   }, [mode, provider, state]);
 
-  return <p className="p-8 text-center text-muted-foreground">{t('returning')}</p>;
+  return (
+    <p className="p-8 text-center text-muted-foreground">{t("returning")}</p>
+  );
 }
 ```
 
@@ -3164,11 +3620,11 @@ export function MobileAuthDone({
 `apps/web/src/app/[locale]/auth/mobile/page.web.tsx`:
 
 ```tsx
-import { notFound } from 'next/navigation';
+import { notFound } from "next/navigation";
 
-import { MobileAuthStart } from '@/features/auth/mobile-auth';
-import { resolveLocale } from '@/i18n/params';
-import { serverTrpc } from '@/lib/trpc-server';
+import { MobileAuthStart } from "@/features/auth/mobile-auth";
+import { resolveLocale } from "@/i18n/params";
+import { serverTrpc } from "@/lib/trpc-server";
 
 // Route types are generated for `page.tsx` only, so the props of this web-only page are typed by hand.
 type Props = {
@@ -3176,13 +3632,13 @@ type Props = {
   searchParams: Promise<Record<string, string | undefined>>;
 };
 
-const PROVIDERS = ['yandex', 'vk', 'telegram', 'google'] as const;
+const PROVIDERS = ["yandex", "vk", "telegram", "google"] as const;
 
 export default async function MobileAuthPage({ params, searchParams }: Props) {
   await resolveLocale(params);
-  const { provider, state, mode = 'sign-in', ott = null } = await searchParams;
+  const { provider, state, mode = "sign-in", ott = null } = await searchParams;
   const known = PROVIDERS.find((id) => id === provider);
-  if (!known || !state || (mode !== 'sign-in' && mode !== 'link')) {
+  if (!known || !state || (mode !== "sign-in" && mode !== "link")) {
     notFound();
   }
   const methods = await serverTrpc.auth.methods.query();
@@ -3201,23 +3657,26 @@ export default async function MobileAuthPage({ params, searchParams }: Props) {
 `apps/web/src/app/[locale]/auth/mobile/done/page.web.tsx`:
 
 ```tsx
-import { notFound } from 'next/navigation';
+import { notFound } from "next/navigation";
 
-import { MobileAuthDone } from '@/features/auth/mobile-auth';
-import { resolveLocale } from '@/i18n/params';
+import { MobileAuthDone } from "@/features/auth/mobile-auth";
+import { resolveLocale } from "@/i18n/params";
 
 type Props = {
   params: Promise<{ locale: string }>;
   searchParams: Promise<Record<string, string | undefined>>;
 };
 
-const PROVIDERS = ['yandex', 'vk', 'telegram', 'google'] as const;
+const PROVIDERS = ["yandex", "vk", "telegram", "google"] as const;
 
-export default async function MobileAuthDonePage({ params, searchParams }: Props) {
+export default async function MobileAuthDonePage({
+  params,
+  searchParams,
+}: Props) {
   await resolveLocale(params);
-  const { provider, state, mode = 'sign-in' } = await searchParams;
+  const { provider, state, mode = "sign-in" } = await searchParams;
   const known = PROVIDERS.find((id) => id === provider);
-  if (!known || !state || (mode !== 'sign-in' && mode !== 'link')) {
+  if (!known || !state || (mode !== "sign-in" && mode !== "link")) {
     notFound();
   }
   return <MobileAuthDone state={state} mode={mode} provider={known} />;
@@ -3229,26 +3688,29 @@ export default async function MobileAuthDonePage({ params, searchParams }: Props
 `apps/web/src/components/providers.tsx` — добавить компонент внутри `AuthSheetProvider`, рядом с `<OfflineSync />`:
 
 ```tsx
-                {isCapacitor && <NativeAuthLinks />}
+{
+  isCapacitor && <NativeAuthLinks />;
+}
 ```
 
 `NativeAuthLinks` положи в `apps/web/src/features/auth/native-auth-links.tsx`:
 
 ```tsx
-'use client';
+"use client";
 
-import { useQueryClient } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
-import { useEffect } from 'react';
+import { useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
+import { useEffect } from "react";
 
-import { useToast } from '@/components/toast';
-import { authErrorKey } from './auth-errors';
-import { listenForAuthLinks } from './native-sign-in';
-import { useSession } from './use-session';
+import { useToast } from "@/components/toast";
+
+import { authErrorKey } from "./auth-errors";
+import { listenForAuthLinks } from "./native-sign-in";
+import { useSession } from "./use-session";
 
 /** Finishes sign-in and linking when the system browser comes back by deep link. */
 export function NativeAuthLinks() {
-  const t = useTranslations('auth');
+  const t = useTranslations("auth");
   const toast = useToast();
   const session = useSession();
   const queryClient = useQueryClient();
@@ -3323,6 +3785,7 @@ git commit -m "Sign in from the mobile app through the system browser"
 ### Task 13: Passkeys (веб и приложения)
 
 **Files:**
+
 - Modify: `apps/web/src/features/auth/passkeys.ts` (весь файл)
 - Modify: `apps/web/next.config.ts` (`pageExtensions` веба: добавить `web.ts`)
 - Create: `apps/web/src/app/.well-known/apple-app-site-association/route.web.ts`
@@ -3331,6 +3794,7 @@ git commit -m "Sign in from the mobile app through the system browser"
 - Modify: `apps/web/ios/App/App/App.entitlements` (создать, если нет), `apps/web/android/app/src/main/res/values/strings.xml` / `AndroidManifest.xml` (`asset_statements`)
 
 **Interfaces:**
+
 - Consumes: эндпоинты `/api/auth/passkey/*` (Task 7), `useAuthMethods` (Task 10).
 - Produces:
   - `passkeySupported(methods: AuthMethods | undefined): boolean`
@@ -3359,7 +3823,7 @@ npm search capacitor passkey --json | head -c 4000
 export function GET() {
   const team = process.env.APPLE_TEAM_ID;
   if (!team) {
-    return new Response('Not found', { status: 404 });
+    return new Response("Not found", { status: 404 });
   }
   return Response.json({ webcredentials: { apps: [`${team}.app.chordtune`] } });
 }
@@ -3372,14 +3836,14 @@ export function GET() {
 export function GET() {
   const fingerprint = process.env.ANDROID_CERT_SHA256;
   if (!fingerprint) {
-    return new Response('Not found', { status: 404 });
+    return new Response("Not found", { status: 404 });
   }
   return Response.json([
     {
-      relation: ['delegate_permission/common.get_login_creds'],
+      relation: ["delegate_permission/common.get_login_creds"],
       target: {
-        namespace: 'android_app',
-        package_name: 'app.chordtune',
+        namespace: "android_app",
+        package_name: "app.chordtune",
         sha256_cert_fingerprints: [fingerprint.toUpperCase()],
       },
     },
@@ -3608,18 +4072,18 @@ public class NativePasskeyPlugin: CAPPlugin, CAPBridgedPlugin, ASAuthorizationCo
 `apps/web/src/features/auth/passkeys.ts` (весь файл; если в Step 1 выбран сторонний плагин — подставь его импорт и имена методов):
 
 ```ts
-import type { AuthMethods } from '@chordtune/api';
-import { Capacitor, registerPlugin } from '@capacitor/core';
+import { Capacitor, registerPlugin } from "@capacitor/core";
+import type { AuthMethods } from "@chordtune/api";
 
-import { isCapacitor } from '@/features/song/links';
-import { authClient } from '@/lib/auth-client';
+import { isCapacitor } from "@/features/song/links";
+import { authClient } from "@/lib/auth-client";
 
 type NativePasskey = {
   create(params: { options: string }): Promise<{ response: string }>;
   get(params: { options: string }): Promise<{ response: string }>;
 };
 
-const NativePasskey = registerPlugin<NativePasskey>('NativePasskey');
+const NativePasskey = registerPlugin<NativePasskey>("NativePasskey");
 
 type Result = { error?: { code?: string } | null } | void;
 
@@ -3629,9 +4093,11 @@ export function passkeySupported(methods: AuthMethods | undefined) {
     return false;
   }
   if (!isCapacitor) {
-    return typeof window !== 'undefined' && 'PublicKeyCredential' in window;
+    return typeof window !== "undefined" && "PublicKeyCredential" in window;
   }
-  return Capacitor.getPlatform() === 'ios' ? methods.passkey.ios : methods.passkey.android;
+  return Capacitor.getPlatform() === "ios"
+    ? methods.passkey.ios
+    : methods.passkey.android;
 }
 
 export async function signInWithPasskey(): Promise<Result> {
@@ -3639,16 +4105,18 @@ export async function signInWithPasskey(): Promise<Result> {
     return authClient.signIn.passkey();
   }
   const { data: options, error } = await authClient.$fetch<unknown>(
-    '/passkey/generate-authenticate-options',
-    { method: 'GET' },
+    "/passkey/generate-authenticate-options",
+    { method: "GET" },
   );
   if (error) {
     return { error };
   }
   try {
-    const { response } = await NativePasskey.get({ options: JSON.stringify(options) });
-    return authClient.$fetch('/passkey/verify-authentication', {
-      method: 'POST',
+    const { response } = await NativePasskey.get({
+      options: JSON.stringify(options),
+    });
+    return authClient.$fetch("/passkey/verify-authentication", {
+      method: "POST",
       body: { response: JSON.parse(response) },
     });
   } catch {
@@ -3661,16 +4129,18 @@ export async function addPasskey(name?: string): Promise<Result> {
     return authClient.passkey.addPasskey({ name });
   }
   const { data: options, error } = await authClient.$fetch<unknown>(
-    '/passkey/generate-register-options',
-    { method: 'GET', query: name ? { name } : {} },
+    "/passkey/generate-register-options",
+    { method: "GET", query: name ? { name } : {} },
   );
   if (error) {
     return { error };
   }
   try {
-    const { response } = await NativePasskey.create({ options: JSON.stringify(options) });
-    return authClient.$fetch('/passkey/verify-registration', {
-      method: 'POST',
+    const { response } = await NativePasskey.create({
+      options: JSON.stringify(options),
+    });
+    return authClient.$fetch("/passkey/verify-registration", {
+      method: "POST",
       body: { response: JSON.parse(response), name },
     });
   } catch {
@@ -3684,12 +4154,16 @@ export async function addPasskey(name?: string): Promise<Result> {
 В `auth-sheet.tsx`: кнопку passkey показывай только при `passkeySupported(methods.data)`, и в `AuthForm` включи подсказку passkey в поле email (conditional UI, только веб):
 
 ```tsx
-  useEffect(() => {
-    if (isCapacitor || !window.PublicKeyCredential?.isConditionalMediationAvailable) {
-      return;
-    }
-    let active = true;
-    window.PublicKeyCredential.isConditionalMediationAvailable().then(async (available) => {
+useEffect(() => {
+  if (
+    isCapacitor ||
+    !window.PublicKeyCredential?.isConditionalMediationAvailable
+  ) {
+    return;
+  }
+  let active = true;
+  window.PublicKeyCredential.isConditionalMediationAvailable().then(
+    async (available) => {
       if (!available || !active) {
         return;
       }
@@ -3698,11 +4172,12 @@ export async function addPasskey(name?: string): Promise<Result> {
       if (active && result && !result.error) {
         await finish();
       }
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
+    },
+  );
+  return () => {
+    active = false;
+  };
+}, []);
 ```
 
 (`finish` объяви через `useCallback` или подавь линтеру `// biome-ignore lint/correctness/useExhaustiveDependencies: runs once per sheet` — запуск должен быть один раз на открытие шторки.)
@@ -3746,6 +4221,7 @@ git commit -m "Sign in with passkeys on the web and in the apps"
 ### Task 14: Страница профиля
 
 **Files:**
+
 - Create: `apps/web/src/features/profile/profile-view.tsx`, `apps/web/src/features/profile/avatar.tsx`, `apps/web/src/features/profile/links.ts`
 - Create: `apps/web/src/app/[locale]/profile/page.tsx` (мой профиль)
 - Create: `apps/web/src/app/[locale]/u/page.tsx` (Capacitor и запасной: `?name=`), `apps/web/src/app/[locale]/u/[name]/page.web.tsx` (SSR)
@@ -3754,6 +4230,7 @@ git commit -m "Sign in with passkeys on the web and in the apps"
 - Test: `apps/web/src/features/profile/links.test.ts`
 
 **Interfaces:**
+
 - Consumes: tRPC `profile.me`, `profile.byUsername`, `profile.arrangements` (Task 9), `SongCard` (`features/songs/song-card.tsx`), `useAuthSheet`.
 - Produces:
   - `profileHref(username: string): string | { pathname: '/u'; query: { name: string } }`
@@ -3765,14 +4242,17 @@ git commit -m "Sign in with passkeys on the web and in the apps"
 `apps/web/src/features/profile/links.test.ts`:
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 
-import { profileHrefFor } from './links';
+import { profileHrefFor } from "./links";
 
-describe('profileHrefFor', () => {
-  test('web gets a path, Capacitor a query', () => {
-    expect(profileHrefFor('vasya', false)).toBe('/u/vasya');
-    expect(profileHrefFor('vasya', true)).toEqual({ pathname: '/u', query: { name: 'vasya' } });
+describe("profileHrefFor", () => {
+  test("web gets a path, Capacitor a query", () => {
+    expect(profileHrefFor("vasya", false)).toBe("/u/vasya");
+    expect(profileHrefFor("vasya", true)).toEqual({
+      pathname: "/u",
+      query: { name: "vasya" },
+    });
   });
 });
 ```
@@ -3787,11 +4267,13 @@ Expected: FAIL.
 `apps/web/src/features/profile/links.ts`:
 
 ```ts
-import { isCapacitor } from '@/features/song/links';
+import { isCapacitor } from "@/features/song/links";
 
 /** The static Capacitor build has no per-user pages, so it reads the username from the query. */
 export function profileHrefFor(username: string, capacitor: boolean) {
-  return capacitor ? { pathname: '/u' as const, query: { name: username } } : `/u/${username}`;
+  return capacitor
+    ? { pathname: "/u" as const, query: { name: username } }
+    : `/u/${username}`;
 }
 
 export function profileHref(username: string) {
@@ -3846,7 +4328,7 @@ Run: `cd apps/web && bun test src/features/profile` — PASS.
 `apps/web/src/features/profile/avatar.tsx`:
 
 ```tsx
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
 export function Avatar({
   name,
@@ -3860,17 +4342,23 @@ export function Avatar({
   if (image) {
     // Provider avatars come from many hosts; next/image would need each one configured.
     // biome-ignore lint/performance/noImgElement: see above
-    return <img src={image} alt="" className={cn('rounded-full object-cover', className)} />;
+    return (
+      <img
+        src={image}
+        alt=""
+        className={cn("rounded-full object-cover", className)}
+      />
+    );
   }
   return (
     <span
       aria-hidden
       className={cn(
-        'flex items-center justify-center rounded-full bg-surface-2 font-semibold text-muted-foreground',
+        "flex items-center justify-center rounded-full bg-surface-2 font-semibold text-muted-foreground",
         className,
       )}
     >
-      {(name.trim()[0] ?? '?').toUpperCase()}
+      {(name.trim()[0] ?? "?").toUpperCase()}
     </span>
   );
 }
@@ -3879,21 +4367,22 @@ export function Avatar({
 `apps/web/src/features/profile/profile-view.tsx`:
 
 ```tsx
-'use client';
+"use client";
 
-import { useInfiniteQuery } from '@tanstack/react-query';
-import { Pencil, Shield } from 'lucide-react';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { Pencil, Shield } from "lucide-react";
+import { useFormatter, useTranslations } from "next-intl";
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { SongCard } from '@/features/songs/song-card';
-import { Link } from '@/i18n/navigation';
-import { type Profile, useTRPC } from '@/lib/trpc';
-import { Avatar } from './avatar';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { SongCard } from "@/features/songs/song-card";
+import { Link } from "@/i18n/navigation";
+import { type Profile, useTRPC } from "@/lib/trpc";
+
+import { Avatar } from "./avatar";
 
 export function ProfileView({ profile }: { profile: Profile }) {
-  const t = useTranslations('profile');
+  const t = useTranslations("profile");
   const format = useFormatter();
   const trpc = useTRPC();
   const list = useInfiniteQuery(
@@ -3907,12 +4396,23 @@ export function ProfileView({ profile }: { profile: Profile }) {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6">
       <header className="flex items-center gap-4">
-        <Avatar name={profile.name} image={profile.image} className="size-20 text-2xl" />
+        <Avatar
+          name={profile.name}
+          image={profile.image}
+          className="size-20 text-2xl"
+        />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <h1 className="truncate font-display font-semibold text-2xl">{profile.name}</h1>
+          <h1 className="truncate font-display font-semibold text-2xl">
+            {profile.name}
+          </h1>
           <span className="text-muted-foreground">@{profile.username}</span>
           <span className="text-muted-foreground text-xs">
-            {t('since', { date: format.dateTime(profile.createdAt, { year: 'numeric', month: 'long' }) })}
+            {t("since", {
+              date: format.dateTime(profile.createdAt, {
+                year: "numeric",
+                month: "long",
+              }),
+            })}
           </span>
         </div>
         {profile.isMe && (
@@ -3920,7 +4420,7 @@ export function ProfileView({ profile }: { profile: Profile }) {
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label={t('edit')}
+              aria-label={t("edit")}
               nativeButton={false}
               render={<Link href="/profile/edit" />}
             >
@@ -3929,7 +4429,7 @@ export function ProfileView({ profile }: { profile: Profile }) {
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label={t('security')}
+              aria-label={t("security")}
               nativeButton={false}
               render={<Link href="/profile/security" />}
             >
@@ -3940,26 +4440,34 @@ export function ProfileView({ profile }: { profile: Profile }) {
       </header>
 
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-        <span>{t('arrangements', { count: profile.stats.arrangements })}</span>
-        <span>{t('likes', { count: profile.stats.likes })}</span>
-        <span>{t('saves', { count: profile.stats.saves })}</span>
+        <span>{t("arrangements", { count: profile.stats.arrangements })}</span>
+        <span>{t("likes", { count: profile.stats.likes })}</span>
+        <span>{t("saves", { count: profile.stats.saves })}</span>
       </div>
 
       {list.isSuccess && items.length === 0 && (
-        <p className="text-muted-foreground">{t('empty')}</p>
+        <p className="text-muted-foreground">{t("empty")}</p>
       )}
       <div className="grid gap-3 sm:grid-cols-2">
         {items.map((item) => (
           <SongCard
             key={item.id}
             item={item}
-            badge={item.status === 'draft' ? <Badge variant="secondary">{t('draft')}</Badge> : undefined}
+            badge={
+              item.status === "draft" ? (
+                <Badge variant="secondary">{t("draft")}</Badge>
+              ) : undefined
+            }
           />
         ))}
       </div>
       {list.hasNextPage && (
-        <Button variant="outline" onClick={() => list.fetchNextPage()} disabled={list.isFetchingNextPage}>
-          {t('more')}
+        <Button
+          variant="outline"
+          onClick={() => list.fetchNextPage()}
+          disabled={list.isFetchingNextPage}
+        >
+          {t("more")}
         </Button>
       )}
     </div>
@@ -3974,10 +4482,12 @@ export function ProfileView({ profile }: { profile: Profile }) {
 `apps/web/src/app/[locale]/profile/page.tsx`:
 
 ```tsx
-import { MyProfile } from '@/features/profile/my-profile';
-import { resolveLocale } from '@/i18n/params';
+import { MyProfile } from "@/features/profile/my-profile";
+import { resolveLocale } from "@/i18n/params";
 
-export default async function ProfilePage({ params }: PageProps<'/[locale]/profile'>) {
+export default async function ProfilePage({
+  params,
+}: PageProps<"/[locale]/profile">) {
   await resolveLocale(params);
   return <MyProfile />;
 }
@@ -3986,22 +4496,26 @@ export default async function ProfilePage({ params }: PageProps<'/[locale]/profi
 `apps/web/src/features/profile/my-profile.tsx`:
 
 ```tsx
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 
-import { useAuthSheet } from '@/features/auth/auth-sheet';
-import { useSession } from '@/features/auth/use-session';
-import { useTRPC } from '@/lib/trpc';
-import { ProfileView } from './profile-view';
+import { useAuthSheet } from "@/features/auth/auth-sheet";
+import { useSession } from "@/features/auth/use-session";
+import { useTRPC } from "@/lib/trpc";
+
+import { ProfileView } from "./profile-view";
 
 export function MyProfile() {
   const trpc = useTRPC();
   const session = useSession();
   const openAuth = useAuthSheet();
   const signedIn = Boolean(session.data?.user);
-  const profile = useQuery({ ...trpc.profile.me.queryOptions(), enabled: signedIn });
+  const profile = useQuery({
+    ...trpc.profile.me.queryOptions(),
+    enabled: signedIn,
+  });
 
   useEffect(() => {
     if (!session.isPending && !signedIn) {
@@ -4016,12 +4530,14 @@ export function MyProfile() {
 `apps/web/src/app/[locale]/u/page.tsx` (Capacitor и любой билд, `?name=`):
 
 ```tsx
-import { Suspense } from 'react';
+import { Suspense } from "react";
 
-import { ProfileByQuery } from '@/features/profile/profile-by-name';
-import { resolveLocale } from '@/i18n/params';
+import { ProfileByQuery } from "@/features/profile/profile-by-name";
+import { resolveLocale } from "@/i18n/params";
 
-export default async function UserByQueryPage({ params }: PageProps<'/[locale]/u'>) {
+export default async function UserByQueryPage({
+  params,
+}: PageProps<"/[locale]/u">) {
   await resolveLocale(params);
   return (
     <Suspense>
@@ -4034,22 +4550,28 @@ export default async function UserByQueryPage({ params }: PageProps<'/[locale]/u
 `apps/web/src/features/profile/profile-by-name.tsx`:
 
 ```tsx
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 
-import { useTRPC } from '@/lib/trpc';
-import { ProfileView } from './profile-view';
+import { useTRPC } from "@/lib/trpc";
+
+import { ProfileView } from "./profile-view";
 
 export function ProfileByQuery() {
-  const t = useTranslations('profile');
+  const t = useTranslations("profile");
   const trpc = useTRPC();
-  const name = useSearchParams().get('name') ?? '';
-  const profile = useQuery({ ...trpc.profile.byUsername.queryOptions({ username: name }), enabled: Boolean(name) });
+  const name = useSearchParams().get("name") ?? "";
+  const profile = useQuery({
+    ...trpc.profile.byUsername.queryOptions({ username: name }),
+    enabled: Boolean(name),
+  });
   if (profile.isError || !name) {
-    return <p className="p-8 text-center text-muted-foreground">{t('notFound')}</p>;
+    return (
+      <p className="p-8 text-center text-muted-foreground">{t("notFound")}</p>
+    );
   }
   return profile.data ? <ProfileView profile={profile.data} /> : null;
 }
@@ -4058,13 +4580,13 @@ export function ProfileByQuery() {
 `apps/web/src/app/[locale]/u/[name]/page.web.tsx`:
 
 ```tsx
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import { cache } from 'react';
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { cache } from "react";
 
-import { ProfileView } from '@/features/profile/profile-view';
-import { resolveLocale } from '@/i18n/params';
-import { serverTrpc } from '@/lib/trpc-server';
+import { ProfileView } from "@/features/profile/profile-view";
+import { resolveLocale } from "@/i18n/params";
+import { serverTrpc } from "@/lib/trpc-server";
 
 // Route types are generated for `page.tsx` only, so the params of this web-only page are typed by hand.
 type Props = { params: Promise<{ locale: string; name: string }> };
@@ -4083,7 +4605,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return profile
     ? {
         title: `${profile.name} (@${profile.username})`,
-        openGraph: { title: profile.name, images: profile.image ? [profile.image] : [] },
+        openGraph: {
+          title: profile.name,
+          images: profile.image ? [profile.image] : [],
+        },
       }
     : {};
 }
@@ -4107,15 +4632,18 @@ SSR-запрос идёт без сессии, поэтому `isMe` на это
 `song-view.tsx:195`:
 
 ```tsx
-          <span>
-            {arrangement.author?.username ? (
-              <Link href={profileHref(arrangement.author.username)} className="underline-offset-4 hover:underline">
-                {t('by', { name: arrangement.author.name })}
-              </Link>
-            ) : (
-              t('by', { name: arrangement.author?.name ?? t('anonymous') })
-            )}
-          </span>
+<span>
+  {arrangement.author?.username ? (
+    <Link
+      href={profileHref(arrangement.author.username)}
+      className="underline-offset-4 hover:underline"
+    >
+      {t("by", { name: arrangement.author.name })}
+    </Link>
+  ) : (
+    t("by", { name: arrangement.author?.name ?? t("anonymous") })
+  )}
+</span>
 ```
 
 (`Link` из `@/i18n/navigation`, `profileHref` из `@/features/profile/links`.)
@@ -4137,12 +4665,14 @@ git commit -m "Show user profiles with their arrangements"
 ### Task 15: Редактирование профиля
 
 **Files:**
+
 - Create: `apps/web/src/app/[locale]/profile/edit/page.tsx`, `apps/web/src/features/profile/profile-edit.tsx`
 - Create: `apps/web/src/features/profile/username-input.ts`
 - Modify: `apps/web/messages/*.json` (`profile.editForm`)
 - Test: `apps/web/src/features/profile/username-input.test.ts`
 
 **Interfaces:**
+
 - Consumes: `authClient.updateUser`, `authClient.isUsernameAvailable` (плагин `username`, Task 4), `profile.me`.
 - Produces:
   - `normalizeUsernameInput(value: string): string` — нижний регистр, только `[a-z0-9_]`, до 30
@@ -4153,20 +4683,20 @@ git commit -m "Show user profiles with their arrangements"
 `apps/web/src/features/profile/username-input.test.ts`:
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 
-import { normalizeUsernameInput, usernameProblem } from './username-input';
+import { normalizeUsernameInput, usernameProblem } from "./username-input";
 
-describe('username input', () => {
-  test('normalises as you type', () => {
-    expect(normalizeUsernameInput('Vasya Pupkin!')).toBe('vasyapupkin');
-    expect(normalizeUsernameInput('a'.repeat(40))).toHaveLength(30);
+describe("username input", () => {
+  test("normalises as you type", () => {
+    expect(normalizeUsernameInput("Vasya Pupkin!")).toBe("vasyapupkin");
+    expect(normalizeUsernameInput("a".repeat(40))).toHaveLength(30);
   });
 
-  test('explains what is wrong', () => {
-    expect(usernameProblem('ab')).toBe('short');
-    expect(usernameProblem('admin')).toBe('reserved');
-    expect(usernameProblem('vasya')).toBeNull();
+  test("explains what is wrong", () => {
+    expect(usernameProblem("ab")).toBe("short");
+    expect(usernameProblem("admin")).toBe("reserved");
+    expect(usernameProblem("vasya")).toBeNull();
   });
 });
 ```
@@ -4183,26 +4713,53 @@ Expected: FAIL.
 ```ts
 // Mirrors RESERVED_USERNAMES in apps/api/src/auth/username.ts for an early hint; the API decides.
 const RESERVED = new Set([
-  'admin', 'administrator', 'api', 'app', 'auth', 'chordtune', 'edit', 'help', 'login', 'logout',
-  'me', 'moderator', 'new', 'null', 'profile', 'root', 'security', 'settings', 'signin', 'signup',
-  'support', 'system', 'u', 'undefined', 'user', 'users',
+  "admin",
+  "administrator",
+  "api",
+  "app",
+  "auth",
+  "chordtune",
+  "edit",
+  "help",
+  "login",
+  "logout",
+  "me",
+  "moderator",
+  "new",
+  "null",
+  "profile",
+  "root",
+  "security",
+  "settings",
+  "signin",
+  "signup",
+  "support",
+  "system",
+  "u",
+  "undefined",
+  "user",
+  "users",
 ]);
 
 export function normalizeUsernameInput(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 30);
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "")
+    .slice(0, 30);
 }
 
-export function usernameProblem(value: string): 'short' | 'reserved' | null {
+export function usernameProblem(value: string): "short" | "reserved" | null {
   if (value.length < 3) {
-    return 'short';
+    return "short";
   }
-  return RESERVED.has(value) ? 'reserved' : null;
+  return RESERVED.has(value) ? "reserved" : null;
 }
 ```
 
 Messages — в `profile` добавить:
 
 ru:
+
 ```json
     "editForm": {
       "title": "Редактировать профиль",
@@ -4219,6 +4776,7 @@ ru:
 ```
 
 en:
+
 ```json
     "editForm": {
       "title": "Edit profile",
@@ -4237,33 +4795,37 @@ en:
 `apps/web/src/features/profile/profile-edit.tsx`:
 
 ```tsx
-'use client';
+"use client";
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 
-import { useToast } from '@/components/toast';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useSession } from '@/features/auth/use-session';
-import { useRouter } from '@/i18n/navigation';
-import { authClient } from '@/lib/auth-client';
-import { useDebouncedValue } from '@/lib/use-debounced-value';
-import { useTRPC } from '@/lib/trpc';
-import { normalizeUsernameInput, usernameProblem } from './username-input';
+import { useToast } from "@/components/toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useSession } from "@/features/auth/use-session";
+import { useRouter } from "@/i18n/navigation";
+import { authClient } from "@/lib/auth-client";
+import { useTRPC } from "@/lib/trpc";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
+
+import { normalizeUsernameInput, usernameProblem } from "./username-input";
 
 export function ProfileEdit() {
-  const t = useTranslations('profile.editForm');
+  const t = useTranslations("profile.editForm");
   const trpc = useTRPC();
   const toast = useToast();
   const router = useRouter();
   const queryClient = useQueryClient();
   const session = useSession();
-  const profile = useQuery({ ...trpc.profile.me.queryOptions(), enabled: Boolean(session.data) });
-  const [name, setName] = useState('');
-  const [username, setUsername] = useState('');
+  const profile = useQuery({
+    ...trpc.profile.me.queryOptions(),
+    enabled: Boolean(session.data),
+  });
+  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
@@ -4277,8 +4839,10 @@ export function ProfileEdit() {
   const problem = usernameProblem(username);
   const changed = profile.data && checked !== profile.data.username;
   const availability = useQuery({
-    queryKey: ['username-available', checked],
-    queryFn: async () => (await authClient.isUsernameAvailable({ username: checked })).data?.available ?? false,
+    queryKey: ["username-available", checked],
+    queryFn: async () =>
+      (await authClient.isUsernameAvailable({ username: checked })).data
+        ?.available ?? false,
     enabled: Boolean(changed) && !usernameProblem(checked),
   });
 
@@ -4287,13 +4851,13 @@ export function ProfileEdit() {
     const result = await authClient.updateUser({ name: name.trim(), username });
     setPending(false);
     if (result.error) {
-      toast(t('taken'));
+      toast(t("taken"));
       return;
     }
     await session.refetch();
     await queryClient.invalidateQueries();
-    toast(t('saved'));
-    router.push('/profile');
+    toast(t("saved"));
+    router.push("/profile");
   };
 
   if (!profile.data) {
@@ -4302,10 +4866,10 @@ export function ProfileEdit() {
   const hint = problem
     ? t(problem)
     : changed && availability.data === false
-      ? t('taken')
+      ? t("taken")
       : changed && availability.data
-        ? t('available')
-        : t('usernameHint');
+        ? t("available")
+        : t("usernameHint");
 
   return (
     <form
@@ -4315,13 +4879,19 @@ export function ProfileEdit() {
         save();
       }}
     >
-      <h1 className="font-display font-semibold text-xl">{t('title')}</h1>
+      <h1 className="font-display font-semibold text-xl">{t("title")}</h1>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="profile-name">{t('name')}</Label>
-        <Input id="profile-name" required maxLength={60} value={name} onChange={(e) => setName(e.target.value)} />
+        <Label htmlFor="profile-name">{t("name")}</Label>
+        <Input
+          id="profile-name"
+          required
+          maxLength={60}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
       </div>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="profile-username">{t('username')}</Label>
+        <Label htmlFor="profile-username">{t("username")}</Label>
         <Input
           id="profile-username"
           autoCapitalize="none"
@@ -4331,8 +4901,12 @@ export function ProfileEdit() {
         />
         <p className="text-muted-foreground text-xs">{hint}</p>
       </div>
-      <Button type="submit" size="lg" disabled={pending || Boolean(problem) || availability.data === false}>
-        {t('save')}
+      <Button
+        type="submit"
+        size="lg"
+        disabled={pending || Boolean(problem) || availability.data === false}
+      >
+        {t("save")}
       </Button>
     </form>
   );
@@ -4344,10 +4918,12 @@ export function ProfileEdit() {
 `apps/web/src/app/[locale]/profile/edit/page.tsx`:
 
 ```tsx
-import { ProfileEdit } from '@/features/profile/profile-edit';
-import { resolveLocale } from '@/i18n/params';
+import { ProfileEdit } from "@/features/profile/profile-edit";
+import { resolveLocale } from "@/i18n/params";
 
-export default async function ProfileEditPage({ params }: PageProps<'/[locale]/profile/edit'>) {
+export default async function ProfileEditPage({
+  params,
+}: PageProps<"/[locale]/profile/edit">) {
   await resolveLocale(params);
   return <ProfileEdit />;
 }
@@ -4370,6 +4946,7 @@ git commit -m "Edit the display name and username"
 ### Task 16: «Безопасность»: сессии, passkeys, сервисы, почта, удаление
 
 **Files:**
+
 - Create: `apps/web/src/features/profile/user-agent.ts`
 - Create: `apps/web/src/features/profile/security-view.tsx`, `section.tsx`, `sessions-section.tsx`, `passkeys-section.tsx`, `providers-section.tsx`, `email-section.tsx`, `delete-account-section.tsx`
 - Create: `apps/web/src/app/[locale]/profile/security/page.tsx`
@@ -4377,6 +4954,7 @@ git commit -m "Edit the display name and username"
 - Test: `apps/web/src/features/profile/user-agent.test.ts`
 
 **Interfaces:**
+
 - Consumes: `authClient.listSessions/revokeSession/revokeOtherSessions/listAccounts/unlinkAccount/linkSocial/passkey.listUserPasskeys/passkey.deletePasskey/emailOtp.requestEmailChange/emailOtp.changeEmail/deleteUser`, `addPasskey`, `passkeySupported` (Task 13), `linkTelegram` (Task 11), `startNativeSignIn` (Task 12), `authErrorKey`, `isPlaceholderEmail`, `normalizeOtp`, `useAuthMethods`.
 - Produces: `describeUserAgent(ua: string | null | undefined): { browser: string | null; os: string | null; mobile: boolean }`
 
@@ -4385,39 +4963,45 @@ git commit -m "Edit the display name and username"
 `apps/web/src/features/profile/user-agent.test.ts`:
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 
-import { describeUserAgent } from './user-agent';
+import { describeUserAgent } from "./user-agent";
 
-describe('describeUserAgent', () => {
-  test('common browsers and systems', () => {
+describe("describeUserAgent", () => {
+  test("common browsers and systems", () => {
     expect(
       describeUserAgent(
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15',
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15",
       ),
-    ).toEqual({ browser: 'Safari', os: 'macOS', mobile: false });
+    ).toEqual({ browser: "Safari", os: "macOS", mobile: false });
     expect(
       describeUserAgent(
-        'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36',
+        "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36",
       ),
-    ).toEqual({ browser: 'Chrome', os: 'Android', mobile: true });
+    ).toEqual({ browser: "Chrome", os: "Android", mobile: true });
     expect(
       describeUserAgent(
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0',
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0",
       ),
-    ).toEqual({ browser: 'Edge', os: 'Windows', mobile: false });
+    ).toEqual({ browser: "Edge", os: "Windows", mobile: false });
     expect(
       describeUserAgent(
-        'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
       ),
-    ).toEqual({ browser: null, os: 'iOS', mobile: true });
+    ).toEqual({ browser: null, os: "iOS", mobile: true });
     expect(
-      describeUserAgent('Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0'),
-    ).toEqual({ browser: 'Firefox', os: 'Linux', mobile: false });
+      describeUserAgent(
+        "Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0",
+      ),
+    ).toEqual({ browser: "Firefox", os: "Linux", mobile: false });
   });
 
-  test('unknown or missing', () => {
-    expect(describeUserAgent(null)).toEqual({ browser: null, os: null, mobile: false });
+  test("unknown or missing", () => {
+    expect(describeUserAgent(null)).toEqual({
+      browser: null,
+      os: null,
+      mobile: false,
+    });
   });
 });
 ```
@@ -4433,20 +5017,20 @@ Expected: FAIL.
 
 ```ts
 const BROWSERS: [RegExp, string][] = [
-  [/Edg\//, 'Edge'],
-  [/YaBrowser\//, 'Yandex Browser'],
-  [/OPR\//, 'Opera'],
-  [/Firefox\//, 'Firefox'],
-  [/Chrome\//, 'Chrome'],
-  [/Version\/[\d.]+ .*Safari\//, 'Safari'],
+  [/Edg\//, "Edge"],
+  [/YaBrowser\//, "Yandex Browser"],
+  [/OPR\//, "Opera"],
+  [/Firefox\//, "Firefox"],
+  [/Chrome\//, "Chrome"],
+  [/Version\/[\d.]+ .*Safari\//, "Safari"],
 ];
 
 const SYSTEMS: [RegExp, string][] = [
-  [/iPhone|iPad|iPod/, 'iOS'],
-  [/Android/, 'Android'],
-  [/Mac OS X/, 'macOS'],
-  [/Windows/, 'Windows'],
-  [/Linux/, 'Linux'],
+  [/iPhone|iPad|iPod/, "iOS"],
+  [/Android/, "Android"],
+  [/Mac OS X/, "macOS"],
+  [/Windows/, "Windows"],
+  [/Linux/, "Linux"],
 ];
 
 /** Enough to tell sessions apart in a list; not a full user-agent parser. Order matters. */
@@ -4535,36 +5119,38 @@ Run: `cd apps/web && bun test src/features/profile/user-agent.test.ts` — PASS.
 `apps/web/src/features/profile/security-view.tsx`:
 
 ```tsx
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
-import { useEffect } from 'react';
+import { useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
+import { useEffect } from "react";
 
-import { useAuthSheet } from '@/features/auth/auth-sheet';
-import { isPlaceholderEmail } from '@/features/auth/placeholder-email';
-import { useSession } from '@/features/auth/use-session';
-import { authClient } from '@/lib/auth-client';
-import { DeleteAccountSection } from './delete-account-section';
-import { EmailSection } from './email-section';
-import { PasskeysSection } from './passkeys-section';
-import { ProvidersSection } from './providers-section';
-import { SessionsSection } from './sessions-section';
+import { useAuthSheet } from "@/features/auth/auth-sheet";
+import { isPlaceholderEmail } from "@/features/auth/placeholder-email";
+import { useSession } from "@/features/auth/use-session";
+import { authClient } from "@/lib/auth-client";
+
+import { DeleteAccountSection } from "./delete-account-section";
+import { EmailSection } from "./email-section";
+import { PasskeysSection } from "./passkeys-section";
+import { ProvidersSection } from "./providers-section";
+import { SessionsSection } from "./sessions-section";
 
 export function SecurityView() {
-  const t = useTranslations('security');
+  const t = useTranslations("security");
   const session = useSession();
   const openAuth = useAuthSheet();
   const user = session.data?.user;
 
   const accounts = useQuery({
-    queryKey: ['auth', 'accounts'],
+    queryKey: ["auth", "accounts"],
     queryFn: async () => (await authClient.listAccounts()).data ?? [],
     enabled: Boolean(user),
   });
   const passkeys = useQuery({
-    queryKey: ['auth', 'passkeys'],
-    queryFn: async () => (await authClient.passkey.listUserPasskeys()).data ?? [],
+    queryKey: ["auth", "passkeys"],
+    queryFn: async () =>
+      (await authClient.passkey.listUserPasskeys()).data ?? [],
     enabled: Boolean(user),
   });
 
@@ -4577,16 +5163,22 @@ export function SecurityView() {
   if (!user) {
     return null;
   }
-  const providers = (accounts.data ?? []).filter((a) => a.providerId !== 'credential');
+  const providers = (accounts.data ?? []).filter(
+    (a) => a.providerId !== "credential",
+  );
   const hasEmail = user.emailVerified && !isPlaceholderEmail(user.email);
-  const methodCount = providers.length + (passkeys.data?.length ?? 0) + (hasEmail ? 1 : 0);
+  const methodCount =
+    providers.length + (passkeys.data?.length ?? 0) + (hasEmail ? 1 : 0);
   const canRemove = methodCount > 1;
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-6">
-      <h1 className="font-display font-semibold text-xl">{t('title')}</h1>
+      <h1 className="font-display font-semibold text-xl">{t("title")}</h1>
       <EmailSection email={hasEmail ? user.email : null} />
-      <ProvidersSection linked={providers.map((a) => a.providerId)} canRemove={canRemove} />
+      <ProvidersSection
+        linked={providers.map((a) => a.providerId)}
+        canRemove={canRemove}
+      />
       <PasskeysSection passkeys={passkeys.data ?? []} canRemove={canRemove} />
       <SessionsSection />
       <DeleteAccountSection />
@@ -4598,7 +5190,13 @@ export function SecurityView() {
 Общая обёртка секции — `apps/web/src/features/profile/section.tsx` (отдельный файл, чтобы секции и `security-view.tsx` не импортировали друг друга по кругу):
 
 ```tsx
-export function Section({ title, children }: { title: string; children: React.ReactNode }) {
+export function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="flex flex-col gap-3">
       <h2 className="font-medium text-muted-foreground text-sm">{title}</h2>
@@ -4611,48 +5209,57 @@ export function Section({ title, children }: { title: string; children: React.Re
 `apps/web/src/features/profile/sessions-section.tsx`:
 
 ```tsx
-'use client';
+"use client";
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useFormatter, useTranslations } from "next-intl";
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { useSession } from '@/features/auth/use-session';
-import { authClient } from '@/lib/auth-client';
-import { Section } from './section';
-import { describeUserAgent } from './user-agent';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useSession } from "@/features/auth/use-session";
+import { authClient } from "@/lib/auth-client";
+
+import { Section } from "./section";
+import { describeUserAgent } from "./user-agent";
 
 export function SessionsSection() {
-  const t = useTranslations('security');
+  const t = useTranslations("security");
   const format = useFormatter();
   const session = useSession();
   const queryClient = useQueryClient();
   const sessions = useQuery({
-    queryKey: ['auth', 'sessions'],
+    queryKey: ["auth", "sessions"],
     queryFn: async () => (await authClient.listSessions()).data ?? [],
   });
   const current = session.data?.session.token;
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['auth', 'sessions'] });
+  const refresh = () =>
+    queryClient.invalidateQueries({ queryKey: ["auth", "sessions"] });
 
   return (
-    <Section title={t('sessions')}>
+    <Section title={t("sessions")}>
       <ul className="flex flex-col divide-y divide-border rounded-xl border border-border">
         {(sessions.data ?? []).map((item) => {
           const device = describeUserAgent(item.userAgent);
-          const label = [device.browser, device.os].filter(Boolean).join(' · ') || t('unknownDevice');
+          const label =
+            [device.browser, device.os].filter(Boolean).join(" · ") ||
+            t("unknownDevice");
           return (
             <li key={item.id} className="flex items-center gap-3 p-3">
               <div className="flex min-w-0 flex-1 flex-col">
                 <span className="truncate">{label}</span>
                 <span className="text-muted-foreground text-xs">
-                  {[item.ipAddress, t('lastActive', { date: format.relativeTime(item.updatedAt) })]
+                  {[
+                    item.ipAddress,
+                    t("lastActive", {
+                      date: format.relativeTime(item.updatedAt),
+                    }),
+                  ]
                     .filter(Boolean)
-                    .join(' · ')}
+                    .join(" · ")}
                 </span>
               </div>
               {item.token === current ? (
-                <Badge variant="secondary">{t('thisDevice')}</Badge>
+                <Badge variant="secondary">{t("thisDevice")}</Badge>
               ) : (
                 <Button
                   variant="ghost"
@@ -4662,7 +5269,7 @@ export function SessionsSection() {
                     await refresh();
                   }}
                 >
-                  {t('revoke')}
+                  {t("revoke")}
                 </Button>
               )}
             </li>
@@ -4678,7 +5285,7 @@ export function SessionsSection() {
             await refresh();
           }}
         >
-          {t('revokeOthers')}
+          {t("revokeOthers")}
         </Button>
       )}
     </Section>
@@ -4689,59 +5296,76 @@ export function SessionsSection() {
 `apps/web/src/features/profile/passkeys-section.tsx`:
 
 ```tsx
-'use client';
+"use client";
 
-import { useQueryClient } from '@tanstack/react-query';
-import { KeyRound } from 'lucide-react';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useQueryClient } from "@tanstack/react-query";
+import { KeyRound } from "lucide-react";
+import { useFormatter, useTranslations } from "next-intl";
 
-import { useToast } from '@/components/toast';
-import { Button } from '@/components/ui/button';
-import { authErrorKey } from '@/features/auth/auth-errors';
-import { addPasskey, passkeySupported } from '@/features/auth/passkeys';
-import { useAuthMethods } from '@/features/auth/use-auth-methods';
-import { authClient } from '@/lib/auth-client';
-import { Section } from './section';
-import { describeUserAgent } from './user-agent';
+import { useToast } from "@/components/toast";
+import { Button } from "@/components/ui/button";
+import { authErrorKey } from "@/features/auth/auth-errors";
+import { addPasskey, passkeySupported } from "@/features/auth/passkeys";
+import { useAuthMethods } from "@/features/auth/use-auth-methods";
+import { authClient } from "@/lib/auth-client";
+
+import { Section } from "./section";
+import { describeUserAgent } from "./user-agent";
 
 type Passkey = { id: string; name?: string | null; createdAt: Date | string };
 
-export function PasskeysSection({ passkeys, canRemove }: { passkeys: Passkey[]; canRemove: boolean }) {
-  const t = useTranslations('security');
-  const tAuth = useTranslations('auth');
+export function PasskeysSection({
+  passkeys,
+  canRemove,
+}: {
+  passkeys: Passkey[];
+  canRemove: boolean;
+}) {
+  const t = useTranslations("security");
+  const tAuth = useTranslations("auth");
   const format = useFormatter();
   const toast = useToast();
   const methods = useAuthMethods();
   const queryClient = useQueryClient();
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['auth', 'passkeys'] });
+  const refresh = () =>
+    queryClient.invalidateQueries({ queryKey: ["auth", "passkeys"] });
   const report = (error: { code?: string } | null | undefined) =>
     error && toast(tAuth(`errors.${authErrorKey(error)}`));
 
   return (
-    <Section title={t('passkeys')}>
-      {passkeys.length === 0 && <p className="text-muted-foreground text-sm">{t('noPasskeys')}</p>}
+    <Section title={t("passkeys")}>
+      {passkeys.length === 0 && (
+        <p className="text-muted-foreground text-sm">{t("noPasskeys")}</p>
+      )}
       <ul className="flex flex-col gap-2">
         {passkeys.map((item) => (
-          <li key={item.id} className="flex items-center gap-3 rounded-xl border border-border p-3">
+          <li
+            key={item.id}
+            className="flex items-center gap-3 rounded-xl border border-border p-3"
+          >
             <KeyRound className="size-4 shrink-0" />
             <div className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate">{item.name || 'Passkey'}</span>
+              <span className="truncate">{item.name || "Passkey"}</span>
               <span className="text-muted-foreground text-xs">
-                {format.dateTime(new Date(item.createdAt), { dateStyle: 'medium' })}
+                {format.dateTime(new Date(item.createdAt), {
+                  dateStyle: "medium",
+                })}
               </span>
             </div>
             <Button
               variant="ghost"
               size="sm"
               disabled={!canRemove}
-              title={canRemove ? undefined : t('lastMethodHint')}
+              title={canRemove ? undefined : t("lastMethodHint")}
               onClick={async () => {
-                const result = await authClient.passkey.deletePasskey({ id: item.id });
+                const result = await authClient.passkey.deletePasskey({
+                  id: item.id,
+                });
                 report(result.error);
                 await refresh();
               }}
             >
-              {t('delete')}
+              {t("delete")}
             </Button>
           </li>
         ))}
@@ -4751,12 +5375,14 @@ export function PasskeysSection({ passkeys, canRemove }: { passkeys: Passkey[]; 
           variant="outline"
           className="self-start"
           onClick={async () => {
-            const result = await addPasskey(describeUserAgent(navigator.userAgent).os ?? undefined);
+            const result = await addPasskey(
+              describeUserAgent(navigator.userAgent).os ?? undefined,
+            );
             report(result?.error);
             await refresh();
           }}
         >
-          {t('addPasskey')}
+          {t("addPasskey")}
         </Button>
       )}
     </Section>
@@ -4767,37 +5393,44 @@ export function PasskeysSection({ passkeys, canRemove }: { passkeys: Passkey[]; 
 `apps/web/src/features/profile/providers-section.tsx`:
 
 ```tsx
-'use client';
+"use client";
 
-import type { ProviderId } from '@chordtune/api';
-import { useQueryClient } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
+import type { ProviderId } from "@chordtune/api";
+import { useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 
-import { useToast } from '@/components/toast';
-import { Button } from '@/components/ui/button';
-import { authErrorKey } from '@/features/auth/auth-errors';
-import { startNativeSignIn } from '@/features/auth/native-sign-in';
-import { linkTelegram } from '@/features/auth/telegram-login';
-import { useAuthMethods } from '@/features/auth/use-auth-methods';
-import { isCapacitor } from '@/features/song/links';
-import { authClient } from '@/lib/auth-client';
-import { Section } from './section';
+import { useToast } from "@/components/toast";
+import { Button } from "@/components/ui/button";
+import { authErrorKey } from "@/features/auth/auth-errors";
+import { startNativeSignIn } from "@/features/auth/native-sign-in";
+import { linkTelegram } from "@/features/auth/telegram-login";
+import { useAuthMethods } from "@/features/auth/use-auth-methods";
+import { isCapacitor } from "@/features/song/links";
+import { authClient } from "@/lib/auth-client";
+
+import { Section } from "./section";
 
 async function link(provider: ProviderId, telegramBot: string | undefined) {
   if (isCapacitor) {
     // The result comes back by deep link; NativeAuthLinks refreshes the queries.
-    return startNativeSignIn({ provider, mode: 'link' });
+    return startNativeSignIn({ provider, mode: "link" });
   }
   const callbackURL = window.location.href;
-  if (provider === 'telegram') {
+  if (provider === "telegram") {
     return telegramBot ? linkTelegram(telegramBot) : undefined;
   }
   return authClient.linkSocial({ provider, callbackURL });
 }
 
-export function ProvidersSection({ linked, canRemove }: { linked: string[]; canRemove: boolean }) {
-  const t = useTranslations('security');
-  const tAuth = useTranslations('auth');
+export function ProvidersSection({
+  linked,
+  canRemove,
+}: {
+  linked: string[];
+  canRemove: boolean;
+}) {
+  const t = useTranslations("security");
+  const tAuth = useTranslations("auth");
   const toast = useToast();
   const methods = useAuthMethods();
   const queryClient = useQueryClient();
@@ -4806,32 +5439,40 @@ export function ProvidersSection({ linked, canRemove }: { linked: string[]; canR
     return null;
   }
   const report = (result: unknown) => {
-    const error = (result as { error?: { code?: string } | null } | undefined)?.error;
+    const error = (result as { error?: { code?: string } | null } | undefined)
+      ?.error;
     if (error) {
       toast(tAuth(`errors.${authErrorKey(error)}`));
     }
   };
 
   return (
-    <Section title={t('services')}>
+    <Section title={t("services")}>
       <ul className="flex flex-col divide-y divide-border rounded-xl border border-border">
         {providers.map((provider) => {
           const isLinked = linked.includes(provider);
           return (
-            <li key={provider} className="flex items-center justify-between p-3">
+            <li
+              key={provider}
+              className="flex items-center justify-between p-3"
+            >
               <span>{tAuth(`providers.${provider}`)}</span>
               {isLinked ? (
                 <Button
                   variant="ghost"
                   size="sm"
                   disabled={!canRemove}
-                  title={canRemove ? undefined : t('lastMethodHint')}
+                  title={canRemove ? undefined : t("lastMethodHint")}
                   onClick={async () => {
-                    report(await authClient.unlinkAccount({ providerId: provider }));
-                    await queryClient.invalidateQueries({ queryKey: ['auth', 'accounts'] });
+                    report(
+                      await authClient.unlinkAccount({ providerId: provider }),
+                    );
+                    await queryClient.invalidateQueries({
+                      queryKey: ["auth", "accounts"],
+                    });
                   }}
                 >
-                  {t('unlink')}
+                  {t("unlink")}
                 </Button>
               ) : (
                 <Button
@@ -4839,10 +5480,12 @@ export function ProvidersSection({ linked, canRemove }: { linked: string[]; canR
                   size="sm"
                   onClick={async () => {
                     report(await link(provider, methods.data?.telegramBot?.id));
-                    await queryClient.invalidateQueries({ queryKey: ['auth', 'accounts'] });
+                    await queryClient.invalidateQueries({
+                      queryKey: ["auth", "accounts"],
+                    });
                   }}
                 >
-                  {t('link')}
+                  {t("link")}
                 </Button>
               )}
             </li>
@@ -4857,50 +5500,54 @@ export function ProvidersSection({ linked, canRemove }: { linked: string[]; canR
 `apps/web/src/features/profile/email-section.tsx`:
 
 ```tsx
-'use client';
+"use client";
 
-import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useTranslations } from "next-intl";
+import { useState } from "react";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { authErrorKey } from '@/features/auth/auth-errors';
-import { normalizeOtp, OTP_LENGTH } from '@/features/auth/otp';
-import { useSession } from '@/features/auth/use-session';
-import { authClient } from '@/lib/auth-client';
-import { Section } from './section';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { authErrorKey } from "@/features/auth/auth-errors";
+import { normalizeOtp, OTP_LENGTH } from "@/features/auth/otp";
+import { useSession } from "@/features/auth/use-session";
+import { authClient } from "@/lib/auth-client";
+
+import { Section } from "./section";
 
 export function EmailSection({ email }: { email: string | null }) {
-  const t = useTranslations('security');
-  const tAuth = useTranslations('auth');
+  const t = useTranslations("security");
+  const tAuth = useTranslations("auth");
   const session = useSession();
-  const [newEmail, setNewEmail] = useState('');
+  const [newEmail, setNewEmail] = useState("");
   const [sent, setSent] = useState(false);
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   if (email) {
     return (
-      <Section title={t('email')}>
+      <Section title={t("email")}>
         <span>{email}</span>
       </Section>
     );
   }
 
   const message = (failure: { code?: string; status?: number }) =>
-    failure.code === 'USER_ALREADY_EXISTS' || failure.code === 'EMAIL_ALREADY_EXISTS'
-      ? t('emailTaken')
+    failure.code === "USER_ALREADY_EXISTS" ||
+    failure.code === "EMAIL_ALREADY_EXISTS"
+      ? t("emailTaken")
       : tAuth(`errors.${authErrorKey(failure)}`);
 
   return (
-    <Section title={t('addEmail')}>
+    <Section title={t("addEmail")}>
       {!sent ? (
         <form
           className="flex gap-2"
           onSubmit={async (event) => {
             event.preventDefault();
             setError(null);
-            const result = await authClient.emailOtp.requestEmailChange({ newEmail: newEmail.trim() });
+            const result = await authClient.emailOtp.requestEmailChange({
+              newEmail: newEmail.trim(),
+            });
             if (result.error) {
               setError(message(result.error));
               return;
@@ -4908,15 +5555,21 @@ export function EmailSection({ email }: { email: string | null }) {
             setSent(true);
           }}
         >
-          <Input type="email" required autoComplete="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
-          <Button type="submit">{t('sendCode')}</Button>
+          <Input
+            type="email"
+            required
+            autoComplete="email"
+            value={newEmail}
+            onChange={(e) => setNewEmail(e.target.value)}
+          />
+          <Button type="submit">{t("sendCode")}</Button>
         </form>
       ) : (
         <Input
           inputMode="numeric"
           autoComplete="one-time-code"
           autoFocus
-          placeholder={tAuth('code')}
+          placeholder={tAuth("code")}
           value={code}
           onChange={async (event) => {
             const next = normalizeOtp(event.target.value);
@@ -4924,7 +5577,10 @@ export function EmailSection({ email }: { email: string | null }) {
             if (next.length !== OTP_LENGTH) {
               return;
             }
-            const result = await authClient.emailOtp.changeEmail({ newEmail: newEmail.trim(), otp: next });
+            const result = await authClient.emailOtp.changeEmail({
+              newEmail: newEmail.trim(),
+              otp: next,
+            });
             if (result.error) {
               setError(message(result.error));
               return;
@@ -4944,24 +5600,31 @@ export function EmailSection({ email }: { email: string | null }) {
 `apps/web/src/features/profile/delete-account-section.tsx`:
 
 ```tsx
-'use client';
+"use client";
 
-import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useTranslations } from "next-intl";
+import { useState } from "react";
 
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { useAuthSheet } from '@/features/auth/auth-sheet';
-import { authErrorKey } from '@/features/auth/auth-errors';
-import { useSession } from '@/features/auth/use-session';
-import { useRouter } from '@/i18n/navigation';
-import { authToken } from '@/lib/api';
-import { authClient } from '@/lib/auth-client';
-import { Section } from './section';
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { authErrorKey } from "@/features/auth/auth-errors";
+import { useAuthSheet } from "@/features/auth/auth-sheet";
+import { useSession } from "@/features/auth/use-session";
+import { useRouter } from "@/i18n/navigation";
+import { authToken } from "@/lib/api";
+import { authClient } from "@/lib/auth-client";
+
+import { Section } from "./section";
 
 export function DeleteAccountSection() {
-  const t = useTranslations('security');
-  const tAuth = useTranslations('auth');
+  const t = useTranslations("security");
+  const tAuth = useTranslations("auth");
   const session = useSession();
   const router = useRouter();
   const openAuth = useAuthSheet();
@@ -4973,7 +5636,7 @@ export function DeleteAccountSection() {
     setError(null);
     const result = await authClient.deleteUser();
     if (result.error) {
-      if (authErrorKey(result.error) === 'reauth') {
+      if (authErrorKey(result.error) === "reauth") {
         setNeedsReauth(true);
       } else {
         setError(tAuth(`errors.${authErrorKey(result.error)}`));
@@ -4982,20 +5645,29 @@ export function DeleteAccountSection() {
     }
     authToken.set(null);
     await session.refetch();
-    router.push('/');
+    router.push("/");
   };
 
   return (
-    <Section title={t('deleteAccount')}>
-      <Button variant="destructive" className="self-start" onClick={() => setOpen(true)}>
-        {t('deleteAccount')}
+    <Section title={t("deleteAccount")}>
+      <Button
+        variant="destructive"
+        className="self-start"
+        onClick={() => setOpen(true)}
+      >
+        {t("deleteAccount")}
       </Button>
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="bottom" className="mx-auto max-w-md rounded-t-xl sm:mb-8 sm:rounded-xl">
+        <SheetContent
+          side="bottom"
+          className="mx-auto max-w-md rounded-t-xl sm:mb-8 sm:rounded-xl"
+        >
           <div className="flex flex-col gap-4 p-4 pt-0">
             <SheetHeader className="px-0">
-              <SheetTitle>{t('deleteAccount')}</SheetTitle>
-              <SheetDescription>{needsReauth ? t('reauth') : t('deleteWarning')}</SheetDescription>
+              <SheetTitle>{t("deleteAccount")}</SheetTitle>
+              <SheetDescription>
+                {needsReauth ? t("reauth") : t("deleteWarning")}
+              </SheetDescription>
             </SheetHeader>
             {error && <p className="text-destructive text-sm">{error}</p>}
             {needsReauth ? (
@@ -5007,11 +5679,11 @@ export function DeleteAccountSection() {
                   openAuth();
                 }}
               >
-                {tAuth('signIn')}
+                {tAuth("signIn")}
               </Button>
             ) : (
               <Button variant="destructive" size="lg" onClick={remove}>
-                {t('deleteConfirm')}
+                {t("deleteConfirm")}
               </Button>
             )}
           </div>
@@ -5029,10 +5701,12 @@ export function DeleteAccountSection() {
 `apps/web/src/app/[locale]/profile/security/page.tsx`:
 
 ```tsx
-import { SecurityView } from '@/features/profile/security-view';
-import { resolveLocale } from '@/i18n/params';
+import { SecurityView } from "@/features/profile/security-view";
+import { resolveLocale } from "@/i18n/params";
 
-export default async function SecurityPage({ params }: PageProps<'/[locale]/profile/security'>) {
+export default async function SecurityPage({
+  params,
+}: PageProps<"/[locale]/profile/security">) {
   await resolveLocale(params);
   return <SecurityView />;
 }
@@ -5055,12 +5729,14 @@ git commit -m "Manage sessions, passkeys, linked services and account deletion"
 ### Task 17: Предложение добавить passkey
 
 **Files:**
+
 - Create: `apps/web/src/features/auth/passkey-offer.tsx`, `apps/web/src/features/auth/passkey-offer-state.ts`
 - Modify: `apps/web/src/components/providers.tsx`
 - Modify: `apps/web/messages/*.json` (`auth.passkeyOffer`)
 - Test: `apps/web/src/features/auth/passkey-offer-state.test.ts`
 
 **Interfaces:**
+
 - Consumes: `passkeySupported`, `addPasskey` (Task 13), `useAuthMethods`, `useSession`, `authClient.passkey.listUserPasskeys`.
 - Produces: `shouldOfferPasskey(params: { signedIn: boolean; supported: boolean; passkeyCount: number | undefined; dismissed: boolean }): boolean`, `passkeyOfferStore: { dismissed(): boolean; dismiss(): void }`
 
@@ -5069,22 +5745,29 @@ git commit -m "Manage sessions, passkeys, linked services and account deletion"
 `apps/web/src/features/auth/passkey-offer-state.test.ts`:
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 
-import { shouldOfferPasskey } from './passkey-offer-state';
+import { shouldOfferPasskey } from "./passkey-offer-state";
 
-describe('shouldOfferPasskey', () => {
-  const base = { signedIn: true, supported: true, passkeyCount: 0, dismissed: false };
+describe("shouldOfferPasskey", () => {
+  const base = {
+    signedIn: true,
+    supported: true,
+    passkeyCount: 0,
+    dismissed: false,
+  };
 
-  test('signed in, supported, no passkeys, not dismissed', () => {
+  test("signed in, supported, no passkeys, not dismissed", () => {
     expect(shouldOfferPasskey(base)).toBe(true);
   });
 
-  test('any reason not to', () => {
+  test("any reason not to", () => {
     expect(shouldOfferPasskey({ ...base, signedIn: false })).toBe(false);
     expect(shouldOfferPasskey({ ...base, supported: false })).toBe(false);
     expect(shouldOfferPasskey({ ...base, passkeyCount: 1 })).toBe(false);
-    expect(shouldOfferPasskey({ ...base, passkeyCount: undefined })).toBe(false);
+    expect(shouldOfferPasskey({ ...base, passkeyCount: undefined })).toBe(
+      false,
+    );
     expect(shouldOfferPasskey({ ...base, dismissed: true })).toBe(false);
   });
 });
@@ -5100,7 +5783,7 @@ Expected: FAIL.
 `apps/web/src/features/auth/passkey-offer-state.ts`:
 
 ```ts
-const KEY = 'chordtune.passkey-offer-dismissed';
+const KEY = "chordtune.passkey-offer-dismissed";
 
 export function shouldOfferPasskey(params: {
   signedIn: boolean;
@@ -5109,21 +5792,24 @@ export function shouldOfferPasskey(params: {
   dismissed: boolean;
 }) {
   return (
-    params.signedIn && params.supported && params.passkeyCount === 0 && !params.dismissed
+    params.signedIn &&
+    params.supported &&
+    params.passkeyCount === 0 &&
+    !params.dismissed
   );
 }
 
 export const passkeyOfferStore = {
   dismissed() {
     try {
-      return localStorage.getItem(KEY) === '1';
+      return localStorage.getItem(KEY) === "1";
     } catch {
       return true;
     }
   },
   dismiss() {
     try {
-      localStorage.setItem(KEY, '1');
+      localStorage.setItem(KEY, "1");
     } catch {
       // storage can be unavailable
     }
@@ -5136,31 +5822,35 @@ Messages, в `auth`: ru — `"passkeyOffer": { "title": "Входить по Fac
 `apps/web/src/features/auth/passkey-offer.tsx`:
 
 ```tsx
-'use client';
+"use client";
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { KeyRound, X } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { KeyRound, X } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
 
-import { Button } from '@/components/ui/button';
-import { authClient } from '@/lib/auth-client';
-import { addPasskey, passkeySupported } from './passkeys';
-import { passkeyOfferStore, shouldOfferPasskey } from './passkey-offer-state';
-import { useAuthMethods } from './use-auth-methods';
-import { useSession } from './use-session';
+import { Button } from "@/components/ui/button";
+import { authClient } from "@/lib/auth-client";
+
+import { passkeyOfferStore, shouldOfferPasskey } from "./passkey-offer-state";
+import { addPasskey, passkeySupported } from "./passkeys";
+import { useAuthMethods } from "./use-auth-methods";
+import { useSession } from "./use-session";
 
 /** A one-time nudge after sign-in; closing it means never again on this device. */
 export function PasskeyOffer() {
-  const t = useTranslations('auth.passkeyOffer');
+  const t = useTranslations("auth.passkeyOffer");
   const session = useSession();
   const methods = useAuthMethods();
   const queryClient = useQueryClient();
-  const [dismissed, setDismissed] = useState(() => passkeyOfferStore.dismissed());
+  const [dismissed, setDismissed] = useState(() =>
+    passkeyOfferStore.dismissed(),
+  );
   const signedIn = Boolean(session.data?.user);
   const passkeys = useQuery({
-    queryKey: ['auth', 'passkeys'],
-    queryFn: async () => (await authClient.passkey.listUserPasskeys()).data ?? [],
+    queryKey: ["auth", "passkeys"],
+    queryFn: async () =>
+      (await authClient.passkey.listUserPasskeys()).data ?? [],
     enabled: signedIn && !dismissed,
   });
 
@@ -5183,27 +5873,34 @@ export function PasskeyOffer() {
     <div className="fixed inset-x-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 mx-auto flex max-w-md items-start gap-3 rounded-xl border border-border bg-popover p-4 shadow-lg md:bottom-6">
       <KeyRound className="mt-0.5 size-5 shrink-0" />
       <div className="flex flex-1 flex-col gap-2">
-        <p className="font-medium">{t('title')}</p>
-        <p className="text-muted-foreground text-sm">{t('text')}</p>
+        <p className="font-medium">{t("title")}</p>
+        <p className="text-muted-foreground text-sm">{t("text")}</p>
         <div className="flex gap-2">
           <Button
             size="sm"
             onClick={async () => {
               const result = await addPasskey();
               if (result && !result.error) {
-                await queryClient.invalidateQueries({ queryKey: ['auth', 'passkeys'] });
+                await queryClient.invalidateQueries({
+                  queryKey: ["auth", "passkeys"],
+                });
                 close();
               }
             }}
           >
-            {t('add')}
+            {t("add")}
           </Button>
           <Button size="sm" variant="ghost" onClick={close}>
-            {t('later')}
+            {t("later")}
           </Button>
         </div>
       </div>
-      <Button size="icon-sm" variant="ghost" aria-label={t('later')} onClick={close}>
+      <Button
+        size="icon-sm"
+        variant="ghost"
+        aria-label={t("later")}
+        onClick={close}
+      >
         <X />
       </Button>
     </div>
@@ -5230,12 +5927,14 @@ git commit -m "Offer a passkey once after sign-in"
 ### Task 18: Деплой, README, релиз
 
 **Files:**
+
 - Modify: `.env.example`, `deploy/.env.example`, `deploy/compose.yml` (проброс переменных в `app`)
 - Modify: `.github/workflows/release.yml` (`ANDROID_CERT_SHA256`, домен в `asset_statements`)
 - Modify: `README.md` (раздел «Авторизация»)
 - Modify: `docs/plans/2026-09-26-chordtune-design.md` (заметка о входе в «Решения/Статус»)
 
 **Interfaces:**
+
 - Consumes: все переменные из Task 1.
 
 - [ ] **Step 1: Env examples**
@@ -5271,17 +5970,17 @@ ANDROID_CERT_SHA256=
 В `.github/workflows/release.yml`, в шаге сборки APK, до `cap sync`/gradle:
 
 ```yaml
-      - name: Point Android passkeys at the public domain
-        run: |
-          host=$(echo "${{ vars.PUBLIC_URL }}" | sed -E 's#^https?://##; s#/.*$##')
-          sed -i "s#chordtune.example.com#${host}#" apps/web/android/app/src/main/res/values/strings.xml
+- name: Point Android passkeys at the public domain
+  run: |
+    host=$(echo "${{ vars.PUBLIC_URL }}" | sed -E 's#^https?://##; s#/.*$##')
+    sed -i "s#chordtune.example.com#${host}#" apps/web/android/app/src/main/res/values/strings.xml
 ```
 
 и выведи отпечаток ключа для настройки сервера (секреты keystore уже есть — посмотри их имена в workflow):
 
 ```yaml
-      - name: Print the signing key SHA-256 for ANDROID_CERT_SHA256
-        run: keytool -list -v -keystore release.keystore -storepass "$KEYSTORE_PASSWORD" | grep 'SHA256:'
+- name: Print the signing key SHA-256 for ANDROID_CERT_SHA256
+  run: keytool -list -v -keystore release.keystore -storepass "$KEYSTORE_PASSWORD" | grep 'SHA256:'
 ```
 
 (подставь реальные путь и переменную keystore из существующих шагов).
@@ -5296,12 +5995,12 @@ ANDROID_CERT_SHA256=
 No passwords: Yandex, VK, Google, Telegram, passkeys and a code by email. Each provider turns on when
 its keys are in the environment (see `.env.example`).
 
-| Provider | Where | Callback / setting |
-|---|---|---|
-| Yandex | oauth.yandex.ru → new app, web services, access to email and avatar | `https://<domain>/api/auth/callback/yandex` |
-| VK | id.vk.com → app type «Web» | trusted redirect URL `https://<domain>/api/auth/callback/vk` |
-| Google | Google Cloud Console → OAuth consent screen → Credentials → Web client | `https://<domain>/api/auth/callback/google` |
-| Telegram | @BotFather → `/newbot`, then `/setdomain` | your domain |
+| Provider | Where                                                                  | Callback / setting                                           |
+| -------- | ---------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Yandex   | oauth.yandex.ru → new app, web services, access to email and avatar    | `https://<domain>/api/auth/callback/yandex`                  |
+| VK       | id.vk.com → app type «Web»                                             | trusted redirect URL `https://<domain>/api/auth/callback/vk` |
+| Google   | Google Cloud Console → OAuth consent screen → Credentials → Web client | `https://<domain>/api/auth/callback/google`                  |
+| Telegram | @BotFather → `/newbot`, then `/setdomain`                              | your domain                                                  |
 
 Email codes need an SMTP provider (`SMTP_URL`, `MAIL_FROM`) and SPF, DKIM and DMARC records for the
 sender's domain, or Mail.ru and Gmail will treat the codes as spam.

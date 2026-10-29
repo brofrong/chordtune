@@ -1,4 +1,4 @@
-import { IN_TUNE_CENTS } from './reading';
+import { IN_TUNE_CENTS } from "./reading";
 
 /** How long a string must stay in the green zone to get its tick. */
 const TUNED_AFTER_MS = 600;

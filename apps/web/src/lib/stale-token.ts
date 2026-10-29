@@ -16,8 +16,14 @@ export function isStaleToken({
   sentAuthorization: string | null;
   storedToken: string | null;
 }): boolean {
-  if (!storedToken || data != null || sentAuthorization !== `Bearer ${storedToken}`) {
+  if (
+    !storedToken ||
+    data != null ||
+    sentAuthorization !== `Bearer ${storedToken}`
+  ) {
     return false;
   }
-  return new URL(String(url), 'http://localhost').pathname.endsWith('/get-session');
+  return new URL(String(url), "http://localhost").pathname.endsWith(
+    "/get-session",
+  );
 }

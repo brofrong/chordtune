@@ -1,8 +1,8 @@
 /** `.invalid` is reserved (RFC 2606), so these addresses can never belong to a real mailbox. */
-const DOMAIN = 'users.invalid';
+const DOMAIN = "users.invalid";
 
 /** Stands in for the email Better Auth requires when the provider gives none (Telegram, some VK). */
-export function placeholderEmail(kind: 'tg' | 'vk', id: string) {
+export function placeholderEmail(kind: "tg" | "vk", id: string) {
   return `${kind}-${id}@${DOMAIN}`;
 }
 

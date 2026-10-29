@@ -1,21 +1,21 @@
-'use client';
+"use client";
 
-import type { AnalyzerDebug, TunerFrame } from '@chordtune/audio';
-import { useTranslations } from 'next-intl';
-import { useEffect, useRef } from 'react';
+import type { AnalyzerDebug, TunerFrame } from "@chordtune/audio";
+import { useTranslations } from "next-intl";
+import { useEffect, useRef } from "react";
 
-import type { FrameStore } from './frame-store';
+import type { FrameStore } from "./frame-store";
 
-type Plot = 'waveform' | 'spectrum' | 'yin';
+type Plot = "waveform" | "spectrum" | "yin";
 
 const COLORS: Record<Plot, string> = {
-  waveform: '#7ee0c0',
-  spectrum: '#93c5fd',
-  yin: '#c4b5fd',
+  waveform: "#7ee0c0",
+  spectrum: "#93c5fd",
+  yin: "#c4b5fd",
 };
 
 function drawPlot(canvas: HTMLCanvasElement, plot: Plot, debug: AnalyzerDebug) {
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext("2d");
   if (!ctx) {
     return;
   }
@@ -31,21 +31,27 @@ function drawPlot(canvas: HTMLCanvasElement, plot: Plot, debug: AnalyzerDebug) {
   ctx.fillStyle = COLORS[plot];
   ctx.lineWidth = 1.5 * ratio;
 
-  if (plot === 'spectrum') {
+  if (plot === "spectrum") {
     const values = debug.spectrum;
     const barWidth = width / values.length;
     for (let i = 0; i < values.length; i++) {
       const barHeight = (values[i] ?? 0) * height;
-      ctx.fillRect(i * barWidth, height - barHeight, Math.max(1, barWidth - ratio), barHeight);
+      ctx.fillRect(
+        i * barWidth,
+        height - barHeight,
+        Math.max(1, barWidth - ratio),
+        barHeight,
+      );
     }
     return;
   }
 
-  const values = plot === 'waveform' ? debug.waveform : debug.yin;
+  const values = plot === "waveform" ? debug.waveform : debug.yin;
   const toY =
-    plot === 'waveform'
+    plot === "waveform"
       ? (value: number) => height / 2 - value * (height / 2) * 0.9
-      : (value: number) => Math.min(height, value * height * 0.9 + height * 0.05);
+      : (value: number) =>
+          Math.min(height, value * height * 0.9 + height * 0.05);
   ctx.beginPath();
   for (let i = 0; i < values.length; i++) {
     const x = (i / Math.max(1, values.length - 1)) * width;
@@ -58,14 +64,14 @@ function drawPlot(canvas: HTMLCanvasElement, plot: Plot, debug: AnalyzerDebug) {
   }
   ctx.stroke();
 
-  if (plot === 'yin' && debug.yinMarker != null) {
-    ctx.fillStyle = '#f472b6';
+  if (plot === "yin" && debug.yinMarker != null) {
+    ctx.fillStyle = "#f472b6";
     ctx.fillRect(debug.yinMarker * width - ratio, 0, 2 * ratio, height);
   }
 }
 
 export function DebugPanel({ store }: { store: FrameStore }) {
-  const t = useTranslations('tuner.debugPanel');
+  const t = useTranslations("tuner.debugPanel");
   const canvases = useRef<Record<Plot, HTMLCanvasElement | null>>({
     waveform: null,
     spectrum: null,
@@ -83,7 +89,7 @@ export function DebugPanel({ store }: { store: FrameStore }) {
       if (!pending || !debug) {
         return;
       }
-      for (const plot of ['waveform', 'spectrum', 'yin'] as const) {
+      for (const plot of ["waveform", "spectrum", "yin"] as const) {
         const canvas = canvases.current[plot];
         if (canvas) {
           drawPlot(canvas, plot, debug);
@@ -91,11 +97,11 @@ export function DebugPanel({ store }: { store: FrameStore }) {
       }
       if (caption.current) {
         caption.current.textContent = [
-          t('confidence', { value: Math.round(pending.confidence * 100) }),
-          t('gain', { value: debug.appliedGain.toFixed(1) }),
-          t('fftPeak', { value: Math.round(debug.fftPeakHz) }),
-          t('window', { size: debug.windowSize, rate: debug.sampleRate }),
-        ].join(' · ');
+          t("confidence", { value: Math.round(pending.confidence * 100) }),
+          t("gain", { value: debug.appliedGain.toFixed(1) }),
+          t("fftPeak", { value: Math.round(debug.fftPeakHz) }),
+          t("window", { size: debug.windowSize, rate: debug.sampleRate }),
+        ].join(" · ");
       }
     };
 
@@ -111,9 +117,11 @@ export function DebugPanel({ store }: { store: FrameStore }) {
 
   return (
     <section className="grid w-full gap-3 rounded-xl border border-border/60 bg-card/60 p-3 sm:grid-cols-3">
-      {(['waveform', 'spectrum', 'yin'] as const).map((plot) => (
+      {(["waveform", "spectrum", "yin"] as const).map((plot) => (
         <figure key={plot} className="flex flex-col gap-1">
-          <figcaption className="text-muted-foreground text-xs">{t(plot)}</figcaption>
+          <figcaption className="text-muted-foreground text-xs">
+            {t(plot)}
+          </figcaption>
           <canvas
             ref={(node) => {
               canvases.current[plot] = node;
@@ -122,7 +130,10 @@ export function DebugPanel({ store }: { store: FrameStore }) {
           />
         </figure>
       ))}
-      <p ref={caption} className="font-mono text-[11px] text-muted-foreground sm:col-span-3" />
+      <p
+        ref={caption}
+        className="font-mono text-[11px] text-muted-foreground sm:col-span-3"
+      />
     </section>
   );
 }

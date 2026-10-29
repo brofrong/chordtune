@@ -1,10 +1,15 @@
-import { alphatexLine } from './alphatex';
-import { fromChordsOverLyrics, isChordLine } from './chords-over-lyrics';
-import { jtabToAlphaTex } from './jtab';
-import { parseHeader } from './parse';
-import { parsePickNotation, parseStrumNotation, type Rhythm, type RhythmDraft } from './rhythm';
-import { serialize } from './serialize';
-import type { Diagnostic, SongDoc } from './types';
+import { alphatexLine } from "./alphatex";
+import { fromChordsOverLyrics, isChordLine } from "./chords-over-lyrics";
+import { jtabToAlphaTex } from "./jtab";
+import { parseHeader } from "./parse";
+import {
+  parsePickNotation,
+  parseStrumNotation,
+  type Rhythm,
+  type RhythmDraft,
+} from "./rhythm";
+import { serialize } from "./serialize";
+import type { Diagnostic, SongDoc } from "./types";
 
 export type ImportedSong = {
   artist: string;
@@ -27,7 +32,7 @@ const RHYTHM_HEADER_RE = /^\s*\[(паттерн|бой|перебор)\s*:?\]\s*
 const SECTION_LINE_RE =
   /^\s*((?:куплет|припев|пред-?припев|вступление|проигрыш|бридж|соло|кода|аутро|интро|verse|chorus|bridge|intro|outro|solo)(?:\s*\d+)?)\s*:\s*(.*)$/i;
 const UNKNOWN_RE = /^(неизвестен|неизвестно|не указан|нет|-)?$/i;
-const RHYTHM_KEYS = 'ABCDEFGHIJKLMNOP';
+const RHYTHM_KEYS = "ABCDEFGHIJKLMNOP";
 const BOLD_RE = /^\*\*(.+?)\*\*$/;
 
 type Rhythms = { list: Rhythm[]; add(draft: RhythmDraft): string };
@@ -39,12 +44,13 @@ function createRhythms(): Rhythms {
     add(draft) {
       const same = list.find(
         (rhythm) =>
-          JSON.stringify({ ...rhythm, key: '' }) === JSON.stringify({ key: '', ...draft }),
+          JSON.stringify({ ...rhythm, key: "" }) ===
+          JSON.stringify({ key: "", ...draft }),
       );
       if (same) {
         return same.key;
       }
-      const key = RHYTHM_KEYS[list.length] ?? 'P';
+      const key = RHYTHM_KEYS[list.length] ?? "P";
       list.push({ key, ...draft });
       return key;
     },
@@ -52,40 +58,43 @@ function createRhythms(): Rhythms {
 }
 
 /** A rhythm line from the notes: `Бой: ↓↓↑↑↓↑`, `Перебор: Б-3-2-3`, `[бой:] ↓ ↓ ↑`. */
-function readRhythmLine(line: string): { value: string; draft: RhythmDraft | null } | null {
+function readRhythmLine(
+  line: string,
+): { value: string; draft: RhythmDraft | null } | null {
   const match = RHYTHM_LINE_RE.exec(line) ?? RHYTHM_HEADER_RE.exec(line);
   if (!match) {
     return null;
   }
-  const kind = (match[1] ?? '').toLowerCase();
-  const value = (match[2] ?? '').trim();
+  const kind = (match[1] ?? "").toLowerCase();
+  const value = (match[2] ?? "").trim();
   if (UNKNOWN_RE.test(value)) {
-    return { value: '', draft: null };
+    return { value: "", draft: null };
   }
   const draft =
-    kind === 'бой'
+    kind === "бой"
       ? parseStrumNotation(value)
-      : kind === 'перебор'
+      : kind === "перебор"
         ? parsePickNotation(value)
         : (parsePickNotation(value) ?? parseStrumNotation(value));
   return { value, draft };
 }
 
 function sectionKey(label: string): string {
-  return label.toLowerCase().replace(/\d+/g, '').trim();
+  return label.toLowerCase().replace(/\d+/g, "").trim();
 }
 
 function artistAndTitle(markdown: string, fileName?: string): [string, string] {
-  const firstLine = markdown.split('\n').find((line) => line.trim() !== '') ?? '';
+  const firstLine =
+    markdown.split("\n").find((line) => line.trim() !== "") ?? "";
   const heading = HEADING_RE.exec(firstLine.trim())?.[1];
-  const candidates = [heading, fileName?.replace(/\.md$/i, '')];
+  const candidates = [heading, fileName?.replace(/\.md$/i, "")];
   for (const candidate of candidates) {
     const match = candidate ? TITLE_RE.exec(candidate.trim()) : null;
     if (match) {
-      return [(match[1] ?? '').trim(), (match[2] ?? '').trim()];
+      return [(match[1] ?? "").trim(), (match[2] ?? "").trim()];
     }
   }
-  return ['', (heading ?? fileName ?? '').trim()];
+  return ["", (heading ?? fileName ?? "").trim()];
 }
 
 /**
@@ -94,7 +103,10 @@ function artistAndTitle(markdown: string, fileName?: string): [string, string] {
  * with even bars become alphaTex tabs in the section named by the `**heading**` before them.
  * Everything else goes to `notes`.
  */
-export function importObsidian(markdown: string, fileName?: string): ImportedSong {
+export function importObsidian(
+  markdown: string,
+  fileName?: string,
+): ImportedSong {
   const [artist, title] = artistAndTitle(markdown, fileName);
   const rhythms = createRhythms();
   const sectionRhythm = new Map<string, string>();
@@ -135,7 +147,7 @@ export function importObsidian(markdown: string, fileName?: string): ImportedSon
     return true;
   };
 
-  const lines = markdown.split('\n');
+  const lines = markdown.split("\n");
   let fence: string | null = null;
   let section: string | null = null;
   let titleSkipped = false;
@@ -143,14 +155,14 @@ export function importObsidian(markdown: string, fileName?: string): ImportedSon
   for (const line of lines) {
     const trimmed = line.trim();
     if (fence === null) {
-      if (trimmed.startsWith('```')) {
+      if (trimmed.startsWith("```")) {
         fence = trimmed.slice(3).trim();
         fenceLines = [];
-        if (fence === 'chords') {
+        if (fence === "chords") {
           if (sheet.length > 0) {
-            sheet.push('');
+            sheet.push("");
           }
-        } else if (fence !== 'jtab') {
+        } else if (fence !== "jtab") {
           notes.push(trimmed);
         }
         continue;
@@ -168,29 +180,29 @@ export function importObsidian(markdown: string, fileName?: string): ImportedSon
       continue;
     }
 
-    if (trimmed === '```') {
-      if (fence === 'jtab') {
-        const source = jtabToAlphaTex(fenceLines.join('\n'));
+    if (trimmed === "```") {
+      if (fence === "jtab") {
+        const source = jtabToAlphaTex(fenceLines.join("\n"));
         if (source) {
           if (lastBold !== null && notes.at(-1) === `**${lastBold}**`) {
             notes.pop();
           }
           tabs.push({ label: lastBold, source });
         } else {
-          notes.push('```jtab', ...fenceLines, '```');
+          notes.push("```jtab", ...fenceLines, "```");
         }
-      } else if (fence !== 'chords') {
+      } else if (fence !== "chords") {
         notes.push(trimmed);
       }
       fence = null;
       lastBold = null;
       continue;
     }
-    if (fence === 'jtab') {
+    if (fence === "jtab") {
       fenceLines.push(line.trimEnd());
       continue;
     }
-    if (fence !== 'chords') {
+    if (fence !== "chords") {
       notes.push(line.trimEnd());
       continue;
     }
@@ -199,9 +211,9 @@ export function importObsidian(markdown: string, fileName?: string): ImportedSon
       continue;
     }
     const sectionLine = SECTION_LINE_RE.exec(line);
-    const rest = sectionLine?.[2]?.trim() ?? '';
+    const rest = sectionLine?.[2]?.trim() ?? "";
     if (sectionLine && (!rest || isChordLine(rest))) {
-      const label = (sectionLine[1] ?? '').trim();
+      const label = (sectionLine[1] ?? "").trim();
       section = sectionKey(label);
       sheet.push(`[${label}]`);
       if (rest) {
@@ -216,8 +228,14 @@ export function importObsidian(markdown: string, fileName?: string): ImportedSon
     sheet.push(line);
   }
 
-  const { doc, diagnostics } = fromChordsOverLyrics(trimBlankLines(sheet).join('\n'));
-  markSectionRhythms(doc, sectionRhythm, defaultRhythm ?? rhythms.list[0]?.key ?? null);
+  const { doc, diagnostics } = fromChordsOverLyrics(
+    trimBlankLines(sheet).join("\n"),
+  );
+  markSectionRhythms(
+    doc,
+    sectionRhythm,
+    defaultRhythm ?? rhythms.list[0]?.key ?? null,
+  );
 
   for (const tab of tabs) {
     const line = alphatexLine(tab.source);
@@ -228,7 +246,12 @@ export function importObsidian(markdown: string, fileName?: string): ImportedSon
     if (target) {
       target.lines.push(line);
     } else {
-      doc.sections.push({ label: tab.label ?? 'Таб', rhythm: null, tempo: null, lines: [line] });
+      doc.sections.push({
+        label: tab.label ?? "Таб",
+        rhythm: null,
+        tempo: null,
+        lines: [line],
+      });
     }
   }
 
@@ -240,19 +263,19 @@ export function importObsidian(markdown: string, fileName?: string): ImportedSon
     capo,
     tempo,
     notes: notes
-      .join('\n')
-      .replace(/\n{3,}/g, '\n\n')
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
       .trim(),
     diagnostics,
   };
 }
 
 function trimBlankLines(lines: string[]): string[] {
-  const start = lines.findIndex((line) => line.trim() !== '');
+  const start = lines.findIndex((line) => line.trim() !== "");
   if (start === -1) {
     return [];
   }
-  const end = lines.findLastIndex((line) => line.trim() !== '');
+  const end = lines.findLastIndex((line) => line.trim() !== "");
   return lines.slice(start, end + 1);
 }
 
@@ -271,8 +294,9 @@ function markSectionRhythms(
   let current = defaultRhythm;
   for (const section of doc.sections) {
     const wanted =
-      (section.label === null ? null : sectionRhythm.get(sectionKey(section.label))) ??
-      defaultRhythm;
+      (section.label === null
+        ? null
+        : sectionRhythm.get(sectionKey(section.label))) ?? defaultRhythm;
     if (wanted !== null && wanted !== current) {
       section.rhythm = wanted;
       current = wanted;

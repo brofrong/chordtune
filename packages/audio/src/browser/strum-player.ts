@@ -1,7 +1,7 @@
-import { synthesizePluck } from '../guitar-synth';
-import { midiToHz } from '../pitch';
-import type { ScheduledNote } from '../strum-schedule';
-import { getAudioContext } from './audio-context';
+import { synthesizePluck } from "../guitar-synth";
+import { midiToHz } from "../pitch";
+import type { ScheduledNote } from "../strum-schedule";
+import { getAudioContext } from "./audio-context";
 
 const LOOKAHEAD_SEC = 0.2;
 const SCHEDULE_EVERY_MS = 50;
@@ -87,7 +87,11 @@ export function createStrumPlayer(): StrumPlayer {
         let next = 0;
         let loopOffset = 0;
 
-        const start = (buffer: AudioBuffer, destination: AudioNode, when: number) => {
+        const start = (
+          buffer: AudioBuffer,
+          destination: AudioNode,
+          when: number,
+        ) => {
           const source = context.createBufferSource();
           source.buffer = buffer;
           source.connect(destination);
@@ -97,7 +101,9 @@ export function createStrumPlayer(): StrumPlayer {
         };
 
         const playNote = (note: ScheduledNote, when: number) => {
-          ringing.get(note.string)?.gain.setTargetAtTime(0, when, CHOKE_SEC / 3);
+          ringing
+            .get(note.string)
+            ?.gain.setTargetAtTime(0, when, CHOKE_SEC / 3);
           const gain = context.createGain();
           gain.gain.setValueAtTime(note.gain, when);
           if (note.muted) {
@@ -144,7 +150,9 @@ export function createStrumPlayer(): StrumPlayer {
         let frame = 0;
         const tick = () => {
           const elapsed = Math.max(0, context.currentTime - startTime);
-          options.onTick?.(options.loopSec ? elapsed % options.loopSec : elapsed);
+          options.onTick?.(
+            options.loopSec ? elapsed % options.loopSec : elapsed,
+          );
           frame = requestAnimationFrame(tick);
         };
 

@@ -59,8 +59,8 @@ The root `Dockerfile` replaces `apps/api/Dockerfile`.
 ## Android
 
 - Job steps: JDK 21, Bun, `bun install`, `NEXT_PUBLIC_API_URL=${{ vars.PUBLIC_URL }} bun run
-  build:cap`, `bunx cap sync android`, decode the keystore, `./gradlew assembleRelease
-  -PversionName=<version> -PversionCode=<code>`.
+build:cap`, `bunx cap sync android`, decode the keystore, `./gradlew assembleRelease
+-PversionName=<version> -PversionCode=<code>`.
 - `versionCode = major * 10000 + minor * 100 + patch`; minor and patch must stay below 100.
 - `apps/web/android/app/build.gradle`:
   - reads `versionName`/`versionCode` from Gradle properties, defaulting to the current values;

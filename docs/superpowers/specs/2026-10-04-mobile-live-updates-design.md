@@ -52,7 +52,12 @@ The Docker build stage:
    output and writes `public/mobile/update.json`:
 
 ```json
-{ "version": "0.1.2", "url": "/mobile/0.1.2.zip", "checksum": "<sha256 of the zip>", "nativeFingerprint": "<hash>" }
+{
+  "version": "0.1.2",
+  "url": "/mobile/0.1.2.zip",
+  "checksum": "<sha256 of the zip>",
+  "nativeFingerprint": "<hash>"
+}
 ```
 
 `url` is relative to the manifest's origin. Next serves both files as static assets; the API does
@@ -75,7 +80,7 @@ app sees a 404, which means "no update".
   - `none`: the manifest is missing or invalid, or its version equals the bundle's own;
   - `needs-native`: the version differs and the fingerprint differs;
   - `download`: the version differs and the fingerprint matches.
-  Any difference in version counts, not only a newer one, so the app follows a server rollback.
+    Any difference in version counts, not only a newer one, so the app follows a server rollback.
 - `useAppUpdate()` runs only when `Capacitor.isNativePlatform()`:
   1. calls `CapacitorUpdater.notifyAppReady()` on mount, before any request; a bundle that does
      not reach it within the plugin's 10 s timeout is rolled back by the plugin;
@@ -94,7 +99,7 @@ app sees a 404, which means "no update".
      - own version equals `from`: the plugin rolled the update back, `version` moves to a failed
        list and pending is cleared;
      - anything else (a new APK was installed meanwhile): pending is cleared.
-     Otherwise a broken release would download, roll back and download again on every start.
+       Otherwise a broken release would download, roll back and download again on every start.
 
 `decideUpdate` takes the failed list and answers `none` for a failed version. The manifest's `url`
 is resolved against the manifest's own URL.

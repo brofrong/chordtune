@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
 import {
   type AnalyzerSettings,
   DEFAULT_A4_HZ,
   findTuning,
   getInstrument,
-  INSTRUMENTS,
   type InstrumentId,
+  INSTRUMENTS,
   type Tuning,
-} from '@chordtune/audio';
-import { useCallback, useEffect, useState } from 'react';
+} from "@chordtune/audio";
+import { useCallback, useEffect, useState } from "react";
 
-const STORAGE_KEY = 'chordtune.tuner.settings';
+const STORAGE_KEY = "chordtune.tuner.settings";
 
 export const A4_MIN = 430;
 export const A4_MAX = 450;
@@ -24,8 +24,8 @@ export type TunerSettings = {
 };
 
 export const DEFAULT_SETTINGS: TunerSettings = {
-  instrument: 'guitar',
-  tuningId: 'standard',
+  instrument: "guitar",
+  tuningId: "standard",
   a4: DEFAULT_A4_HZ,
   debug: false,
 };
@@ -45,7 +45,7 @@ export function analyzerSettings(settings: TunerSettings): AnalyzerSettings {
 }
 
 function sanitize(value: unknown): TunerSettings {
-  if (typeof value !== 'object' || value == null) {
+  if (typeof value !== "object" || value == null) {
     return DEFAULT_SETTINGS;
   }
   const raw = value as Partial<TunerSettings>;
@@ -53,7 +53,7 @@ function sanitize(value: unknown): TunerSettings {
     ? (raw.instrument as InstrumentId)
     : DEFAULT_SETTINGS.instrument;
   const a4 =
-    typeof raw.a4 === 'number' && raw.a4 >= A4_MIN && raw.a4 <= A4_MAX
+    typeof raw.a4 === "number" && raw.a4 >= A4_MIN && raw.a4 <= A4_MAX
       ? raw.a4
       : DEFAULT_SETTINGS.a4;
   return {

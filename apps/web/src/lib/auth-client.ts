@@ -1,27 +1,36 @@
-import { passkeyClient } from '@better-auth/passkey/client';
-import { emailOTPClient, oneTimeTokenClient, usernameClient } from 'better-auth/client/plugins';
-import { createAuthClient } from 'better-auth/react';
+import { passkeyClient } from "@better-auth/passkey/client";
+import {
+  emailOTPClient,
+  oneTimeTokenClient,
+  usernameClient,
+} from "better-auth/client/plugins";
+import { createAuthClient } from "better-auth/react";
 
-import { API_URL, authToken } from './api';
-import { isStaleToken } from './stale-token';
+import { API_URL, authToken } from "./api";
+import { isStaleToken } from "./stale-token";
 
 export const authClient = createAuthClient({
   baseURL: API_URL,
-  plugins: [emailOTPClient(), usernameClient(), oneTimeTokenClient(), passkeyClient()],
+  plugins: [
+    emailOTPClient(),
+    usernameClient(),
+    oneTimeTokenClient(),
+    passkeyClient(),
+  ],
   fetchOptions: {
     auth: {
-      type: 'Bearer',
-      token: () => authToken.get() ?? '',
+      type: "Bearer",
+      token: () => authToken.get() ?? "",
     },
     // The code email is written in the interface language, not the browser's.
     onRequest: (context) => {
-      if (typeof document !== 'undefined') {
-        context.headers.set('x-locale', document.documentElement.lang);
+      if (typeof document !== "undefined") {
+        context.headers.set("x-locale", document.documentElement.lang);
       }
       return context;
     },
     onSuccess: (context) => {
-      const token = context.response.headers.get('set-auth-token');
+      const token = context.response.headers.get("set-auth-token");
       if (token) {
         authToken.set(token);
         return;
@@ -30,7 +39,9 @@ export const authClient = createAuthClient({
         isStaleToken({
           url: context.request.url,
           data: context.data,
-          sentAuthorization: new Headers(context.request.headers).get('authorization'),
+          sentAuthorization: new Headers(context.request.headers).get(
+            "authorization",
+          ),
           storedToken: authToken.get(),
         })
       ) {
@@ -45,5 +56,5 @@ export const authClient = createAuthClient({
 });
 
 function refetchSession(): void {
-  authClient.$store.notify('$sessionSignal');
+  authClient.$store.notify("$sessionSignal");
 }

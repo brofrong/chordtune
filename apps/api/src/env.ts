@@ -1,6 +1,6 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-import { parseEmails } from './services/admin';
+import { parseEmails } from "./services/admin";
 
 const optional = () =>
   z
@@ -12,21 +12,21 @@ const schema = z.object({
   DATABASE_URL: z.url(),
   BETTER_AUTH_URL: z.url(),
   API_PORT: z.coerce.number().int().default(4000),
-  MEILI_URL: z.url().default('http://localhost:7700'),
+  MEILI_URL: z.url().default("http://localhost:7700"),
   MEILI_KEY: z.string().optional(),
   /** Who may fix artist links, by account email. */
-  ADMIN_EMAILS: z.string().default('').transform(parseEmails),
+  ADMIN_EMAILS: z.string().default("").transform(parseEmails),
   WEB_ORIGINS: z
     .string()
-    .default('http://localhost:3000')
+    .default("http://localhost:3000")
     .transform((value) =>
       value
-        .split(',')
+        .split(",")
         .map((origin) => origin.trim())
         .filter(Boolean),
     ),
   SMTP_URL: optional(),
-  MAIL_FROM: z.string().default('ChordTune <no-reply@localhost>'),
+  MAIL_FROM: z.string().default("ChordTune <no-reply@localhost>"),
   GOOGLE_CLIENT_ID: optional(),
   GOOGLE_CLIENT_SECRET: optional(),
   YANDEX_CLIENT_ID: optional(),

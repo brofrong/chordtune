@@ -1,9 +1,9 @@
-import { authConfig } from './auth/config';
-import { createAuth } from './auth/create-auth';
-import { authSecret } from './config-store';
-import { db } from './db';
-import { env } from './env';
-import { createMailer } from './mail';
+import { authConfig } from "./auth/config";
+import { createAuth } from "./auth/create-auth";
+import { authSecret } from "./config-store";
+import { db } from "./db";
+import { env } from "./env";
+import { createMailer } from "./mail";
 
 export const auth = createAuth({
   db,
@@ -15,7 +15,7 @@ export const auth = createAuth({
   mailer: createMailer({
     smtpUrl: env.SMTP_URL,
     from: env.MAIL_FROM,
-    production: process.env.NODE_ENV === 'production',
+    production: process.env.NODE_ENV === "production",
   }),
 });
 

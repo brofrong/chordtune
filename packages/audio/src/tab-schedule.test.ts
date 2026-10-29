@@ -1,13 +1,17 @@
-import { describe, expect, test } from 'bun:test';
-import { GUITAR_TUNINGS, parseAlphaTex } from '@chordtune/chord-sheet';
+import { describe, expect, test } from "bun:test";
 
-import { scheduleTab } from './tab-schedule';
+import { GUITAR_TUNINGS, parseAlphaTex } from "@chordtune/chord-sheet";
 
-const block = (source: string) => parseAlphaTex(source.split('\n')).block;
+import { scheduleTab } from "./tab-schedule";
 
-describe('scheduleTab', () => {
-  test('pitch from the string, fret and capo; time from the durations', () => {
-    const notes = scheduleTab(block(':8 0.6 5.3 (0.5 2.4).4'), { bpm: 60, capo: 2 });
+const block = (source: string) => parseAlphaTex(source.split("\n")).block;
+
+describe("scheduleTab", () => {
+  test("pitch from the string, fret and capo; time from the durations", () => {
+    const notes = scheduleTab(block(":8 0.6 5.3 (0.5 2.4).4"), {
+      bpm: 60,
+      capo: 2,
+    });
     expect(notes.map((n) => [n.time, n.midi, n.string])).toEqual([
       [0, 42, 6],
       [0.5, 62, 3],
@@ -16,8 +20,8 @@ describe('scheduleTab', () => {
     ]);
   });
 
-  test('ties ring on, dead notes and palm mute are muted, legato is softer', () => {
-    const notes = scheduleTab(block('3.3{h} 5.3 -.3 x.6 0.6{pm}'), { bpm: 60 });
+  test("ties ring on, dead notes and palm mute are muted, legato is softer", () => {
+    const notes = scheduleTab(block("3.3{h} 5.3 -.3 x.6 0.6{pm}"), { bpm: 60 });
     expect(notes.map((n) => [n.time, n.midi, n.muted])).toEqual([
       [0, 58, false],
       [1, 60, false],
@@ -27,23 +31,28 @@ describe('scheduleTab', () => {
     expect(notes[1]?.gain ?? 1).toBeLessThan(notes[0]?.gain ?? 0);
   });
 
-  test('repeats play again', () => {
-    expect(scheduleTab(block('\\ro 0.6.2 \\rc 2'), { bpm: 60 }).map((n) => n.time)).toEqual([0, 2]);
+  test("repeats play again", () => {
+    expect(
+      scheduleTab(block("\\ro 0.6.2 \\rc 2"), { bpm: 60 }).map((n) => n.time),
+    ).toEqual([0, 2]);
   });
 
-  test('a slide sounds as a plain note, not a soft legato one', () => {
-    const notes = scheduleTab(block('7.2{sl} 9.2'), { bpm: 60 });
+  test("a slide sounds as a plain note, not a soft legato one", () => {
+    const notes = scheduleTab(block("7.2{sl} 9.2"), { bpm: 60 });
     expect(notes[1]?.gain).toEqual(notes[0]?.gain);
   });
 
-  test('a hammer-on softens only the very next beat, not a later one across rests', () => {
-    const notes = scheduleTab(block('3.3{h} r r 5.3'), { bpm: 60 });
+  test("a hammer-on softens only the very next beat, not a later one across rests", () => {
+    const notes = scheduleTab(block("3.3{h} r r 5.3"), { bpm: 60 });
     expect(notes.map((n) => n.time)).toEqual([0, 3]);
     expect(notes[1]?.gain).toEqual(notes[0]?.gain);
   });
 });
 
-test('open strings of the given tuning', () => {
-  const notes = scheduleTab(block('0.6 0.1'), { bpm: 60, strings: GUITAR_TUNINGS['drop-d'] });
+test("open strings of the given tuning", () => {
+  const notes = scheduleTab(block("0.6 0.1"), {
+    bpm: 60,
+    strings: GUITAR_TUNINGS["drop-d"],
+  });
   expect(notes.map((note) => note.midi)).toEqual([38, 64]);
 });

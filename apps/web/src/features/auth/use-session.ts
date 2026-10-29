@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useQueryClient } from '@tanstack/react-query';
-import { useCallback } from 'react';
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 
-import { authToken } from '@/lib/api';
-import { authClient } from '@/lib/auth-client';
+import { authToken } from "@/lib/api";
+import { authClient } from "@/lib/auth-client";
 
 export function useSession() {
   return authClient.useSession();

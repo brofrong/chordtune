@@ -1,9 +1,12 @@
-import { eq } from 'drizzle-orm';
+import { eq } from "drizzle-orm";
 
-import type { Database } from './db';
-import { appConfig } from './db/schema';
+import type { Database } from "./db";
+import { appConfig } from "./db/schema";
 
-export async function getConfig<T>(db: Database, key: string): Promise<T | null> {
+export async function getConfig<T>(
+  db: Database,
+  key: string,
+): Promise<T | null> {
   const [row] = await db
     .select({ value: appConfig.value })
     .from(appConfig)
@@ -11,18 +14,29 @@ export async function getConfig<T>(db: Database, key: string): Promise<T | null>
   return row ? (row.value as T) : null;
 }
 
-export async function setConfig<T>(db: Database, key: string, value: T): Promise<void> {
+export async function setConfig<T>(
+  db: Database,
+  key: string,
+  value: T,
+): Promise<void> {
   await db
     .insert(appConfig)
     .values({ key, value })
-    .onConflictDoUpdate({ target: appConfig.key, set: { value, updatedAt: new Date() } });
+    .onConflictDoUpdate({
+      target: appConfig.key,
+      set: { value, updatedAt: new Date() },
+    });
 }
 
 /**
  * Returns the stored value, creating it on first use. Inserting with `on conflict do nothing`
  * means instances starting at the same time all end up with whichever value landed first.
  */
-export async function getOrCreateConfig<T>(db: Database, key: string, create: () => T): Promise<T> {
+export async function getOrCreateConfig<T>(
+  db: Database,
+  key: string,
+  create: () => T,
+): Promise<T> {
   const stored = await getConfig<T>(db, key);
   if (stored != null) {
     return stored;
@@ -44,7 +58,7 @@ export async function getOrCreateConfig<T>(db: Database, key: string, create: ()
 
 /** Better Auth's signing secret: generated on first start and shared by every instance after. */
 export function authSecret(db: Database): Promise<string> {
-  return getOrCreateConfig(db, 'BETTER_AUTH_SECRET', () =>
-    Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('hex'),
+  return getOrCreateConfig(db, "BETTER_AUTH_SECRET", () =>
+    Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("hex"),
   );
 }

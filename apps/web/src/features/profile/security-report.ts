@@ -1,10 +1,13 @@
-'use client';
+"use client";
 
-import { createContext, useContext } from 'react';
+import { createContext, useContext } from "react";
 
-export type SecurityFailure = { code?: string; status?: number } | null | undefined;
+export type SecurityFailure =
+  { code?: string; status?: number } | null | undefined;
 
-const SecurityReportContext = createContext<(error: SecurityFailure) => void>(() => {});
+const SecurityReportContext = createContext<(error: SecurityFailure) => void>(
+  () => {},
+);
 
 export const SecurityReportProvider = SecurityReportContext.Provider;
 

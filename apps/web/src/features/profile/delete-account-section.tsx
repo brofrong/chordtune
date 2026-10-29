@@ -1,28 +1,29 @@
-'use client';
+"use client";
 
-import { useQueryClient } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
 
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from '@/components/ui/sheet';
-import { authErrorKey } from '@/features/auth/auth-errors';
-import { useAuthSheet } from '@/features/auth/auth-sheet';
-import { useSession } from '@/features/auth/use-session';
-import { useRouter } from '@/i18n/navigation';
-import { authToken } from '@/lib/api';
-import { authClient } from '@/lib/auth-client';
-import { Section } from './section';
+} from "@/components/ui/sheet";
+import { authErrorKey } from "@/features/auth/auth-errors";
+import { useAuthSheet } from "@/features/auth/auth-sheet";
+import { useSession } from "@/features/auth/use-session";
+import { useRouter } from "@/i18n/navigation";
+import { authToken } from "@/lib/api";
+import { authClient } from "@/lib/auth-client";
+
+import { Section } from "./section";
 
 export function DeleteAccountSection() {
-  const t = useTranslations('security');
-  const tAuth = useTranslations('auth');
+  const t = useTranslations("security");
+  const tAuth = useTranslations("auth");
   const session = useSession();
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -37,7 +38,7 @@ export function DeleteAccountSection() {
     setError(null);
     const result = await authClient.deleteUser();
     if (result.error) {
-      if (authErrorKey(result.error) === 'reauth') {
+      if (authErrorKey(result.error) === "reauth") {
         setNeedsReauth(true);
       } else {
         setError(tAuth(`errors.${authErrorKey(result.error)}`));
@@ -47,20 +48,29 @@ export function DeleteAccountSection() {
     authToken.set(null);
     await session.refetch();
     await queryClient.invalidateQueries();
-    router.push('/');
+    router.push("/");
   };
 
   return (
-    <Section title={t('deleteAccount')}>
-      <Button variant="destructive" className="self-start" onClick={() => setOpen(true)}>
-        {t('deleteAccount')}
+    <Section title={t("deleteAccount")}>
+      <Button
+        variant="destructive"
+        className="self-start"
+        onClick={() => setOpen(true)}
+      >
+        {t("deleteAccount")}
       </Button>
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="bottom" className="mx-auto max-w-md rounded-t-xl sm:mb-8 sm:rounded-xl">
+        <SheetContent
+          side="bottom"
+          className="mx-auto max-w-md rounded-t-xl sm:mb-8 sm:rounded-xl"
+        >
           <div className="flex flex-col gap-4 p-4 pt-0">
             <SheetHeader className="px-0">
-              <SheetTitle>{t('deleteAccount')}</SheetTitle>
-              <SheetDescription>{needsReauth ? t('reauth') : t('deleteWarning')}</SheetDescription>
+              <SheetTitle>{t("deleteAccount")}</SheetTitle>
+              <SheetDescription>
+                {needsReauth ? t("reauth") : t("deleteWarning")}
+              </SheetDescription>
             </SheetHeader>
             {error && <p className="text-destructive text-sm">{error}</p>}
             {needsReauth ? (
@@ -72,11 +82,11 @@ export function DeleteAccountSection() {
                   openAuth();
                 }}
               >
-                {tAuth('signIn')}
+                {tAuth("signIn")}
               </Button>
             ) : (
               <Button variant="destructive" size="lg" onClick={remove}>
-                {t('deleteConfirm')}
+                {t("deleteConfirm")}
               </Button>
             )}
           </div>

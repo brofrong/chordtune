@@ -1,28 +1,29 @@
-'use client';
+"use client";
 
-import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useTranslations } from "next-intl";
+import { useState } from "react";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { authErrorKey } from '@/features/auth/auth-errors';
-import { normalizeOtp, OTP_LENGTH } from '@/features/auth/otp';
-import { useSession } from '@/features/auth/use-session';
-import { authClient } from '@/lib/auth-client';
-import { Section } from './section';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { authErrorKey } from "@/features/auth/auth-errors";
+import { normalizeOtp, OTP_LENGTH } from "@/features/auth/otp";
+import { useSession } from "@/features/auth/use-session";
+import { authClient } from "@/lib/auth-client";
+
+import { Section } from "./section";
 
 export function EmailSection({ email }: { email: string | null }) {
-  const t = useTranslations('security');
-  const tAuth = useTranslations('auth');
+  const t = useTranslations("security");
+  const tAuth = useTranslations("auth");
   const session = useSession();
-  const [newEmail, setNewEmail] = useState('');
+  const [newEmail, setNewEmail] = useState("");
   const [sent, setSent] = useState(false);
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   if (email) {
     return (
-      <Section title={t('email')}>
+      <Section title={t("email")}>
         <span>{email}</span>
       </Section>
     );
@@ -33,7 +34,7 @@ export function EmailSection({ email }: { email: string | null }) {
     tAuth(`errors.${authErrorKey(failure)}`);
 
   return (
-    <Section title={t('addEmail')}>
+    <Section title={t("addEmail")}>
       {!sent ? (
         <form
           className="flex gap-2"
@@ -57,14 +58,14 @@ export function EmailSection({ email }: { email: string | null }) {
             value={newEmail}
             onChange={(e) => setNewEmail(e.target.value)}
           />
-          <Button type="submit">{t('sendCode')}</Button>
+          <Button type="submit">{t("sendCode")}</Button>
         </form>
       ) : (
         <Input
           inputMode="numeric"
           autoComplete="one-time-code"
           autoFocus
-          placeholder={tAuth('code')}
+          placeholder={tAuth("code")}
           value={code}
           onChange={async (event) => {
             const next = normalizeOtp(event.target.value);

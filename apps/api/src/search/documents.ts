@@ -1,10 +1,10 @@
-import { lyrics, parse } from '@chordtune/chord-sheet';
-import { eq } from 'drizzle-orm';
+import { lyrics, parse } from "@chordtune/chord-sheet";
+import { eq } from "drizzle-orm";
 
-import type { Database } from '../db';
-import { type arrangement, type artist, song } from '../db/schema';
-import { otherScript } from '../lib/translit';
-import type { ArrangementDoc, ArtistDoc, SearchIndex } from '.';
+import type { ArrangementDoc, ArtistDoc, SearchIndex } from ".";
+import type { Database } from "../db";
+import { type arrangement, type artist, song } from "../db/schema";
+import { otherScript } from "../lib/translit";
 
 type ArtistRow = typeof artist.$inferSelect;
 type ArrangementRow = typeof arrangement.$inferSelect & {
@@ -49,7 +49,11 @@ export function toArrangementDoc(row: ArrangementRow): ArrangementDoc {
  * Pushes one arrangement and its artist to the search index after the transaction commits.
  * Search is secondary, so a failure is logged and never fails the save.
  */
-export async function syncArrangement(db: Database, search: SearchIndex, arrangementId: string) {
+export async function syncArrangement(
+  db: Database,
+  search: SearchIndex,
+  arrangementId: string,
+) {
   try {
     const row = await db.query.arrangement.findFirst({
       where: { id: arrangementId },
@@ -58,12 +62,15 @@ export async function syncArrangement(db: Database, search: SearchIndex, arrange
     if (!row) {
       return;
     }
-    if (row.status === 'published') {
+    if (row.status === "published") {
       await search.upsertArrangement(toArrangementDoc(row));
     } else {
       await search.deleteArrangement(row.id);
     }
-    const songCount = await db.$count(song, eq(song.artistId, row.song.artistId));
+    const songCount = await db.$count(
+      song,
+      eq(song.artistId, row.song.artistId),
+    );
     await search.upsertArtist(toArtistDoc(row.song.artist, songCount));
   } catch (error) {
     console.error(`Search sync failed for arrangement ${arrangementId}`, error);
@@ -72,9 +79,11 @@ export async function syncArrangement(db: Database, search: SearchIndex, arrange
 
 /** Rebuilds both indexes from Postgres. */
 export async function reindexAll(db: Database, search: SearchIndex) {
-  const artists = await db.query.artist.findMany({ with: { songs: { columns: { id: true } } } });
+  const artists = await db.query.artist.findMany({
+    with: { songs: { columns: { id: true } } },
+  });
   const arrangements = await db.query.arrangement.findMany({
-    where: { status: 'published' },
+    where: { status: "published" },
     with: WITH_SONG_AND_ARTIST,
   });
   await search.replaceAll(
@@ -88,7 +97,11 @@ export async function reindexAll(db: Database, search: SearchIndex) {
  * Pushes an artist and all its published arrangements, after its name or pictures changed.
  * Search is secondary, so a failure is logged and never fails the change.
  */
-export async function syncArtist(db: Database, search: SearchIndex, artistId: string) {
+export async function syncArtist(
+  db: Database,
+  search: SearchIndex,
+  artistId: string,
+) {
   try {
     const row = await db.query.artist.findFirst({
       where: { id: artistId },
@@ -103,7 +116,7 @@ export async function syncArtist(db: Database, search: SearchIndex, artistId: st
       return;
     }
     const rows = await db.query.arrangement.findMany({
-      where: { status: 'published', songId: { in: songIds } },
+      where: { status: "published", songId: { in: songIds } },
       with: WITH_SONG_AND_ARTIST,
     });
     for (const arrangementRow of rows) {

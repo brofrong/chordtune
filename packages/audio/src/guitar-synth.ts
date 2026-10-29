@@ -1,4 +1,4 @@
-import { midiToHz } from './pitch';
+import { midiToHz } from "./pitch";
 
 export const SAMPLE_RATE = 44100;
 export const DEFAULT_DURATION_SEC = 1.6;
@@ -8,7 +8,7 @@ export const OPEN_STRING_MIDI = [40, 45, 50, 55, 59, 64] as const;
 
 export type GuitarFrets = readonly (number | null)[];
 
-export type ChordVariant = 'clean' | 'noise';
+export type ChordVariant = "clean" | "noise";
 
 export type ChordSpec = {
   label: string;
@@ -30,47 +30,47 @@ export type SynthOptions = {
  * Labels match `formatChordLabel` in chords.ts.
  */
 export const CHORD_CATALOG: ChordSpec[] = [
-  { label: 'C', frets: [null, 3, 2, 0, 1, 0] },
-  { label: 'C#', frets: [null, 4, 6, 6, 6, 4] },
-  { label: 'D', frets: [null, null, 0, 2, 3, 2] },
-  { label: 'D#', frets: [null, null, 1, 3, 4, 3] },
-  { label: 'E', frets: [0, 2, 2, 1, 0, 0] },
-  { label: 'F', frets: [1, 3, 3, 2, 1, 1] },
-  { label: 'F#', frets: [2, 4, 4, 3, 2, 2] },
-  { label: 'G', frets: [3, 2, 0, 0, 0, 3] },
-  { label: 'G#', frets: [4, 6, 6, 5, 4, 4] },
-  { label: 'A', frets: [null, 0, 2, 2, 2, 0] },
-  { label: 'A#', frets: [null, 1, 3, 3, 3, 1] },
-  { label: 'B', frets: [null, 2, 4, 4, 4, 2] },
+  { label: "C", frets: [null, 3, 2, 0, 1, 0] },
+  { label: "C#", frets: [null, 4, 6, 6, 6, 4] },
+  { label: "D", frets: [null, null, 0, 2, 3, 2] },
+  { label: "D#", frets: [null, null, 1, 3, 4, 3] },
+  { label: "E", frets: [0, 2, 2, 1, 0, 0] },
+  { label: "F", frets: [1, 3, 3, 2, 1, 1] },
+  { label: "F#", frets: [2, 4, 4, 3, 2, 2] },
+  { label: "G", frets: [3, 2, 0, 0, 0, 3] },
+  { label: "G#", frets: [4, 6, 6, 5, 4, 4] },
+  { label: "A", frets: [null, 0, 2, 2, 2, 0] },
+  { label: "A#", frets: [null, 1, 3, 3, 3, 1] },
+  { label: "B", frets: [null, 2, 4, 4, 4, 2] },
 
-  { label: 'Cm', frets: [null, 3, 5, 5, 4, 3] },
-  { label: 'C#m', frets: [null, 4, 6, 6, 5, 4] },
-  { label: 'Dm', frets: [null, null, 0, 2, 3, 1] },
-  { label: 'D#m', frets: [null, null, 1, 3, 4, 2] },
-  { label: 'Em', frets: [0, 2, 2, 0, 0, 0] },
-  { label: 'Fm', frets: [1, 3, 3, 1, 1, 1] },
-  { label: 'F#m', frets: [2, 4, 4, 2, 2, 2] },
-  { label: 'Gm', frets: [3, 5, 5, 3, 3, 3] },
-  { label: 'G#m', frets: [4, 6, 6, 4, 4, 4] },
-  { label: 'Am', frets: [null, 0, 2, 2, 1, 0] },
-  { label: 'A#m', frets: [null, 1, 3, 3, 2, 1] },
-  { label: 'Bm', frets: [null, 2, 4, 4, 3, 2] },
+  { label: "Cm", frets: [null, 3, 5, 5, 4, 3] },
+  { label: "C#m", frets: [null, 4, 6, 6, 5, 4] },
+  { label: "Dm", frets: [null, null, 0, 2, 3, 1] },
+  { label: "D#m", frets: [null, null, 1, 3, 4, 2] },
+  { label: "Em", frets: [0, 2, 2, 0, 0, 0] },
+  { label: "Fm", frets: [1, 3, 3, 1, 1, 1] },
+  { label: "F#m", frets: [2, 4, 4, 2, 2, 2] },
+  { label: "Gm", frets: [3, 5, 5, 3, 3, 3] },
+  { label: "G#m", frets: [4, 6, 6, 4, 4, 4] },
+  { label: "Am", frets: [null, 0, 2, 2, 1, 0] },
+  { label: "A#m", frets: [null, 1, 3, 3, 2, 1] },
+  { label: "Bm", frets: [null, 2, 4, 4, 3, 2] },
 
-  { label: 'A7', frets: [null, 0, 2, 0, 2, 0] },
-  { label: 'B7', frets: [null, 2, 1, 2, 0, 2] },
-  { label: 'C7', frets: [null, 3, 2, 3, 1, 0] },
-  { label: 'D7', frets: [null, null, 0, 2, 1, 2] },
-  { label: 'E7', frets: [0, 2, 0, 1, 0, 0] },
-  { label: 'G7', frets: [3, 2, 0, 0, 0, 1] },
+  { label: "A7", frets: [null, 0, 2, 0, 2, 0] },
+  { label: "B7", frets: [null, 2, 1, 2, 0, 2] },
+  { label: "C7", frets: [null, 3, 2, 3, 1, 0] },
+  { label: "D7", frets: [null, null, 0, 2, 1, 2] },
+  { label: "E7", frets: [0, 2, 0, 1, 0, 0] },
+  { label: "G7", frets: [3, 2, 0, 0, 0, 1] },
 
-  { label: 'Cmaj7', frets: [null, 3, 2, 0, 0, 0] },
-  { label: 'Am7', frets: [null, 0, 2, 0, 1, 0] },
-  { label: 'Bdim', frets: [null, 2, 3, 4, 3, null] },
-  { label: 'Caug', frets: [null, 3, 2, 1, 1, 0] },
-  { label: 'Dsus2', frets: [null, null, 0, 2, 3, 0] },
-  { label: 'Asus4', frets: [null, 0, 2, 2, 3, 0] },
-  { label: 'E6', frets: [0, 2, 2, 1, 2, 0] },
-  { label: 'Am6', frets: [null, 0, 2, 2, 1, 2] },
+  { label: "Cmaj7", frets: [null, 3, 2, 0, 0, 0] },
+  { label: "Am7", frets: [null, 0, 2, 0, 1, 0] },
+  { label: "Bdim", frets: [null, 2, 3, 4, 3, null] },
+  { label: "Caug", frets: [null, 3, 2, 1, 1, 0] },
+  { label: "Dsus2", frets: [null, null, 0, 2, 3, 0] },
+  { label: "Asus4", frets: [null, 0, 2, 2, 3, 0] },
+  { label: "E6", frets: [0, 2, 2, 1, 2, 0] },
+  { label: "Am6", frets: [null, 0, 2, 2, 1, 2] },
 ];
 
 export function voicingToMidi(frets: GuitarFrets): number[] {
@@ -89,8 +89,12 @@ export function chordFolderName(label: string): string {
   return label;
 }
 
-export function chordFilename(label: string, variant: ChordVariant, index: number): string {
-  const safe = label.replaceAll('#', 's');
+export function chordFilename(
+  label: string,
+  variant: ChordVariant,
+  index: number,
+): string {
+  const safe = label.replaceAll("#", "s");
   return `${safe}_${variant}_${index}.wav`;
 }
 
@@ -104,10 +108,10 @@ export function synthesizeChord(
   const sampleRate = options.sampleRate ?? SAMPLE_RATE;
   const durationSec = options.durationSec ?? DEFAULT_DURATION_SEC;
   const seed = options.seed ?? 1;
-  const variant = options.variant ?? 'clean';
+  const variant = options.variant ?? "clean";
   const strumMs = options.strumMs ?? 4.2;
   const detuneCents = options.detuneCents ?? 0;
-  const noiseAmount = options.noiseAmount ?? (variant === 'noise' ? 0.09 : 0);
+  const noiseAmount = options.noiseAmount ?? (variant === "noise" ? 0.09 : 0);
 
   const length = Math.floor(sampleRate * durationSec);
   const mix = new Float32Array(length);
@@ -168,7 +172,8 @@ export function synthesizeNote(
     const phase = rng() * twoPi;
     const step = (twoPi * partial) / sampleRate;
     for (let i = 0; i < length; i++) {
-      out[i] += amp * Math.exp(-i / sampleRate / decay) * Math.sin(step * i + phase);
+      out[i] +=
+        amp * Math.exp(-i / sampleRate / decay) * Math.sin(step * i + phase);
     }
   }
 
@@ -189,7 +194,9 @@ export function synthesizePluck(
   options: PluckOptions = {},
 ): Float32Array<ArrayBuffer> {
   const sampleRate = options.sampleRate ?? SAMPLE_RATE;
-  const length = Math.floor(sampleRate * (options.durationSec ?? DEFAULT_DURATION_SEC));
+  const length = Math.floor(
+    sampleRate * (options.durationSec ?? DEFAULT_DURATION_SEC),
+  );
   const rng = mulberry32(options.seed ?? Math.round(frequency * 100));
   const samples = pluckedString(frequency, length, sampleRate, rng);
   applyEnvelope(samples, sampleRate);
@@ -227,7 +234,8 @@ function pluckedString(
     let sample = 0;
     for (let h = 0; h < harmonics.length; h++) {
       const spec = harmonics[h];
-      sample += spec.amp * Math.sin(twoPi * frequency * spec.ratio * t + phases[h]);
+      sample +=
+        spec.amp * Math.sin(twoPi * frequency * spec.ratio * t + phases[h]);
     }
     if (i < pickSamples) {
       sample += (rng() * 2 - 1) * (1 - i / pickSamples) * 0.35;
@@ -270,7 +278,11 @@ function normalizePeak(samples: Float32Array, peak: number) {
   }
 }
 
-function addPinkNoise(samples: Float32Array, amount: number, rng: () => number) {
+function addPinkNoise(
+  samples: Float32Array,
+  amount: number,
+  rng: () => number,
+) {
   let b0 = 0;
   let b1 = 0;
   let b2 = 0;

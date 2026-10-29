@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { noteName } from '@chordtune/chord-sheet';
-import { useTranslations } from 'next-intl';
-import { Fragment } from 'react';
+import { noteName } from "@chordtune/chord-sheet";
+import { useTranslations } from "next-intl";
+import { Fragment } from "react";
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
 const MARKERS = new Set([3, 5, 7, 9, 12]);
 
@@ -25,16 +25,21 @@ export function Fretboard({
   /** Minimum rows to draw; a shape fretted further out still shows in full. */
   fretCount?: number;
 }) {
-  const t = useTranslations('chords');
+  const t = useTranslations("chords");
   const set = (string: number, fret: number | null) =>
     onChange(strings.map((_, i) => (i === string ? fret : (frets[i] ?? null))));
-  const highest = Math.max(0, ...frets.filter((fret): fret is number => fret !== null));
+  const highest = Math.max(
+    0,
+    ...frets.filter((fret): fret is number => fret !== null),
+  );
   const rows = Math.max(fretCount, highest);
 
   return (
     <div
       className="inline-grid select-none"
-      style={{ gridTemplateColumns: `1.5rem repeat(${strings.length}, 2.5rem)` }}
+      style={{
+        gridTemplateColumns: `1.5rem repeat(${strings.length}, 2.5rem)`,
+      }}
     >
       <span />
       {strings.map((open, string) => (
@@ -42,22 +47,22 @@ export function Fretboard({
           // biome-ignore lint/suspicious/noArrayIndexKey: strings are positional
           key={string}
           type="button"
-          aria-label={t('openString', { note: noteName(open) })}
+          aria-label={t("openString", { note: noteName(open) })}
           aria-pressed={frets[string] === 0}
           onClick={() => set(string, frets[string] === 0 ? null : 0)}
           className="h-8 font-semibold text-muted-foreground text-sm"
         >
           {frets[string] === 0
-            ? 'o'
+            ? "o"
             : frets[string] === null || frets[string] === undefined
-              ? '×'
-              : ''}
+              ? "×"
+              : ""}
         </button>
       ))}
       {Array.from({ length: rows }, (_, i) => i + 1).map((fret) => (
         <Fragment key={fret}>
           <span className="flex items-center justify-end pr-1.5 text-muted-foreground text-xs tabular-nums">
-            {MARKERS.has(fret) ? fret : ''}
+            {MARKERS.has(fret) ? fret : ""}
           </span>
           {strings.map((open, string) => {
             const pressed = frets[string] === fret;
@@ -66,12 +71,12 @@ export function Fretboard({
                 // biome-ignore lint/suspicious/noArrayIndexKey: strings are positional
                 key={string}
                 type="button"
-                aria-label={t('fret', { note: noteName(open), fret })}
+                aria-label={t("fret", { note: noteName(open), fret })}
                 aria-pressed={pressed}
                 onClick={() => set(string, pressed ? null : fret)}
                 className={cn(
-                  'relative flex h-10 items-center justify-center border-border border-b',
-                  fret === 1 && 'border-t-4 border-t-foreground/70',
+                  "relative flex h-10 items-center justify-center border-border border-b",
+                  fret === 1 && "border-t-4 border-t-foreground/70",
                 )}
               >
                 <span className="absolute inset-y-0 left-1/2 w-px bg-muted-foreground/50" />

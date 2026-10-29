@@ -1,7 +1,13 @@
-import { isChord } from './chord';
-import { isBlockStart, parseHeader, parseMeta, readBlock, sectionFromHeader } from './parse';
-import { serializeBlock, serializeHeader } from './serialize';
-import type { Diagnostic, Item, Section, SongDoc } from './types';
+import { isChord } from "./chord";
+import {
+  isBlockStart,
+  parseHeader,
+  parseMeta,
+  readBlock,
+  sectionFromHeader,
+} from "./parse";
+import { serializeBlock, serializeHeader } from "./serialize";
+import type { Diagnostic, Item, Section, SongDoc } from "./types";
 
 const TOKEN_RE = /\||[^\s|]+/g;
 const RHYTHM_RE = /^@([A-Z])$/;
@@ -11,18 +17,18 @@ const TAB_LINE_RE = /^\s*[eBGDAEHbgdah]?\|*[-\d|~hpbrx/\\ ]{6,}\|?\s*$/;
 type Token = { col: number; item: Item };
 
 function tokenItem(token: string): Item | null {
-  if (token === '|') {
-    return { type: 'bar' };
+  if (token === "|") {
+    return { type: "bar" };
   }
   const rhythm = RHYTHM_RE.exec(token);
   if (rhythm) {
-    return { type: 'rhythm', key: rhythm[1] ?? '' };
+    return { type: "rhythm", key: rhythm[1] ?? "" };
   }
   const repeat = REPEAT_RE.exec(token);
   if (repeat) {
-    return { type: 'repeat', times: Number(repeat[1]) };
+    return { type: "repeat", times: Number(repeat[1]) };
   }
-  return isChord(token) ? { type: 'chord', chord: token } : null;
+  return isChord(token) ? { type: "chord", chord: token } : null;
 }
 
 /** Tokens of a chord line with their columns, or null if the line is not a chord line. */
@@ -34,7 +40,7 @@ function chordTokens(line: string): Token[] | null {
     if (!item) {
       return null;
     }
-    hasChordOrBar ||= item.type === 'chord' || item.type === 'bar';
+    hasChordOrBar ||= item.type === "chord" || item.type === "bar";
     tokens.push({ col: match.index, item });
   }
   return hasChordOrBar ? tokens : null;
@@ -45,13 +51,13 @@ export function isChordLine(line: string): boolean {
 }
 
 function isTabLike(line: string): boolean {
-  return line.includes('---') && TAB_LINE_RE.test(line);
+  return line.includes("---") && TAB_LINE_RE.test(line);
 }
 
 function isLyric(line: string | undefined): line is string {
   return (
     line !== undefined &&
-    line.trim() !== '' &&
+    line.trim() !== "" &&
     !parseHeader(line) &&
     !isChordLine(line) &&
     !isTabLike(line) &&
@@ -65,27 +71,33 @@ function mergeLine(tokens: Token[], lyric: string): Item[] {
   let pos = 0;
   for (const { col, item } of tokens) {
     if (col > pos) {
-      items.push({ type: 'text', text: lyric.slice(pos, col).padEnd(col - pos) });
+      items.push({
+        type: "text",
+        text: lyric.slice(pos, col).padEnd(col - pos),
+      });
       pos = col;
     }
     items.push(item);
   }
   if (lyric.length > pos) {
-    items.push({ type: 'text', text: lyric.slice(pos) });
+    items.push({ type: "text", text: lyric.slice(pos) });
   }
   return items;
 }
 
-export function fromChordsOverLyrics(text: string): { doc: SongDoc; diagnostics: Diagnostic[] } {
+export function fromChordsOverLyrics(text: string): {
+  doc: SongDoc;
+  diagnostics: Diagnostic[];
+} {
   const diagnostics: Diagnostic[] = [];
   const meta: Record<string, string> = {};
-  const lines = text.split('\n');
+  const lines = text.split("\n");
   let current: Section = { label: null, rhythm: null, tempo: null, lines: [] };
   const sections: Section[] = [current];
 
   let i = 0;
   for (; i < lines.length; i++) {
-    const entry = parseMeta(lines[i] ?? '');
+    const entry = parseMeta(lines[i] ?? "");
     if (!entry) {
       break;
     }
@@ -93,7 +105,7 @@ export function fromChordsOverLyrics(text: string): { doc: SongDoc; diagnostics:
   }
 
   for (; i < lines.length; i++) {
-    const line = lines[i] ?? '';
+    const line = lines[i] ?? "";
     const header = parseHeader(line);
     if (header) {
       current = sectionFromHeader(header, i + 1, diagnostics);
@@ -108,81 +120,93 @@ export function fromChordsOverLyrics(text: string): { doc: SongDoc; diagnostics:
       continue;
     }
 
-    if (isTabLike(line) && isTabLike(lines[i + 1] ?? '')) {
+    if (isTabLike(line) && isTabLike(lines[i + 1] ?? "")) {
       const tab: string[] = [];
-      while (i < lines.length && isTabLike(lines[i] ?? '')) {
-        tab.push(lines[i] ?? '');
+      while (i < lines.length && isTabLike(lines[i] ?? "")) {
+        tab.push(lines[i] ?? "");
         i++;
       }
       i--;
-      current.lines.push({ type: 'tab', lines: tab });
+      current.lines.push({ type: "tab", lines: tab });
       continue;
     }
 
     const tokens = chordTokens(line);
     if (tokens) {
       const next = lines[i + 1];
-      const lyric = isLyric(next) ? next : '';
+      const lyric = isLyric(next) ? next : "";
       if (lyric) {
         i++;
       }
-      current.lines.push({ type: 'line', items: mergeLine(tokens, lyric) });
+      current.lines.push({ type: "line", items: mergeLine(tokens, lyric) });
       continue;
     }
 
-    current.lines.push({ type: 'line', items: line ? [{ type: 'text', text: line }] : [] });
+    current.lines.push({
+      type: "line",
+      items: line ? [{ type: "text", text: line }] : [],
+    });
   }
 
   return {
-    doc: { meta, sections: sections.filter((s) => s.label !== null || s.lines.length > 0) },
+    doc: {
+      meta,
+      sections: sections.filter((s) => s.label !== null || s.lines.length > 0),
+    },
     diagnostics,
   };
 }
 
-function tokenText(item: Exclude<Item, { type: 'text' }>): string {
+function tokenText(item: Exclude<Item, { type: "text" }>): string {
   switch (item.type) {
-    case 'chord':
+    case "chord":
       return item.chord;
-    case 'bar':
-      return '|';
-    case 'rhythm':
+    case "bar":
+      return "|";
+    case "rhythm":
       return `@${item.key}`;
-    case 'repeat':
+    case "repeat":
       return `x${item.times}`;
   }
 }
 
 function renderLine(items: Item[]): string[] {
-  let chords = '';
-  let lyric = '';
+  let chords = "";
+  let lyric = "";
   for (const item of items) {
-    if (item.type === 'text') {
+    if (item.type === "text") {
       lyric += item.text;
       continue;
     }
     // A token that would touch the previous one moves right, leaving one space.
-    const col = chords ? Math.max(lyric.length, chords.length + 1) : lyric.length;
+    const col = chords
+      ? Math.max(lyric.length, chords.length + 1)
+      : lyric.length;
     chords = chords.padEnd(col) + tokenText(item);
   }
   if (!chords) {
     return [lyric];
   }
-  return lyric.trim() ? [chords.trimEnd(), lyric.trimEnd()] : [chords.trimEnd()];
+  return lyric.trim()
+    ? [chords.trimEnd(), lyric.trimEnd()]
+    : [chords.trimEnd()];
 }
 
 export function toChordsOverLyrics(doc: SongDoc): string {
-  const out = Object.entries(doc.meta).map(([key, value]) => `{${key}: ${value}}`);
+  const out = Object.entries(doc.meta).map(
+    ([key, value]) => `{${key}: ${value}}`,
+  );
   for (const section of doc.sections) {
     if (section.label !== null) {
       out.push(serializeHeader(section));
     }
     for (const line of section.lines) {
-      if (line.type === 'line') {
+      if (line.type === "line") {
         out.push(...renderLine(line.items));
       } else {
         out.push(...serializeBlock(line));
       }
     }
   }
-  return out.join('\n');
+  return out.join("\n");
 }

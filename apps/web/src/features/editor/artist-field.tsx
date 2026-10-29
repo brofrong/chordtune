@@ -1,29 +1,42 @@
-'use client';
+"use client";
 
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { Plus, Users } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { useEffect } from 'react';
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { Plus, Users } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useEffect } from "react";
 
-import { Label } from '@/components/ui/label';
-import { useSession } from '@/features/auth/use-session';
-import { ArtistCover } from '@/features/songs/song-card';
-import { formatCount } from '@/lib/format';
-import { useTRPC } from '@/lib/trpc';
-import { useDebouncedValue } from '@/lib/use-debounced-value';
-import { SuggestField } from './suggest-field';
+import { Label } from "@/components/ui/label";
+import { useSession } from "@/features/auth/use-session";
+import { ArtistCover } from "@/features/songs/song-card";
+import { formatCount } from "@/lib/format";
+import { useTRPC } from "@/lib/trpc";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
+
+import { SuggestField } from "./suggest-field";
 
 export type DeezerPick = { deezerId: number; name: string };
 
 type Option =
-  | { kind: 'ours'; id: string; name: string; songCount: number; picture: string | null }
-  | { kind: 'deezer'; deezerId: number; name: string; fans: number; picture: string | null }
-  | { kind: 'new'; name: string };
+  | {
+      kind: "ours";
+      id: string;
+      name: string;
+      songCount: number;
+      picture: string | null;
+    }
+  | {
+      kind: "deezer";
+      deezerId: number;
+      name: string;
+      fans: number;
+      picture: string | null;
+    }
+  | { kind: "new"; name: string };
 
 const optionKey = (option: Option) =>
-  option.kind === 'ours'
+  option.kind === "ours"
     ? option.id
-    : option.kind === 'deezer'
+    : option.kind === "deezer"
       ? `deezer:${option.deezerId}`
       : `new:${option.name}`;
 
@@ -42,7 +55,7 @@ export function ArtistField({
   onMatch: (artistId: string | null) => void;
   onDeezerPick: (pick: DeezerPick | null) => void;
 }) {
-  const t = useTranslations('editor');
+  const t = useTranslations("editor");
   const trpc = useTRPC();
   const session = useSession();
   const typed = value.trim();
@@ -63,36 +76,38 @@ export function ArtistField({
     placeholderData: keepPreviousData,
   });
   const ours = typed ? (search.data ?? []) : [];
-  const exact = ours.find((artist) => artist.name.toLowerCase() === typed.toLowerCase());
+  const exact = ours.find(
+    (artist) => artist.name.toLowerCase() === typed.toLowerCase(),
+  );
 
   useEffect(() => onMatch(exact?.id ?? null), [exact?.id, onMatch]);
 
   const items: Option[] = [
     ...ours.map((artist) => ({
-      kind: 'ours' as const,
+      kind: "ours" as const,
       id: artist.id,
       name: artist.name,
       songCount: artist.songCount,
       picture: artist.pictureSmallUrl,
     })),
     ...(typed.length >= 2 ? (deezer.data ?? []) : []).map((candidate) => ({
-      kind: 'deezer' as const,
+      kind: "deezer" as const,
       deezerId: candidate.deezerId,
       name: candidate.name,
       fans: candidate.fans,
       picture: candidate.pictureSmallUrl,
     })),
-    ...(typed && !exact ? [{ kind: 'new' as const, name: typed }] : []),
+    ...(typed && !exact ? [{ kind: "new" as const, name: typed }] : []),
   ];
   const status = search.isError
-    ? t('searchUnavailable')
+    ? t("searchUnavailable")
     : search.isFetching && ours.length === 0 && typed
-      ? t('searching')
+      ? t("searching")
       : null;
 
   return (
     <div className="flex flex-col gap-1.5">
-      <Label htmlFor="song-artist">{t('artist')}</Label>
+      <Label htmlFor="song-artist">{t("artist")}</Label>
       <SuggestField
         id="song-artist"
         value={value}
@@ -101,15 +116,19 @@ export function ArtistField({
         itemKey={optionKey}
         itemText={(item) => item.name}
         onItemPick={(item) =>
-          onDeezerPick(item.kind === 'deezer' ? { deezerId: item.deezerId, name: item.name } : null)
+          onDeezerPick(
+            item.kind === "deezer"
+              ? { deezerId: item.deezerId, name: item.name }
+              : null,
+          )
         }
-        placeholder={t('artistPlaceholder')}
+        placeholder={t("artistPlaceholder")}
         status={status}
         renderItem={(item) =>
-          item.kind === 'new' ? (
+          item.kind === "new" ? (
             <span className="flex items-center gap-2 text-muted-foreground">
               <Plus className="size-4" />
-              {t('createArtist', { name: item.name })}
+              {t("createArtist", { name: item.name })}
             </span>
           ) : (
             <span className="flex w-full items-center gap-2">
@@ -120,8 +139,8 @@ export function ArtistField({
               />
               <span className="min-w-0 flex-1 truncate">{item.name}</span>
               <span className="flex shrink-0 items-center gap-1 text-muted-foreground text-xs">
-                {item.kind === 'ours' ? (
-                  t('songCount', { count: item.songCount })
+                {item.kind === "ours" ? (
+                  t("songCount", { count: item.songCount })
                 ) : (
                   <>
                     Deezer · <Users className="size-3" />

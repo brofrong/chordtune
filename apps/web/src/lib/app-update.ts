@@ -9,9 +9,9 @@ export type UpdateManifest = {
 };
 
 export type UpdateDecision =
-  | { kind: 'none' }
-  | { kind: 'download'; manifest: UpdateManifest }
-  | { kind: 'needs-native' };
+  | { kind: "none" }
+  | { kind: "download"; manifest: UpdateManifest }
+  | { kind: "needs-native" };
 
 /** An update scheduled with `next()`: `from` is the version that scheduled it. */
 export type PendingUpdate = { version: string; from: string };
@@ -21,14 +21,23 @@ function isRecordOf<K extends string>(
   keys: readonly K[],
 ): value is Record<K, string> {
   return (
-    typeof value === 'object' &&
+    typeof value === "object" &&
     value !== null &&
-    keys.every((key) => typeof (value as Record<string, unknown>)[key] === 'string')
+    keys.every(
+      (key) => typeof (value as Record<string, unknown>)[key] === "string",
+    )
   );
 }
 
 export function parseManifest(value: unknown): UpdateManifest | null {
-  if (!isRecordOf(value, ['version', 'url', 'checksum', 'nativeFingerprint'] as const)) {
+  if (
+    !isRecordOf(value, [
+      "version",
+      "url",
+      "checksum",
+      "nativeFingerprint",
+    ] as const)
+  ) {
     return null;
   }
   const { version, url, checksum, nativeFingerprint } = value;
@@ -36,7 +45,7 @@ export function parseManifest(value: unknown): UpdateManifest | null {
 }
 
 export function parsePending(value: unknown): PendingUpdate | null {
-  if (!isRecordOf(value, ['version', 'from'] as const)) return null;
+  if (!isRecordOf(value, ["version", "from"] as const)) return null;
   return { version: value.version, from: value.from };
 }
 
@@ -55,11 +64,16 @@ export function decideUpdate({
   fingerprint: string;
   failed: readonly string[];
 }): UpdateDecision {
-  if (!manifest || manifest.version === version || failed.includes(manifest.version)) {
-    return { kind: 'none' };
+  if (
+    !manifest ||
+    manifest.version === version ||
+    failed.includes(manifest.version)
+  ) {
+    return { kind: "none" };
   }
-  if (manifest.nativeFingerprint !== fingerprint) return { kind: 'needs-native' };
-  return { kind: 'download', manifest };
+  if (manifest.nativeFingerprint !== fingerprint)
+    return { kind: "needs-native" };
+  return { kind: "download", manifest };
 }
 
 /**
@@ -72,6 +86,8 @@ export function settlePending(
 ): { failed: string | null } {
   return {
     failed:
-      pending && pending.from === version && pending.version !== version ? pending.version : null,
+      pending && pending.from === version && pending.version !== version
+        ? pending.version
+        : null,
   };
 }

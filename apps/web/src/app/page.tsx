@@ -1,6 +1,6 @@
-import { GeistSans } from 'geist/font/sans';
+import { GeistSans } from "geist/font/sans";
 
-import { LocaleRedirect } from '@/components/locale-redirect';
+import { LocaleRedirect } from "@/components/locale-redirect";
 
 export default function RootPage() {
   return (

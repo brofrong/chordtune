@@ -1,6 +1,11 @@
-import { chordList, type SongDoc, spellingOf, transposeChord } from '@chordtune/chord-sheet';
+import {
+  chordList,
+  type SongDoc,
+  spellingOf,
+  transposeChord,
+} from "@chordtune/chord-sheet";
 
-import { voicingsFor } from './voicing';
+import { voicingsFor } from "./voicing";
 
 export const MAX_HINT_CAPO = 7;
 const MISSING_SHAPE_COST = 10;
@@ -27,11 +32,20 @@ export function capoHints(
     let cost = 0;
     let barres = 0;
     for (const chord of chords) {
-      const shape = voicingsFor(transposeChord(chord, authorCapo - capo, spelling), strings)[0];
+      const shape = voicingsFor(
+        transposeChord(chord, authorCapo - capo, spelling),
+        strings,
+      )[0];
       cost += shape ? shape.cost : MISSING_SHAPE_COST;
       barres += shape?.barre ? 1 : 0;
     }
-    return { capo, cost, barres, star: false, noBarre: chords.length > 0 && barres === 0 };
+    return {
+      capo,
+      cost,
+      barres,
+      star: false,
+      noBarre: chords.length > 0 && barres === 0,
+    };
   });
   if (chords.length === 0) {
     return hints;

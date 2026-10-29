@@ -1,17 +1,17 @@
 import {
-  type NoteMatch,
   nearestString,
+  type NoteMatch,
   stringLabel,
   stringTarget,
   type TunerFrame,
   type Tuning,
-} from '@chordtune/audio';
+} from "@chordtune/audio";
 
 export const IN_TUNE_CENTS = 3;
 export const NEAR_CENTS = 12;
 export const GAUGE_RANGE_CENTS = 50;
 
-export type TuneZone = 'in' | 'near' | 'off';
+export type TuneZone = "in" | "near" | "off";
 
 export type Reading = {
   frequency: number;
@@ -63,7 +63,7 @@ export function computeReading(
 export function tuneZone(cents: number): TuneZone {
   const amount = Math.abs(cents);
   if (amount <= IN_TUNE_CENTS) {
-    return 'in';
+    return "in";
   }
-  return amount <= NEAR_CENTS ? 'near' : 'off';
+  return amount <= NEAR_CENTS ? "near" : "off";
 }

@@ -1,16 +1,17 @@
-import { App } from '@capacitor/app';
-import { Browser } from '@capacitor/browser';
-import type { ProviderId } from '@chordtune/api';
+import { App } from "@capacitor/app";
+import { Browser } from "@capacitor/browser";
+import type { ProviderId } from "@chordtune/api";
 
-import { API_URL, authToken } from '@/lib/api';
-import { authClient } from '@/lib/auth-client';
+import { API_URL, authToken } from "@/lib/api";
+import { authClient } from "@/lib/auth-client";
+
 import {
   createPendingAuth,
   matchPendingAuth,
   mobileStartUrl,
   parseAuthLink,
   pendingAuthStore,
-} from './mobile-link';
+} from "./mobile-link";
 
 /**
  * Opens the provider in the system browser via our web page. Linking needs the user's session in
@@ -18,22 +19,22 @@ import {
  */
 export async function startNativeSignIn({
   provider,
-  mode = 'sign-in',
+  mode = "sign-in",
 }: {
   provider: ProviderId;
-  mode?: 'sign-in' | 'link';
+  mode?: "sign-in" | "link";
 }): Promise<void> {
   const pending = createPendingAuth(mode, provider);
   pendingAuthStore.set(pending);
   let ott: string | undefined;
-  if (mode === 'link') {
+  if (mode === "link") {
     const { data } = await authClient.oneTimeToken.generate();
     ott = data?.token;
     // Without an ott the browser page cannot prove it's acting on our session, so it would fall
     // back to linkSocial with whatever account is already signed in there. Bail before opening it.
     if (!ott) {
       pendingAuthStore.set(null);
-      throw new Error('Could not start linking: no one-time token');
+      throw new Error("Could not start linking: no one-time token");
     }
   }
   await Browser.open({
@@ -45,7 +46,7 @@ export async function startNativeSignIn({
       mode,
       ott,
     }),
-    presentationStyle: 'popover',
+    presentationStyle: "popover",
   });
 }
 
@@ -54,7 +55,7 @@ export function listenForAuthLinks(
   onLinked: (provider: string) => void,
   onError: (code: string) => void,
 ) {
-  const handle = App.addListener('appUrlOpen', async ({ url }) => {
+  const handle = App.addListener("appUrlOpen", async ({ url }) => {
     const link = parseAuthLink(url);
     if (!link) {
       return;
@@ -69,13 +70,15 @@ export function listenForAuthLinks(
       onError(link.error);
     } else if (link.token) {
       // A token only means something for the sign-in flow we actually started.
-      if (pending.mode !== 'sign-in') {
-        onError('failed');
+      if (pending.mode !== "sign-in") {
+        onError("failed");
         return;
       }
-      const { data, error } = await authClient.oneTimeToken.verify({ token: link.token });
+      const { data, error } = await authClient.oneTimeToken.verify({
+        token: link.token,
+      });
       if (error || !data) {
-        onError(error?.code ?? 'failed');
+        onError(error?.code ?? "failed");
         return;
       }
       authToken.set(data.session.token);
@@ -83,13 +86,13 @@ export function listenForAuthLinks(
     } else if (link.linked) {
       // Likewise, only believe a `linked` result for the provider we actually asked to link.
       if (link.linked !== pending.provider) {
-        onError('failed');
+        onError("failed");
         return;
       }
       onLinked(link.linked);
     }
   });
   return () => {
-    handle.then((listener) => listener.remove());
+    void handle.then((listener) => listener.remove());
   };
 }

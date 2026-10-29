@@ -1,17 +1,21 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
+import { useEffect } from "react";
 
 /** Keeps the screen on while `active`, where the browser supports it. */
 export function useWakeLock(active: boolean) {
   useEffect(() => {
-    if (!active || typeof navigator === 'undefined' || !('wakeLock' in navigator)) {
+    if (
+      !active ||
+      typeof navigator === "undefined" ||
+      !("wakeLock" in navigator)
+    ) {
       return;
     }
     let lock: WakeLockSentinel | null = null;
     let cancelled = false;
     navigator.wakeLock
-      .request('screen')
+      .request("screen")
       .then((sentinel) => {
         if (cancelled) {
           void sentinel.release();

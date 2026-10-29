@@ -1,24 +1,29 @@
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
-import { Bookmark, CloudCheck, Heart, LibraryBig, Music } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
-import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useQuery } from "@tanstack/react-query";
+import { Bookmark, CloudCheck, Heart, LibraryBig, Music } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
 
-import { Button } from '@/components/ui/button';
-import { useAuthSheet } from '@/features/auth/auth-sheet';
-import { useSession } from '@/features/auth/use-session';
-import { isCapacitor } from '@/features/song/links';
-import { SongCard } from '@/features/songs/song-card';
-import { Link } from '@/i18n/navigation';
-import { spring } from '@/lib/motion';
-import { type ArrangementListItem, type ArrangementView, useTRPC } from '@/lib/trpc';
-import { cn } from '@/lib/utils';
-import { listOffline } from './offline-store';
-import { OFFLINE_SONGS_KEY } from './offline-sync';
+import { Button } from "@/components/ui/button";
+import { useAuthSheet } from "@/features/auth/auth-sheet";
+import { useSession } from "@/features/auth/use-session";
+import { isCapacitor } from "@/features/song/links";
+import { SongCard } from "@/features/songs/song-card";
+import { Link } from "@/i18n/navigation";
+import { spring } from "@/lib/motion";
+import {
+  type ArrangementListItem,
+  type ArrangementView,
+  useTRPC,
+} from "@/lib/trpc";
+import { cn } from "@/lib/utils";
 
-const TABS = ['saved', 'liked', 'mine'] as const;
+import { listOffline } from "./offline-store";
+import { OFFLINE_SONGS_KEY } from "./offline-sync";
+
+const TABS = ["saved", "liked", "mine"] as const;
 type Tab = (typeof TABS)[number];
 
 function toListItem(view: ArrangementView): ArrangementListItem {
@@ -35,11 +40,11 @@ function toListItem(view: ArrangementView): ArrangementListItem {
 }
 
 export function LibraryView() {
-  const t = useTranslations('library');
+  const t = useTranslations("library");
   const trpc = useTRPC();
   const session = useSession();
   const openAuth = useAuthSheet();
-  const [tab, setTab] = useState<Tab>('saved');
+  const [tab, setTab] = useState<Tab>("saved");
   const signedIn = Boolean(session.data?.user);
 
   // In the app the saved list comes from the device, so it works offline.
@@ -54,35 +59,58 @@ export function LibraryView() {
   });
   const liked = useQuery({
     ...trpc.library.liked.queryOptions(),
-    enabled: signedIn && tab === 'liked',
+    enabled: signedIn && tab === "liked",
   });
   const mine = useQuery({
     ...trpc.library.mine.queryOptions(),
-    enabled: signedIn && tab === 'mine',
+    enabled: signedIn && tab === "mine",
   });
 
   const saved = isCapacitor ? savedOffline : savedRemote;
   const current =
-    tab === 'saved'
+    tab === "saved"
       ? { ...saved, data: saved.data?.map(toListItem) }
-      : tab === 'liked'
+      : tab === "liked"
         ? liked
         : mine;
 
-  if (!session.isPending && !signedIn && !(isCapacitor && savedOffline.data?.length)) {
+  if (
+    !session.isPending &&
+    !signedIn &&
+    !(isCapacitor && savedOffline.data?.length)
+  ) {
     return (
       <Shell>
-        <Empty icon={LibraryBig} title={t('signInTitle')} hint={t('signInHint')}>
-          <Button onClick={() => openAuth()}>{t('signIn')}</Button>
+        <Empty
+          icon={LibraryBig}
+          title={t("signInTitle")}
+          hint={t("signInHint")}
+        >
+          <Button onClick={() => openAuth()}>{t("signIn")}</Button>
         </Empty>
       </Shell>
     );
   }
 
   const empty = {
-    saved: { icon: Bookmark, text: t('emptySaved'), link: '/songs', action: t('browse') },
-    liked: { icon: Heart, text: t('emptyLiked'), link: '/songs', action: t('browse') },
-    mine: { icon: Music, text: t('emptyMine'), link: '/songs/new', action: t('add') },
+    saved: {
+      icon: Bookmark,
+      text: t("emptySaved"),
+      link: "/songs",
+      action: t("browse"),
+    },
+    liked: {
+      icon: Heart,
+      text: t("emptyLiked"),
+      link: "/songs",
+      action: t("browse"),
+    },
+    mine: {
+      icon: Music,
+      text: t("emptyMine"),
+      link: "/songs/new",
+      action: t("add"),
+    },
   }[tab];
 
   return (
@@ -95,8 +123,8 @@ export function LibraryView() {
             aria-pressed={tab === item}
             onClick={() => setTab(item)}
             className={cn(
-              'relative flex-1 rounded-xl py-2 font-medium text-muted-foreground text-sm transition-colors',
-              tab === item && 'text-foreground',
+              "relative flex-1 rounded-xl py-2 font-medium text-muted-foreground text-sm transition-colors",
+              tab === item && "text-foreground",
             )}
           >
             {tab === item && (
@@ -111,17 +139,24 @@ export function LibraryView() {
         ))}
       </div>
 
-      {current.isPending && (current.fetchStatus !== 'idle' || isCapacitor) ? (
+      {current.isPending && (current.fetchStatus !== "idle" || isCapacitor) ? (
         <ul className="flex flex-col gap-2">
           {[0, 1, 2].map((index) => (
-            <li key={index} className="h-[66px] animate-pulse rounded-2xl bg-surface-2" />
+            <li
+              key={index}
+              className="h-[66px] animate-pulse rounded-2xl bg-surface-2"
+            />
           ))}
         </ul>
       ) : current.isError ? (
-        <p className="text-muted-foreground text-sm">{t('loadFailed')}</p>
+        <p className="text-muted-foreground text-sm">{t("loadFailed")}</p>
       ) : !current.data?.length ? (
         <Empty icon={empty.icon} title={empty.text}>
-          <Button variant="outline" nativeButton={false} render={<Link href={empty.link} />}>
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link href={empty.link} />}
+          >
             {empty.action}
           </Button>
         </Empty>
@@ -140,10 +175,10 @@ export function LibraryView() {
                 <SongCard
                   item={item}
                   badge={
-                    tab === 'saved' && isCapacitor ? (
+                    tab === "saved" && isCapacitor ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-saved/15 px-1.5 text-saved text-xs">
                         <CloudCheck className="size-3" />
-                        {t('offline')}
+                        {t("offline")}
                       </span>
                     ) : null
                   }
@@ -158,10 +193,12 @@ export function LibraryView() {
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  const t = useTranslations('library');
+  const t = useTranslations("library");
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 py-6">
-      <h1 className="font-bold font-display text-3xl tracking-tight">{t('title')}</h1>
+      <h1 className="font-bold font-display text-3xl tracking-tight">
+        {t("title")}
+      </h1>
       {children}
     </div>
   );

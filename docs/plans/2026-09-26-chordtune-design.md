@@ -16,13 +16,13 @@
 
 ## Стек
 
-| Слой | Выбор |
-| --- | --- |
-| Монорепо | Bun workspaces + Turborepo, Biome |
-| Фронт | Next.js 16 (App Router), React 19, Tailwind v4, shadcn/ui, motion, next-intl (ru/en) |
-| Мобильные | Capacitor 8 (iOS/Android), статическая сборка Next.js |
-| API | Hono на Bun, tRPC 11, Better Auth, Drizzle ORM 1.0 RC (relations v2), PostgreSQL |
-| Тесты | `bun test` для чистой логики (аудио, парсер аккордов) |
+| Слой      | Выбор                                                                                |
+| --------- | ------------------------------------------------------------------------------------ |
+| Монорепо  | Bun workspaces + Turborepo, Biome                                                    |
+| Фронт     | Next.js 16 (App Router), React 19, Tailwind v4, shadcn/ui, motion, next-intl (ru/en) |
+| Мобильные | Capacitor 8 (iOS/Android), статическая сборка Next.js                                |
+| API       | Hono на Bun, tRPC 11, Better Auth, Drizzle ORM 1.0 RC (relations v2), PostgreSQL     |
+| Тесты     | `bun test` для чистой логики (аудио, парсер аккордов)                                |
 
 TypeScript 6.x: TS 7 (нативный порт) пока не имеет стабильного JS API, которым пользуется Next.js.
 
@@ -116,7 +116,7 @@ AST:
 ```ts
 type SongDoc = { meta: Record<string, string>; sections: Section[] };
 type Section = { label: string | null; lines: Line[] };
-type Line = { kind: 'bars'; bars: Bar[] } | { kind: 'text'; text: string };
+type Line = { kind: "bars"; bars: Bar[] } | { kind: "text"; text: string };
 type Bar = { segments: { chord: Chord | null; text: string }[] };
 ```
 

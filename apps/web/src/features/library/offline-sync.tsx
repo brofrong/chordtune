@@ -1,18 +1,22 @@
-'use client';
+"use client";
 
-import { useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 
-import { useSession } from '@/features/auth/use-session';
-import { isNetworkError } from '@/features/song/play-route';
-import { useOnline } from '@/lib/network';
-import { useTRPCClient } from '@/lib/trpc';
-import { flushQueue, reconcileOffline } from './offline-store';
+import { useSession } from "@/features/auth/use-session";
+import { isNetworkError } from "@/features/song/play-route";
+import { useOnline } from "@/lib/network";
+import { useTRPCClient } from "@/lib/trpc";
 
-export const OFFLINE_SONGS_KEY = ['offline-songs'];
+import { flushQueue, reconcileOffline } from "./offline-store";
+
+export const OFFLINE_SONGS_KEY = ["offline-songs"];
 
 function isUnauthorized(error: unknown): boolean {
-  return (error as { data?: { code?: string } } | null)?.data?.code === 'UNAUTHORIZED';
+  return (
+    (error as { data?: { code?: string } } | null)?.data?.code ===
+    "UNAUTHORIZED"
+  );
 }
 
 /**

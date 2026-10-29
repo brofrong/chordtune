@@ -1,6 +1,6 @@
-import { refretBlock, rewriteAlphaTex } from './refret';
-import { spellingOf, transposeChord } from './transpose';
-import type { Line, SongDoc } from './types';
+import { refretBlock, rewriteAlphaTex } from "./refret";
+import { spellingOf, transposeChord } from "./transpose";
+import type { Line, SongDoc } from "./types";
 
 /**
  * What a recalculated alphaTex block costs the "Recalculate" action: `unreachable` notes always
@@ -13,7 +13,10 @@ export function recalcBlock(
   unreachable: number,
   rewritten: string[] | null,
 ): { unreachable: number; brokenTabs: number } {
-  return { unreachable, brokenTabs: rewritten === null && unreachable === 0 ? 1 : 0 };
+  return {
+    unreachable,
+    brokenTabs: rewritten === null && unreachable === 0 ? 1 : 0,
+  };
 }
 
 /**
@@ -37,17 +40,17 @@ export function withCapo(
   let brokenTabs = 0;
 
   const move = (line: Line): Line => {
-    if (line.type === 'line') {
+    if (line.type === "line") {
       return {
         ...line,
         items: line.items.map((item) =>
-          item.type === 'chord'
+          item.type === "chord"
             ? { ...item, chord: transposeChord(item.chord, shift, spelling) }
             : item,
         ),
       };
     }
-    if (line.type === 'alphatex') {
+    if (line.type === "alphatex") {
       const moved = refretBlock(line.block, strings, from, to);
       const source = rewriteAlphaTex(line.source, line.block, moved.block);
       const block = recalcBlock(moved.unreachable, source);
@@ -64,7 +67,10 @@ export function withCapo(
   return {
     doc: {
       ...doc,
-      sections: doc.sections.map((section) => ({ ...section, lines: section.lines.map(move) })),
+      sections: doc.sections.map((section) => ({
+        ...section,
+        lines: section.lines.map(move),
+      })),
     },
     unreachable,
     stale,

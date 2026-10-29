@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 
-import { TunerAnalyzer } from '../analyzer';
-import type { WorkerRequest, WorkerResponse } from './protocol';
+import { TunerAnalyzer } from "../analyzer";
+import type { WorkerRequest, WorkerResponse } from "./protocol";
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -17,12 +17,12 @@ function post(response: WorkerResponse) {
 
 self.onmessage = (event: MessageEvent<WorkerRequest>) => {
   const message = event.data;
-  if (message.type === 'init') {
+  if (message.type === "init") {
     const current = new TunerAnalyzer(message.sampleRate, message.settings);
     analyzer = current;
     message.port.onmessage = (chunk: MessageEvent<Float32Array>) => {
       for (const frame of current.push(chunk.data)) {
-        post({ type: 'frame', frame });
+        post({ type: "frame", frame });
       }
     };
     return;

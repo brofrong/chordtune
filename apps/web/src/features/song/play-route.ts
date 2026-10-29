@@ -1,6 +1,6 @@
-import { TRPCClientError } from '@trpc/client';
+import { TRPCClientError } from "@trpc/client";
 
-export type PlayRoute = 'skip' | 'auth' | 'queue' | 'send';
+export type PlayRoute = "skip" | "auth" | "queue" | "send";
 
 /**
  * What a play («Сыграл», or finishing zen mode) does: nothing in the editor's preview; offline it
@@ -20,12 +20,12 @@ export function playRoute({
   canQueue: boolean;
 }): PlayRoute {
   if (preview) {
-    return 'skip';
+    return "skip";
   }
   if (!online) {
-    return (signedIn || hasToken) && canQueue ? 'queue' : 'auth';
+    return (signedIn || hasToken) && canQueue ? "queue" : "auth";
   }
-  return signedIn ? 'send' : 'auth';
+  return signedIn ? "send" : "auth";
 }
 
 /** The request never reached the server (as opposed to the server answering with an error). */

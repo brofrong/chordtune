@@ -1,18 +1,19 @@
-import type { AppRouter } from '@chordtune/api';
-import { QueryClient } from '@tanstack/react-query';
-import { createTRPCClient, httpBatchLink } from '@trpc/client';
-import type { inferRouterOutputs } from '@trpc/server';
-import { createTRPCContext } from '@trpc/tanstack-react-query';
-import superjson from 'superjson';
+import type { AppRouter } from "@chordtune/api";
+import { QueryClient } from "@tanstack/react-query";
+import { createTRPCClient, httpBatchLink } from "@trpc/client";
+import type { inferRouterOutputs } from "@trpc/server";
+import { createTRPCContext } from "@trpc/tanstack-react-query";
+import superjson from "superjson";
 
-import { API_URL, authToken } from './api';
+import { API_URL, authToken } from "./api";
 
-export const { TRPCProvider, useTRPC, useTRPCClient } = createTRPCContext<AppRouter>();
+export const { TRPCProvider, useTRPC, useTRPCClient } =
+  createTRPCContext<AppRouter>();
 
 export type RouterOutputs = inferRouterOutputs<AppRouter>;
-export type ArrangementView = RouterOutputs['arrangements']['byId'];
-export type ArrangementListItem = RouterOutputs['songs']['list'][number];
-export type Profile = RouterOutputs['profile']['me'];
+export type ArrangementView = RouterOutputs["arrangements"]["byId"];
+export type ArrangementListItem = RouterOutputs["songs"]["list"][number];
+export type Profile = RouterOutputs["profile"]["me"];
 
 export function makeQueryClient() {
   return new QueryClient({
@@ -32,7 +33,7 @@ export function makeTRPCClient() {
           const token = authToken.get();
           return token ? { Authorization: `Bearer ${token}` } : {};
         },
-        fetch: (url, init) => fetch(url, { ...init, credentials: 'include' }),
+        fetch: (url, init) => fetch(url, { ...init, credentials: "include" }),
       }),
     ],
   });

@@ -1,4 +1,4 @@
-const trimZero = (value: number) => String(value).replace(/\.0$/, '');
+const trimZero = (value: number) => String(value).replace(/\.0$/, "");
 
 /** `999`, `1.2K`, `12K`, `2.5M` — at most three characters before the suffix, rounded down. */
 export function formatCount(n: number): string {

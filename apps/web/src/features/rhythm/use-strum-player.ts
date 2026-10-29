@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import type { ScheduledNote } from '@chordtune/audio';
-import { createStrumPlayer, type StrumPlayer } from '@chordtune/audio/browser';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import type { ScheduledNote } from "@chordtune/audio";
+import { createStrumPlayer, type StrumPlayer } from "@chordtune/audio/browser";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type PlayOptions = { loopSec?: number };
 
@@ -22,7 +22,11 @@ export function useStrumPlayer() {
   }, []);
 
   const play = useCallback(
-    async (id: string, notes: readonly ScheduledNote[], options: PlayOptions = {}) => {
+    async (
+      id: string,
+      notes: readonly ScheduledNote[],
+      options: PlayOptions = {},
+    ) => {
       player.current ??= createStrumPlayer();
       playingRef.current = id;
       setPlaying(id);
@@ -37,7 +41,11 @@ export function useStrumPlayer() {
   );
 
   const toggle = useCallback(
-    (id: string, notes: readonly ScheduledNote[], options: PlayOptions = {}) => {
+    (
+      id: string,
+      notes: readonly ScheduledNote[],
+      options: PlayOptions = {},
+    ) => {
       if (playingRef.current === id) {
         stop();
         return;

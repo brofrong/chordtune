@@ -1,6 +1,10 @@
-export const WIKI_LANGS = ['ru', 'en'] as const;
+export const WIKI_LANGS = ["ru", "en"] as const;
 export type WikiLang = (typeof WIKI_LANGS)[number];
-export type WikiSummary = { title: string; description: string | null; extract: string };
+export type WikiSummary = {
+  title: string;
+  description: string | null;
+  extract: string;
+};
 export type Wiki = Partial<Record<WikiLang, WikiSummary>>;
 
 export type DeezerCandidate = {
@@ -15,13 +19,20 @@ export type DeezerArtist = {
   pictureUrl: string | null;
   pictureSmallUrl: string | null;
 };
-export type WikidataCandidate = { wikidataId: string; label: string; description: string | null };
+export type WikidataCandidate = {
+  wikidataId: string;
+  label: string;
+  description: string | null;
+};
 
 /** Where artist profiles come from; tests pass a fake. */
 export type ArtistSources = {
   searchDeezer(q: string): Promise<DeezerCandidate[]>;
   getDeezerArtist(deezerId: number): Promise<DeezerArtist | null>;
-  findWikidata(artist: { deezerId: number | null; name: string }): Promise<string | null>;
+  findWikidata(artist: {
+    deezerId: number | null;
+    name: string;
+  }): Promise<string | null>;
   searchWikidata(q: string): Promise<WikidataCandidate[]>;
   getWiki(wikidataId: string): Promise<Wiki>;
 };
@@ -41,14 +52,15 @@ const DEEZER_NO_DATA = 800;
 const CACHE_LIMIT = 500;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-const text = (value: unknown) => (typeof value === 'string' && value !== '' ? value : null);
+  typeof value === "object" && value !== null && !Array.isArray(value);
+const text = (value: unknown) =>
+  typeof value === "string" && value !== "" ? value : null;
 const list = (value: unknown) => (Array.isArray(value) ? value : []);
 
 /** Deezer answers an artist without a photo with a placeholder whose path has an empty hash. */
 export function deezerPicture(url: unknown): string | null {
   const value = text(url);
-  return value && !value.includes('/artist//') ? value : null;
+  return value && !value.includes("/artist//") ? value : null;
 }
 
 /** Deezer reports errors, quota included, as HTTP 200 with an `error` object. */
@@ -62,9 +74,12 @@ class DeezerError extends Error {
 }
 
 function deezerData(json: unknown): Record<string, unknown> {
-  if (!isRecord(json)) throw new Error('Unexpected Deezer answer');
+  if (!isRecord(json)) throw new Error("Unexpected Deezer answer");
   if (isRecord(json.error)) {
-    throw new DeezerError(json.error.code, text(json.error.message) ?? 'Deezer error');
+    throw new DeezerError(
+      json.error.code,
+      text(json.error.message) ?? "Deezer error",
+    );
   }
   return json;
 }
@@ -72,13 +87,13 @@ function deezerData(json: unknown): Record<string, unknown> {
 function parseDeezerSearch(json: unknown): DeezerCandidate[] {
   return list(deezerData(json).data).flatMap((item) => {
     const name = isRecord(item) ? text(item.name) : null;
-    if (!isRecord(item) || typeof item.id !== 'number' || !name) return [];
+    if (!isRecord(item) || typeof item.id !== "number" || !name) return [];
     return [
       {
         deezerId: item.id,
         name,
         pictureSmallUrl: deezerPicture(item.picture_medium),
-        fans: typeof item.nb_fan === 'number' ? item.nb_fan : 0,
+        fans: typeof item.nb_fan === "number" ? item.nb_fan : 0,
       },
     ];
   });
@@ -87,7 +102,7 @@ function parseDeezerSearch(json: unknown): DeezerCandidate[] {
 function parseDeezerArtist(json: unknown): DeezerArtist | null {
   const item = deezerData(json);
   const name = text(item.name);
-  if (typeof item.id !== 'number' || !name) return null;
+  if (typeof item.id !== "number" || !name) return null;
   return {
     deezerId: item.id,
     name,
@@ -105,14 +120,20 @@ function parseEntitySearch(json: unknown): WikidataCandidate[] {
   });
 }
 
-type Entity = { sitelinks: Partial<Record<WikiLang, string>>; isArtist: boolean };
+type Entity = {
+  sitelinks: Partial<Record<WikiLang, string>>;
+  isArtist: boolean;
+};
 
 function parseEntities(json: unknown): Record<string, Entity> {
-  const entities = isRecord(json) && isRecord(json.entities) ? json.entities : {};
+  const entities =
+    isRecord(json) && isRecord(json.entities) ? json.entities : {};
   return Object.fromEntries(
     Object.entries(entities).map(([id, entity]) => {
-      const sitelinks = isRecord(entity) && isRecord(entity.sitelinks) ? entity.sitelinks : {};
-      const claims = isRecord(entity) && isRecord(entity.claims) ? entity.claims : {};
+      const sitelinks =
+        isRecord(entity) && isRecord(entity.sitelinks) ? entity.sitelinks : {};
+      const claims =
+        isRecord(entity) && isRecord(entity.claims) ? entity.claims : {};
       const titles: Partial<Record<WikiLang, string>> = {};
       for (const lang of WIKI_LANGS) {
         const link = sitelinks[`${lang}wiki`];
@@ -120,16 +141,21 @@ function parseEntities(json: unknown): Record<string, Entity> {
         if (title) titles[lang] = title;
       }
       // Only musicians have a MusicBrainz artist ID, so an album or a film of the same name has not.
-      return [id, { sitelinks: titles, isArtist: list(claims.P434).length > 0 }];
+      return [
+        id,
+        { sitelinks: titles, isArtist: list(claims.P434).length > 0 },
+      ];
     }),
   );
 }
 
 export function parseSummary(json: unknown): WikiSummary | null {
-  if (!isRecord(json) || json.type === 'disambiguation') return null;
+  if (!isRecord(json) || json.type === "disambiguation") return null;
   const title = text(json.title);
   const extract = text(json.extract);
-  return title && extract ? { title, description: text(json.description), extract } : null;
+  return title && extract
+    ? { title, description: text(json.description), extract }
+    : null;
 }
 
 export function createArtistSources({
@@ -147,7 +173,7 @@ export function createArtistSources({
 }): ArtistSources {
   const get = async (url: string): Promise<unknown> => {
     const response = await fetchJson(url, {
-      headers: { 'User-Agent': userAgent, Accept: 'application/json' },
+      headers: { "User-Agent": userAgent, Accept: "application/json" },
       signal: AbortSignal.timeout(timeoutMs),
     });
     if (!response.ok) throw new Error(`${response.status} from ${url}`);
@@ -155,9 +181,12 @@ export function createArtistSources({
   };
   const wikidata = (params: Record<string, string>) =>
     get(
-      `https://www.wikidata.org/w/api.php?${new URLSearchParams({ format: 'json', formatversion: '2', ...params })}`,
+      `https://www.wikidata.org/w/api.php?${new URLSearchParams({ format: "json", formatversion: "2", ...params })}`,
     );
-  const searchCache = new Map<string, { at: number; value: DeezerCandidate[] }>();
+  const searchCache = new Map<
+    string,
+    { at: number; value: DeezerCandidate[] }
+  >();
 
   return {
     async searchDeezer(q) {
@@ -167,7 +196,7 @@ export function createArtistSources({
       if (cached && now() - cached.at <= cacheMs) return cached.value;
       const value = parseDeezerSearch(
         await get(
-          `https://api.deezer.com/search/artist?${new URLSearchParams({ q: key, limit: '5' })}`,
+          `https://api.deezer.com/search/artist?${new URLSearchParams({ q: key, limit: "5" })}`,
         ),
       );
       searchCache.delete(key);
@@ -181,9 +210,12 @@ export function createArtistSources({
 
     async getDeezerArtist(deezerId) {
       try {
-        return parseDeezerArtist(await get(`https://api.deezer.com/artist/${deezerId}`));
+        return parseDeezerArtist(
+          await get(`https://api.deezer.com/artist/${deezerId}`),
+        );
       } catch (error) {
-        if (error instanceof DeezerError && error.code === DEEZER_NO_DATA) return null;
+        if (error instanceof DeezerError && error.code === DEEZER_NO_DATA)
+          return null;
         throw error;
       }
     },
@@ -191,36 +223,39 @@ export function createArtistSources({
     async findWikidata({ deezerId, name }) {
       if (deezerId !== null) {
         const found = await wikidata({
-          action: 'query',
-          list: 'search',
+          action: "query",
+          list: "search",
           srsearch: `haswbstatement:P2722=${deezerId}`,
-          srlimit: '1',
+          srlimit: "1",
         });
-        const [first] = list(isRecord(found) && isRecord(found.query) ? found.query.search : null);
+        const [first] = list(
+          isRecord(found) && isRecord(found.query) ? found.query.search : null,
+        );
         const id = isRecord(first) ? text(first.title) : null;
         if (id) return id;
       }
       const wanted = name.trim().toLowerCase();
       const candidates = parseEntitySearch(
         await wikidata({
-          action: 'wbsearchentities',
+          action: "wbsearchentities",
           search: name,
-          language: 'ru',
-          uselang: 'ru',
-          type: 'item',
-          limit: '7',
+          language: "ru",
+          uselang: "ru",
+          type: "item",
+          limit: "7",
         }),
       ).filter((candidate) => candidate.label.toLowerCase() === wanted);
       if (candidates.length === 0) return null;
       const entities = parseEntities(
         await wikidata({
-          action: 'wbgetentities',
-          ids: candidates.map((c) => c.wikidataId).join('|'),
-          props: 'claims',
+          action: "wbgetentities",
+          ids: candidates.map((c) => c.wikidataId).join("|"),
+          props: "claims",
         }),
       );
       return (
-        candidates.find((candidate) => entities[candidate.wikidataId]?.isArtist)?.wikidataId ?? null
+        candidates.find((candidate) => entities[candidate.wikidataId]?.isArtist)
+          ?.wikidataId ?? null
       );
     },
 
@@ -228,12 +263,12 @@ export function createArtistSources({
       if (!q.trim()) return [];
       return parseEntitySearch(
         await wikidata({
-          action: 'wbsearchentities',
+          action: "wbsearchentities",
           search: q,
-          language: 'ru',
-          uselang: 'ru',
-          type: 'item',
-          limit: '8',
+          language: "ru",
+          uselang: "ru",
+          type: "item",
+          limit: "8",
         }),
       );
     },
@@ -241,10 +276,10 @@ export function createArtistSources({
     async getWiki(wikidataId) {
       const entity = parseEntities(
         await wikidata({
-          action: 'wbgetentities',
+          action: "wbgetentities",
           ids: wikidataId,
-          props: 'sitelinks',
-          sitefilter: 'ruwiki|enwiki',
+          props: "sitelinks",
+          sitefilter: "ruwiki|enwiki",
         }),
       )[wikidataId];
       const wiki: Wiki = {};
@@ -253,7 +288,7 @@ export function createArtistSources({
         if (!title) continue;
         const summary = parseSummary(
           await get(
-            `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replaceAll(' ', '_'))}`,
+            `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replaceAll(" ", "_"))}`,
           ),
         );
         if (summary) wiki[lang] = summary;

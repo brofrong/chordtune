@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { Capacitor } from '@capacitor/core';
-import { CapacitorUpdater } from '@capgo/capacitor-updater';
-import { useEffect, useSyncExternalStore } from 'react';
+import { Capacitor } from "@capacitor/core";
+import { CapacitorUpdater } from "@capgo/capacitor-updater";
+import { useEffect, useSyncExternalStore } from "react";
 
-import { API_URL } from '@/lib/api';
-import { type AppUpdateState, createAppUpdater } from '@/lib/app-updater';
+import { API_URL } from "@/lib/api";
+import { type AppUpdateState, createAppUpdater } from "@/lib/app-updater";
 
 type AppUpdater = ReturnType<typeof createAppUpdater>;
 
@@ -17,18 +17,18 @@ function getUpdater(): AppUpdater {
     plugin: CapacitorUpdater,
     storage: localStorage,
     fetchJson: async (url) => {
-      const response = await fetch(url, { cache: 'no-store' });
+      const response = await fetch(url, { cache: "no-store" });
       return response.ok ? response.json().catch(() => null) : null;
     },
     manifestUrl: `${API_URL}/mobile/update.json`,
-    version: process.env.NEXT_PUBLIC_APP_VERSION ?? '',
-    fingerprint: process.env.NEXT_PUBLIC_NATIVE_FINGERPRINT ?? '',
+    version: process.env.NEXT_PUBLIC_APP_VERSION ?? "",
+    fingerprint: process.env.NEXT_PUBLIC_NATIVE_FINGERPRINT ?? "",
   });
   return updater;
 }
 
 const noop = () => () => {};
-const idle = (): AppUpdateState => 'idle';
+const idle = (): AppUpdateState => "idle";
 
 /**
  * Live updates in the native app: the server's mobile bundle is downloaded in the background and
@@ -47,10 +47,10 @@ export function useAppUpdate() {
     const current = getUpdater();
     void current.start();
     const onVisible = () => {
-      if (document.visibilityState === 'visible') void current.check();
+      if (document.visibilityState === "visible") void current.check();
     };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, [native]);
 
   return {

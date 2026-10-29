@@ -1,25 +1,31 @@
-'use client';
+"use client";
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link2 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link2 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { ArtistCover } from '@/features/songs/song-card';
-import { useRouter } from '@/i18n/navigation';
-import { formatCount } from '@/lib/format';
-import { useTRPC } from '@/lib/trpc';
-import { useDebouncedValue } from '@/lib/use-debounced-value';
-import { cn } from '@/lib/utils';
-import type { ArtistPage } from './artist-view';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { ArtistCover } from "@/features/songs/song-card";
+import { useRouter } from "@/i18n/navigation";
+import { formatCount } from "@/lib/format";
+import { useTRPC } from "@/lib/trpc";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
+import { cn } from "@/lib/utils";
+
+import type { ArtistPage } from "./artist-view";
 
 /** «Change link» for admins: the artist page itself is rendered without the user's session. */
 export function RelinkButton({ artist }: { artist: ArtistPage }) {
-  const t = useTranslations('artist');
+  const t = useTranslations("artist");
   const trpc = useTRPC();
   const canEdit = useQuery(trpc.artists.canEdit.queryOptions());
   const [open, setOpen] = useState(false);
@@ -30,7 +36,7 @@ export function RelinkButton({ artist }: { artist: ArtistPage }) {
     <>
       <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
         <Link2 />
-        {t('relink')}
+        {t("relink")}
       </Button>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
@@ -59,8 +65,10 @@ function Choice({
       aria-pressed={selected}
       onClick={onSelect}
       className={cn(
-        'flex w-full items-center gap-3 rounded-xl border p-2 text-left text-sm transition-colors',
-        selected ? 'border-primary bg-primary/5' : 'border-border hover:bg-surface-2',
+        "flex w-full items-center gap-3 rounded-xl border p-2 text-left text-sm transition-colors",
+        selected
+          ? "border-primary bg-primary/5"
+          : "border-border hover:bg-surface-2",
       )}
     >
       {children}
@@ -68,21 +76,32 @@ function Choice({
   );
 }
 
-function RelinkForm({ artist, onDone }: { artist: ArtistPage; onDone: () => void }) {
-  const t = useTranslations('artist');
+function RelinkForm({
+  artist,
+  onDone,
+}: {
+  artist: ArtistPage;
+  onDone: () => void;
+}) {
+  const t = useTranslations("artist");
   const trpc = useTRPC();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [deezerQ, setDeezerQ] = useState(artist.name);
   const [wikiQ, setWikiQ] = useState(artist.name);
   const [deezerId, setDeezerId] = useState<number | null>(artist.deezerId);
-  const [wikidataId, setWikidataId] = useState<string | null>(artist.wikidataId);
+  const [wikidataId, setWikidataId] = useState<string | null>(
+    artist.wikidataId,
+  );
   const [error, setError] = useState<string | null>(null);
   const deezerQuery = useDebouncedValue(deezerQ.trim(), 300);
   const wikiQuery = useDebouncedValue(wikiQ.trim(), 300);
 
   const deezer = useQuery({
-    ...trpc.artists.searchDeezer.queryOptions({ q: deezerQuery, includeLinked: true }),
+    ...trpc.artists.searchDeezer.queryOptions({
+      q: deezerQuery,
+      includeLinked: true,
+    }),
     enabled: deezerQuery.length >= 2,
     retry: false,
   });
@@ -113,14 +132,18 @@ function RelinkForm({ artist, onDone }: { artist: ArtistPage; onDone: () => void
   return (
     <div className="flex flex-col gap-5 p-4 pt-0">
       <SheetHeader className="px-0">
-        <SheetTitle>{t('relinkTitle')}</SheetTitle>
+        <SheetTitle>{t("relinkTitle")}</SheetTitle>
       </SheetHeader>
 
       <section className="flex flex-col gap-2">
-        <Label htmlFor="relink-deezer">{t('relinkDeezer')}</Label>
-        <Input id="relink-deezer" value={deezerQ} onChange={(e) => setDeezerQ(e.target.value)} />
+        <Label htmlFor="relink-deezer">{t("relinkDeezer")}</Label>
+        <Input
+          id="relink-deezer"
+          value={deezerQ}
+          onChange={(e) => setDeezerQ(e.target.value)}
+        />
         <Choice selected={deezerId === null} onSelect={() => setDeezerId(null)}>
-          {t('noPhoto')}
+          {t("noPhoto")}
         </Choice>
         {artist.deezerId !== null && !currentDeezerListed && (
           <Choice
@@ -132,10 +155,12 @@ function RelinkForm({ artist, onDone }: { artist: ArtistPage; onDone: () => void
               picture={artist.pictureSmallUrl}
               className="size-9 rounded-full text-xs"
             />
-            <span className="min-w-0 flex-1 truncate">{t('currentPhoto')}</span>
+            <span className="min-w-0 flex-1 truncate">{t("currentPhoto")}</span>
           </Choice>
         )}
-        {deezer.isError && <p className="text-muted-foreground text-xs">{t('unavailable')}</p>}
+        {deezer.isError && (
+          <p className="text-muted-foreground text-xs">{t("unavailable")}</p>
+        )}
         {deezer.data?.map((candidate) => (
           <Choice
             key={candidate.deezerId}
@@ -148,16 +173,25 @@ function RelinkForm({ artist, onDone }: { artist: ArtistPage; onDone: () => void
               className="size-9 rounded-full text-xs"
             />
             <span className="min-w-0 flex-1 truncate">{candidate.name}</span>
-            <span className="text-muted-foreground text-xs">{formatCount(candidate.fans)}</span>
+            <span className="text-muted-foreground text-xs">
+              {formatCount(candidate.fans)}
+            </span>
           </Choice>
         ))}
       </section>
 
       <section className="flex flex-col gap-2">
-        <Label htmlFor="relink-wiki">{t('relinkWikipedia')}</Label>
-        <Input id="relink-wiki" value={wikiQ} onChange={(e) => setWikiQ(e.target.value)} />
-        <Choice selected={wikidataId === null} onSelect={() => setWikidataId(null)}>
-          {t('noArticle')}
+        <Label htmlFor="relink-wiki">{t("relinkWikipedia")}</Label>
+        <Input
+          id="relink-wiki"
+          value={wikiQ}
+          onChange={(e) => setWikiQ(e.target.value)}
+        />
+        <Choice
+          selected={wikidataId === null}
+          onSelect={() => setWikidataId(null)}
+        >
+          {t("noArticle")}
         </Choice>
         {artist.wikidataId !== null && !currentWikiListed && (
           <Choice
@@ -165,7 +199,7 @@ function RelinkForm({ artist, onDone }: { artist: ArtistPage; onDone: () => void
             onSelect={() => setWikidataId(artist.wikidataId)}
           >
             <span className="min-w-0 flex-1">
-              <span className="block truncate">{t('currentArticle')}</span>
+              <span className="block truncate">{t("currentArticle")}</span>
               {artist.wiki?.title && (
                 <span className="block truncate text-muted-foreground text-xs">
                   {artist.wiki.title}
@@ -174,7 +208,9 @@ function RelinkForm({ artist, onDone }: { artist: ArtistPage; onDone: () => void
             </span>
           </Choice>
         )}
-        {wiki.isError && <p className="text-muted-foreground text-xs">{t('unavailable')}</p>}
+        {wiki.isError && (
+          <p className="text-muted-foreground text-xs">{t("unavailable")}</p>
+        )}
         {wiki.data?.map((candidate) => (
           <Choice
             key={candidate.wikidataId}
@@ -201,7 +237,7 @@ function RelinkForm({ artist, onDone }: { artist: ArtistPage; onDone: () => void
           relink.mutate({ id: artist.id, deezerId, wikidataId });
         }}
       >
-        {t('save')}
+        {t("save")}
       </Button>
     </div>
   );

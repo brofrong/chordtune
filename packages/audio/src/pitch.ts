@@ -1,16 +1,16 @@
 export const NOTE_NAMES = [
-  'C',
-  'C#',
-  'D',
-  'D#',
-  'E',
-  'F',
-  'F#',
-  'G',
-  'G#',
-  'A',
-  'A#',
-  'B',
+  "C",
+  "C#",
+  "D",
+  "D#",
+  "E",
+  "F",
+  "F#",
+  "G",
+  "G#",
+  "A",
+  "A#",
+  "B",
 ] as const;
 export type NoteName = (typeof NOTE_NAMES)[number];
 
@@ -48,14 +48,20 @@ export function hzToMidiFloat(frequency: number, a4 = DEFAULT_A4_HZ): number {
   return A4_MIDI + 12 * Math.log2(frequency / a4);
 }
 
-export function midiToNoteName(midi: number): { name: NoteName; octave: number } {
+export function midiToNoteName(midi: number): {
+  name: NoteName;
+  octave: number;
+} {
   return {
     name: NOTE_NAMES[((midi % 12) + 12) % 12] as NoteName,
     octave: Math.floor(midi / 12) - 1,
   };
 }
 
-export function frequencyToNote(frequency: number, a4 = DEFAULT_A4_HZ): NoteMatch {
+export function frequencyToNote(
+  frequency: number,
+  a4 = DEFAULT_A4_HZ,
+): NoteMatch {
   const midiFloat = hzToMidiFloat(frequency, a4);
   const midi = Math.round(midiFloat);
   const cents = (midiFloat - midi) * 100;
@@ -81,8 +87,14 @@ export function detectPitchYin(
 ): PitchResult {
   const n = samples.length;
   const half = Math.floor(n / 2);
-  const minTau = Math.max(2, Math.floor(sampleRate / (options.maxHz ?? DEFAULT_MAX_HZ)));
-  const maxTau = Math.min(half - 1, Math.floor(sampleRate / (options.minHz ?? DEFAULT_MIN_HZ)));
+  const minTau = Math.max(
+    2,
+    Math.floor(sampleRate / (options.maxHz ?? DEFAULT_MAX_HZ)),
+  );
+  const maxTau = Math.min(
+    half - 1,
+    Math.floor(sampleRate / (options.minHz ?? DEFAULT_MIN_HZ)),
+  );
   const size = Math.max(2, Math.min(half, maxTau + 2));
   const yin = new Float32Array(size);
   const empty: PitchResult = { frequency: null, confidence: 0, yin, tau: null };
@@ -146,7 +158,12 @@ export function detectPitchYin(
   return { frequency: sampleRate / betterTau, confidence, yin, tau };
 }
 
-function preferLowerOctave(yin: Float32Array, tau: number, minTau: number, maxTau: number): number {
+function preferLowerOctave(
+  yin: Float32Array,
+  tau: number,
+  minTau: number,
+  maxTau: number,
+): number {
   let bestTau = tau;
 
   for (;;) {

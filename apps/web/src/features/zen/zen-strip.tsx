@@ -1,22 +1,30 @@
-'use client';
+"use client";
 
-import { chordKey } from '@chordtune/chord-sheet';
-import { useTranslations } from 'next-intl';
-import { memo, useId, useState } from 'react';
+import { chordKey } from "@chordtune/chord-sheet";
+import { useTranslations } from "next-intl";
+import { memo, useId, useState } from "react";
 
-import { ChordDiagram } from '@/features/chords/chord-diagram';
-import { chordVariants } from '@/features/chords/chord-variants';
-import type { SongSound } from '@/features/rhythm/playback';
-import { cn } from '@/lib/utils';
-import type { StripState } from './zen-view';
+import { ChordDiagram } from "@/features/chords/chord-diagram";
+import { chordVariants } from "@/features/chords/chord-variants";
+import type { SongSound } from "@/features/rhythm/playback";
+import { cn } from "@/lib/utils";
 
-export type StripChordRole = 'current' | 'next' | 'plain';
+import type { StripState } from "./zen-view";
+
+export type StripChordRole = "current" | "next" | "plain";
 
 /** Each strip chord tagged by its role, in order — the sounding one, the next one, the rest. */
-export function stripChordRoles(strip: StripState): { chord: string; role: StripChordRole }[] {
+export function stripChordRoles(
+  strip: StripState,
+): { chord: string; role: StripChordRole }[] {
   return strip.chords.map((chord, index) => ({
     chord,
-    role: index === strip.current ? 'current' : index === strip.next ? 'next' : 'plain',
+    role:
+      index === strip.current
+        ? "current"
+        : index === strip.next
+          ? "next"
+          : "plain",
   }));
 }
 
@@ -31,7 +39,7 @@ export const ZenStrip = memo(function ZenStrip({
   strip: StripState;
   sound: SongSound;
 }) {
-  const t = useTranslations('zen');
+  const t = useTranslations("zen");
   const [shapes, setShapes] = useState(false);
   const shapesHintId = useId();
   if (strip.chords.length === 0) {
@@ -39,18 +47,18 @@ export const ZenStrip = memo(function ZenStrip({
   }
   const spoken = stripChordRoles(strip)
     .map(({ chord, role }) =>
-      role === 'current'
-        ? t('stripCurrent', { chord })
-        : role === 'next'
-          ? t('stripNext', { chord })
+      role === "current"
+        ? t("stripCurrent", { chord })
+        : role === "next"
+          ? t("stripNext", { chord })
           : chord,
     )
-    .join(', ');
+    .join(", ");
   return (
     <button
       type="button"
       aria-expanded={shapes}
-      aria-label={t('stripLabel', { chords: spoken })}
+      aria-label={t("stripLabel", { chords: spoken })}
       aria-describedby={shapesHintId}
       onClick={() => setShapes((open) => !open)}
       className="relative z-20 mx-4 flex flex-col items-center gap-2 rounded-2xl bg-surface/85 px-3 py-2 backdrop-blur-xl"
@@ -60,9 +68,9 @@ export const ZenStrip = memo(function ZenStrip({
           <span
             key={chord}
             className={cn(
-              'rounded-lg px-2 py-0.5 font-bold text-2xl text-chord transition-colors duration-150',
-              index === strip.current && 'bg-chord text-background shadow-glow',
-              index === strip.next && 'ring-2 ring-chord',
+              "rounded-lg px-2 py-0.5 font-bold text-2xl text-chord transition-colors duration-150",
+              index === strip.current && "bg-chord text-background shadow-glow",
+              index === strip.next && "ring-2 ring-chord",
             )}
           >
             {chord}
@@ -73,13 +81,19 @@ export const ZenStrip = memo(function ZenStrip({
         <span className="flex flex-wrap justify-center gap-2">
           {strip.chords.map((chord) => {
             const key = chordKey(chord) ?? chord;
-            const shape = chordVariants(chord, sound.tuning.strings, sound.voicings[key])[0];
-            return shape ? <ChordDiagram key={chord} frets={shape} size="sm" /> : null;
+            const shape = chordVariants(
+              chord,
+              sound.tuning.strings,
+              sound.voicings[key],
+            )[0];
+            return shape ? (
+              <ChordDiagram key={chord} frets={shape} size="sm" />
+            ) : null;
           })}
         </span>
       )}
       <span id={shapesHintId} className="sr-only">
-        {t('showShapes')}
+        {t("showShapes")}
       </span>
     </button>
   );

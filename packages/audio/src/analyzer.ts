@@ -1,5 +1,10 @@
-import { applyHannWindow, downsampleSigned, fftMagnitudes, spectrumToDbBars } from './fft';
-import { analysisGain, applyGain, peakAmplitude, SampleRing } from './pcm';
+import {
+  applyHannWindow,
+  downsampleSigned,
+  fftMagnitudes,
+  spectrumToDbBars,
+} from "./fft";
+import { analysisGain, applyGain, peakAmplitude, SampleRing } from "./pcm";
 import {
   createPitchTracker,
   DEFAULT_A4_HZ,
@@ -9,8 +14,8 @@ import {
   type PitchTrackerState,
   rms,
   trackPitch,
-} from './pitch';
-import { analysisWindowSize } from './tunings';
+} from "./pitch";
+import { analysisWindowSize } from "./tunings";
 
 const DEBUG_POINTS = 128;
 const SPECTRUM_BARS = 72;
@@ -85,7 +90,8 @@ export class TunerAnalyzer {
 
   configure(settings: AnalyzerSettings) {
     const rangeChanged =
-      settings.minHz !== this.settings.minHz || settings.maxHz !== this.settings.maxHz;
+      settings.minHz !== this.settings.minHz ||
+      settings.maxHz !== this.settings.maxHz;
     this.settings = settings;
     const size = analysisWindowSize(this.sampleRate, settings.minHz);
     if (size !== this.ring.size) {
@@ -133,14 +139,17 @@ export class TunerAnalyzer {
     const level = rms(snapshot);
     // Gate before auto-gain: boosted room noise yields confident sub-octave pitches, and the
     // octave tracker would then fold the real note onto that wrong octave for a while.
-    const gated = level < Math.max(MIN_LEVEL, this.noiseFloor * GATE_OVER_FLOOR);
+    const gated =
+      level < Math.max(MIN_LEVEL, this.noiseFloor * GATE_OVER_FLOOR);
 
     const gain = analysisGain(peakAmplitude(snapshot));
     if (gain !== 1) {
       applyGain(snapshot, gain, snapshot);
     }
 
-    const pitch = gated ? null : detectPitchYin(snapshot, this.sampleRate, { minHz, maxHz });
+    const pitch = gated
+      ? null
+      : detectPitchYin(snapshot, this.sampleRate, { minHz, maxHz });
     // The floor only rises on unpitched frames, otherwise a long sustain would gate itself.
     if (level < this.noiseFloor) {
       this.noiseFloor = level;
@@ -155,9 +164,11 @@ export class TunerAnalyzer {
       pitch?.confidence,
     );
     if (frequency != null && this.lastFrequency != null) {
-      const jumped = Math.abs(Math.log2(frequency / this.lastFrequency)) > JUMP_OCTAVES;
+      const jumped =
+        Math.abs(Math.log2(frequency / this.lastFrequency)) > JUMP_OCTAVES;
       if (!jumped) {
-        frequency = this.lastFrequency * SMOOTHING + frequency * (1 - SMOOTHING);
+        frequency =
+          this.lastFrequency * SMOOTHING + frequency * (1 - SMOOTHING);
       }
     }
     this.lastFrequency = frequency;
@@ -167,7 +178,9 @@ export class TunerAnalyzer {
       note: frequency == null ? null : frequencyToNote(frequency, a4),
       confidence: pitch?.confidence ?? 0,
       level,
-      debug: debug ? this.debugFrame(pitch?.yin ?? null, pitch?.tau ?? null, gain) : null,
+      debug: debug
+        ? this.debugFrame(pitch?.yin ?? null, pitch?.tau ?? null, gain)
+        : null,
     };
   }
 
@@ -186,12 +199,20 @@ export class TunerAnalyzer {
     }
 
     return {
-      waveform: Float32Array.from(downsampleSigned(this.snapshot, DEBUG_POINTS)),
+      waveform: Float32Array.from(
+        downsampleSigned(this.snapshot, DEBUG_POINTS),
+      ),
       spectrum: Float32Array.from(
-        spectrumToDbBars(magnitudes, this.sampleRate, SPECTRUM_MAX_HZ, SPECTRUM_BARS),
+        spectrumToDbBars(
+          magnitudes,
+          this.sampleRate,
+          SPECTRUM_MAX_HZ,
+          SPECTRUM_BARS,
+        ),
       ),
       yin: Float32Array.from(downsampleSigned(yin ?? [], DEBUG_POINTS)),
-      yinMarker: tau == null || yin == null ? null : tau / Math.max(1, yin.length - 1),
+      yinMarker:
+        tau == null || yin == null ? null : tau / Math.max(1, yin.length - 1),
       fftPeakHz: (peakBin * this.sampleRate) / this.windowed.length,
       appliedGain,
       windowSize: this.windowed.length,

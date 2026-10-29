@@ -6,12 +6,15 @@ import {
   type TabBlock,
   type TabDuration,
   type TabNote,
-} from './tab';
-import { isTempo, MAX_TEMPO, MIN_TEMPO } from './tempo';
-import type { Diagnostic, Line } from './types';
+} from "./tab";
+import { isTempo, MAX_TEMPO, MIN_TEMPO } from "./tempo";
+import type { Diagnostic, Line } from "./types";
 
 type Pos = { line: number; col: number };
-type Token = Pos & { kind: 'cmd' | 'word' | 'str' | 'dur' | 'punct'; value: string };
+type Token = Pos & {
+  kind: "cmd" | "word" | "str" | "dur" | "punct";
+  value: string;
+};
 
 type Effects = {
   note: NoteEffects;
@@ -30,8 +33,8 @@ const REST_RE = /^r(?:\.(\d+))?$/;
 const BEAT_DURATION_RE = /^\.(\d+)$/;
 const NUMBER_RE = /^\d+$/;
 const WORD_END_RE = /[\s{}()|"\\:]/;
-const PUNCT = '{}()|';
-const META = new Set(['tempo', 'ts', 'lyrics']);
+const PUNCT = "{}()|";
+const META = new Set(["tempo", "ts", "lyrics"]);
 const MAX_FRET = 24;
 const MAX_NUMERATOR = 16;
 const EPSILON = 1e-6;
@@ -43,39 +46,58 @@ function toDuration(text: string): TabDuration | null {
 
 const round = (value: number) => Math.round(value * 1000) / 1000;
 
-function tokenize(lines: readonly string[], firstLineNo: number, diagnostics: Diagnostic[]) {
+function tokenize(
+  lines: readonly string[],
+  firstLineNo: number,
+  diagnostics: Diagnostic[],
+) {
   const tokens: Token[] = [];
   lines.forEach((text, index) => {
     const line = firstLineNo + index;
     let i = 0;
     while (i < text.length) {
-      const char = text[i] ?? '';
+      const char = text[i] ?? "";
       const col = i + 1;
       if (/\s/.test(char)) {
         i++;
       } else if (PUNCT.includes(char)) {
-        tokens.push({ kind: 'punct', value: char, line, col });
+        tokens.push({ kind: "punct", value: char, line, col });
         i++;
       } else if (char === '"') {
         const end = text.indexOf('"', i + 1);
         if (end === -1) {
-          diagnostics.push({ line, col, severity: 'error', message: 'Unclosed "' });
-          tokens.push({ kind: 'str', value: text.slice(i + 1), line, col });
+          diagnostics.push({
+            line,
+            col,
+            severity: "error",
+            message: 'Unclosed "',
+          });
+          tokens.push({ kind: "str", value: text.slice(i + 1), line, col });
           break;
         }
-        tokens.push({ kind: 'str', value: text.slice(i + 1, end), line, col });
+        tokens.push({ kind: "str", value: text.slice(i + 1, end), line, col });
         i = end + 1;
       } else {
         let end = i + 1;
-        while (end < text.length && !WORD_END_RE.test(text[end] ?? '')) {
+        while (end < text.length && !WORD_END_RE.test(text[end] ?? "")) {
           end++;
         }
-        if (char === '\\') {
-          tokens.push({ kind: 'cmd', value: text.slice(i + 1, end), line, col });
-        } else if (char === ':') {
-          tokens.push({ kind: 'dur', value: text.slice(i + 1, end), line, col });
+        if (char === "\\") {
+          tokens.push({
+            kind: "cmd",
+            value: text.slice(i + 1, end),
+            line,
+            col,
+          });
+        } else if (char === ":") {
+          tokens.push({
+            kind: "dur",
+            value: text.slice(i + 1, end),
+            line,
+            col,
+          });
         } else {
-          tokens.push({ kind: 'word', value: text.slice(i, end), line, col });
+          tokens.push({ kind: "word", value: text.slice(i, end), line, col });
         }
         i = end;
       }
@@ -89,8 +111,12 @@ export function alphaTexNoteTokens(
   lines: readonly string[],
 ): { line: number; col: number; text: string }[] {
   return tokenize(lines, 0, [])
-    .filter((token) => token.kind === 'word' && NOTE_RE.test(token.value))
-    .map((token) => ({ line: token.line, col: token.col - 1, text: token.value }));
+    .filter((token) => token.kind === "word" && NOTE_RE.test(token.value))
+    .map((token) => ({
+      line: token.line,
+      col: token.col - 1,
+      text: token.value,
+    }));
 }
 
 function splitSyllables(text: string): string[] {
@@ -98,10 +124,10 @@ function splitSyllables(text: string): string[] {
     .split(/\s+/)
     .filter(Boolean)
     .flatMap((word) => {
-      const parts = word.split('-');
+      const parts = word.split("-");
       return parts
         .map((part, index) => (index < parts.length - 1 ? `${part}-` : part))
-        .filter((part) => part !== '' && part !== '-');
+        .filter((part) => part !== "" && part !== "-");
     });
 }
 
@@ -136,17 +162,22 @@ export function parseAlphaTex(
 ): { block: TabBlock; diagnostics: Diagnostic[] } {
   const diagnostics: Diagnostic[] = [];
   const tokens = tokenize(lines, firstLineNo, diagnostics);
-  const block: TabBlock = { tempo: null, time: [4, 4], bars: [], playOrder: [] };
+  const block: TabBlock = {
+    tempo: null,
+    time: [4, 4],
+    bars: [],
+    playOrder: [],
+  };
   let pos = 0;
   const peek = () => tokens[pos];
   const next = () => tokens[pos++];
   const isPunct = (token: Token | undefined, value: string) =>
-    token?.kind === 'punct' && token.value === value;
-  const report = (at: Pos, severity: Diagnostic['severity'], message: string) =>
+    token?.kind === "punct" && token.value === value;
+  const report = (at: Pos, severity: Diagnostic["severity"], message: string) =>
     diagnostics.push({ line: at.line, col: at.col, severity, message });
   const number = (): number | null => {
     const token = peek();
-    if (token?.kind === 'word' && NUMBER_RE.test(token.value)) {
+    if (token?.kind === "word" && NUMBER_RE.test(token.value)) {
       pos++;
       return Number(token.value);
     }
@@ -155,30 +186,38 @@ export function parseAlphaTex(
 
   // Metadata comes first.
   let lyrics: Token | null = null;
-  for (let token = peek(); token?.kind === 'cmd' && META.has(token.value); token = peek()) {
+  for (
+    let token = peek();
+    token?.kind === "cmd" && META.has(token.value);
+    token = peek()
+  ) {
     pos++;
-    if (token.value === 'tempo') {
+    if (token.value === "tempo") {
       const tempo = number();
       if (tempo !== null && isTempo(tempo)) {
         block.tempo = tempo;
       } else {
-        report(token, 'warning', `Tempo must be ${MIN_TEMPO}–${MAX_TEMPO}: ${tempo ?? ''}`.trim());
+        report(
+          token,
+          "warning",
+          `Tempo must be ${MIN_TEMPO}–${MAX_TEMPO}: ${tempo ?? ""}`.trim(),
+        );
       }
-    } else if (token.value === 'ts') {
+    } else if (token.value === "ts") {
       const n = number();
       const m = number();
       if (n && m && n <= MAX_NUMERATOR && toDuration(String(m))) {
         block.time = [n, m];
       } else {
-        report(token, 'warning', 'Time signature must look like \\ts 3 4');
+        report(token, "warning", "Time signature must look like \\ts 3 4");
       }
     } else {
       const text = peek();
-      if (text?.kind === 'str') {
+      if (text?.kind === "str") {
         pos++;
         lyrics = text;
       } else {
-        report(token, 'error', 'Expected "…" after \\lyrics');
+        report(token, "error", 'Expected "…" after \\lyrics');
       }
     }
   }
@@ -193,7 +232,7 @@ export function parseAlphaTex(
   });
 
   const bendPoints = (): number[] | null => {
-    if (!isPunct(peek(), '(')) {
+    if (!isPunct(peek(), "(")) {
       return null;
     }
     pos++;
@@ -201,7 +240,7 @@ export function parseAlphaTex(
     for (let value = number(); value !== null; value = number()) {
       points.push(value);
     }
-    if (!isPunct(peek(), ')')) {
+    if (!isPunct(peek(), ")")) {
       return null;
     }
     pos++;
@@ -212,107 +251,109 @@ export function parseAlphaTex(
   const effects = (): Effects => {
     const result = emptyEffects();
     const open = peek();
-    if (!open || !isPunct(open, '{')) {
+    if (!open || !isPunct(open, "{")) {
       return result;
     }
     pos++;
     for (;;) {
       const token = next();
       if (!token) {
-        report(open, 'error', 'Unclosed {');
+        report(open, "error", "Unclosed {");
         return result;
       }
-      if (isPunct(token, '}')) {
+      if (isPunct(token, "}")) {
         return result;
       }
-      if (token.kind !== 'word') {
-        report(token, 'error', `Unexpected ${token.value} in {…}`);
+      if (token.kind !== "word") {
+        report(token, "error", `Unexpected ${token.value} in {…}`);
         continue;
       }
       switch (token.value) {
-        case 'd':
+        case "d":
           result.dotted = true;
           break;
-        case 'tu': {
+        case "tu": {
           const n = number();
           if (n !== null && TUPLETS[n]) {
             result.tuplet = n;
           } else {
-            report(token, 'error', 'Tuplet must be tu 3, tu 5 or tu 6');
+            report(token, "error", "Tuplet must be tu 3, tu 5 or tu 6");
           }
           break;
         }
-        case 'h':
+        case "h":
           result.note.hammer = true;
           break;
-        case 'sl':
+        case "sl":
           result.note.slide = true;
           break;
-        case 'v':
+        case "v":
           result.note.vibrato = true;
           break;
-        case 'pm':
+        case "pm":
           result.palmMute = true;
           break;
-        case 'lr':
+        case "lr":
           result.letRing = true;
           break;
-        case 'txt': {
+        case "txt": {
           const text = peek();
-          if (text?.kind === 'str') {
+          if (text?.kind === "str") {
             pos++;
             result.text = text.value;
           } else {
-            report(token, 'error', 'Expected "…" after txt');
+            report(token, "error", 'Expected "…" after txt');
           }
           break;
         }
-        case 'b': {
+        case "b": {
           const bend = bendPoints();
           if (bend) {
             result.note.bend = bend;
           } else {
-            report(token, 'error', 'Bend must look like b (0 4)');
+            report(token, "error", "Bend must look like b (0 4)");
           }
           break;
         }
         default:
-          report(token, 'warning', `Unknown effect: ${token.value}`);
+          report(token, "warning", `Unknown effect: ${token.value}`);
       }
     }
   };
 
   let duration: TabDuration = 4;
-  const lastFret = new Map<number, number | 'x'>();
+  const lastFret = new Map<number, number | "x">();
 
-  const readNote = (token: Token): { note: TabNote; duration: string | undefined } | null => {
+  const readNote = (
+    token: Token,
+  ): { note: TabNote; duration: string | undefined } | null => {
     const match = NOTE_RE.exec(token.value);
     if (!match) {
-      report(token, 'error', `Not a note: ${token.value}`);
+      report(token, "error", `Not a note: ${token.value}`);
       return null;
     }
-    const [, fretText = '', stringText = '', durationText] = match;
+    const [, fretText = "", stringText = "", durationText] = match;
     const string = Number(stringText);
     if (string < 1 || string > 6) {
-      report(token, 'error', `String must be 1–6: ${token.value}`);
+      report(token, "error", `String must be 1–6: ${token.value}`);
       return null;
     }
-    let fret: number | 'x';
+    let fret: number | "x";
     let tie = false;
-    if (fretText === '-') {
+    if (fretText === "-") {
       const previous = lastFret.get(string);
       if (previous === undefined) {
-        report(token, 'error', `Nothing to tie on string ${string}`);
+        report(token, "error", `Nothing to tie on string ${string}`);
         return null;
       }
       fret = previous;
       tie = true;
-    } else if (fretText === 'x') {
-      fret = 'x';
+    } else if (fretText === "x") {
+      fret = "x";
     } else {
       fret = Number(fretText);
       if (fret > MAX_FRET) {
-        report(token, 'error', `Fret must be 0–${MAX_FRET}: ${token.value}`);
+        report(token, "error", `Fret must be 0–${MAX_FRET}: ${token.value}`);
         return null;
       }
     }
@@ -330,7 +371,7 @@ export function parseAlphaTex(
     if (durationText !== undefined) {
       const parsed = toDuration(durationText);
       if (!parsed) {
-        report(at, 'error', `Unknown duration: .${durationText}`);
+        report(at, "error", `Unknown duration: .${durationText}`);
         return null;
       }
       beatDuration = parsed;
@@ -368,14 +409,14 @@ export function parseAlphaTex(
     for (;;) {
       const token = next();
       if (!token) {
-        report(open, 'error', 'Unclosed (');
+        report(open, "error", "Unclosed (");
         return null;
       }
-      if (isPunct(token, ')')) {
+      if (isPunct(token, ")")) {
         break;
       }
-      if (token.kind !== 'word') {
-        report(token, 'error', `Unexpected ${token.value} in (…)`);
+      if (token.kind !== "word") {
+        report(token, "error", `Unexpected ${token.value} in (…)`);
         continue;
       }
       const read = readNote(token);
@@ -384,21 +425,22 @@ export function parseAlphaTex(
         continue;
       }
       if (read.duration !== undefined) {
-        report(token, 'error', 'Put the duration after the closing )');
+        report(token, "error", "Put the duration after the closing )");
       }
       read.note.effects = fx.note;
       notes.push(read.note);
     }
     let durationText: string | undefined;
     const after = peek();
-    const match = after?.kind === 'word' ? BEAT_DURATION_RE.exec(after.value) : null;
+    const match =
+      after?.kind === "word" ? BEAT_DURATION_RE.exec(after.value) : null;
     if (match) {
       pos++;
       durationText = match[1];
     }
     const fx = effects();
     if (notes.length === 0) {
-      report(open, 'error', 'Empty chord ()');
+      report(open, "error", "Empty chord ()");
       return null;
     }
     for (const note of notes) {
@@ -407,7 +449,11 @@ export function parseAlphaTex(
     return makeBeat(open, notes, durationText, fx);
   };
 
-  const newBar = (): TabBar => ({ beats: [], repeatOpen: false, repeatClose: null });
+  const newBar = (): TabBar => ({
+    beats: [],
+    repeatOpen: false,
+    repeatClose: null,
+  });
   let bar = newBar();
   const bars: TabBar[] = [bar];
   const barAt: Pos[] = [peek() ?? { line: firstLineNo, col: 1 }];
@@ -415,51 +461,51 @@ export function parseAlphaTex(
 
   while (pos < tokens.length) {
     const token = next() as Token;
-    if (isPunct(token, '|')) {
+    if (isPunct(token, "|")) {
       bar = newBar();
       bars.push(bar);
       barAt.push(token);
       continue;
     }
-    if (token.kind === 'cmd') {
-      if (token.value === 'ro') {
+    if (token.kind === "cmd") {
+      if (token.value === "ro") {
         if (repeatOpen) {
-          report(token, 'error', 'Nested repeats are not supported');
+          report(token, "error", "Nested repeats are not supported");
         }
         repeatOpen = true;
         bar.repeatOpen = true;
-      } else if (token.value === 'rc') {
+      } else if (token.value === "rc") {
         const times = number();
         if (times !== null && times >= 2) {
           bar.repeatClose = times;
         } else {
-          report(token, 'error', 'Expected \\rc N with N ≥ 2');
+          report(token, "error", "Expected \\rc N with N ≥ 2");
         }
         repeatOpen = false;
       } else {
-        report(token, 'warning', `Unknown command: \\${token.value}`);
+        report(token, "warning", `Unknown command: \\${token.value}`);
       }
       continue;
     }
-    if (token.kind === 'dur') {
+    if (token.kind === "dur") {
       const parsed = toDuration(token.value);
       if (parsed) {
         duration = parsed;
       } else {
-        report(token, 'error', `Unknown duration: :${token.value}`);
+        report(token, "error", `Unknown duration: :${token.value}`);
       }
       continue;
     }
-    let beat: TabBeat | null = null;
-    if (isPunct(token, '(')) {
+    let beat: TabBeat | null;
+    if (isPunct(token, "(")) {
       beat = chordBeat(token);
-    } else if (token.kind === 'word') {
+    } else if (token.kind === "word") {
       beat = singleBeat(token);
     } else {
       report(
         token,
-        'error',
-        `Unexpected ${token.kind === 'str' ? `"${token.value}"` : token.value}`,
+        "error",
+        `Unexpected ${token.kind === "str" ? `"${token.value}"` : token.value}`,
       );
       continue;
     }
@@ -485,7 +531,7 @@ export function parseAlphaTex(
     if (Math.abs(total - expected) > EPSILON) {
       report(
         barAt[index] ?? { line: firstLineNo, col: 1 },
-        'warning',
+        "warning",
         `Bar ${index + 1}: ${round(total)} of ${round(expected)} quarter notes`,
       );
     }
@@ -502,10 +548,14 @@ export function parseAlphaTex(
         continue;
       }
       const syllable = syllables[used++] ?? null;
-      beat.syllable = syllable === '_' ? null : syllable;
+      beat.syllable = syllable === "_" ? null : syllable;
     }
     if (used < syllables.length) {
-      report(lyrics, 'warning', `Syllables without notes: ${syllables.length - used}`);
+      report(
+        lyrics,
+        "warning",
+        `Syllables without notes: ${syllables.length - used}`,
+      );
     }
   }
 
@@ -516,5 +566,5 @@ export function parseAlphaTex(
 
 /** A song line for an alphaTex block, e.g. after editing its source. */
 export function alphatexLine(source: string[]): Line {
-  return { type: 'alphatex', source, block: parseAlphaTex(source).block };
+  return { type: "alphatex", source, block: parseAlphaTex(source).block };
 }

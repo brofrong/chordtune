@@ -1,10 +1,10 @@
-import type { Item } from '@chordtune/chord-sheet';
-import type * as React from 'react';
+import type { Item } from "@chordtune/chord-sheet";
+import type * as React from "react";
 
-import { rhythmColor } from '@/features/rhythm/rhythm-colors';
-import { cn } from '@/lib/utils';
+import { rhythmColor } from "@/features/rhythm/rhythm-colors";
+import { cn } from "@/lib/utils";
 
-type MarkItem = Exclude<Item, { type: 'text' }>;
+type MarkItem = Exclude<Item, { type: "text" }>;
 
 /** A chord, bar line, rhythm marker or repeat drawn above the lyrics. */
 export function MarkChip({
@@ -19,11 +19,11 @@ export function MarkChip({
   className?: string;
 }) {
   switch (item.type) {
-    case 'chord': {
+    case "chord": {
       const classes = cn(
-        'rounded px-0.5 font-semibold text-chord leading-5 transition-colors',
-        active && 'bg-chord text-background',
-        onClick && 'cursor-pointer hover:bg-chord/15',
+        "rounded px-0.5 font-semibold text-chord leading-5 transition-colors",
+        active && "bg-chord text-background",
+        onClick && "cursor-pointer hover:bg-chord/15",
         className,
       );
       return onClick ? (
@@ -34,15 +34,20 @@ export function MarkChip({
         <span className={classes}>{item.chord}</span>
       );
     }
-    case 'bar':
-      return (
-        <span className={cn('mx-0.5 h-5 w-px self-center bg-muted-foreground/60', className)} />
-      );
-    case 'rhythm':
+    case "bar":
       return (
         <span
           className={cn(
-            'rounded px-1 font-mono font-semibold text-xs leading-5 ring-1',
+            "mx-0.5 h-5 w-px self-center bg-muted-foreground/60",
+            className,
+          )}
+        />
+      );
+    case "rhythm":
+      return (
+        <span
+          className={cn(
+            "rounded px-1 font-mono font-semibold text-xs leading-5 ring-1",
             rhythmColor(item.key),
             className,
           )}
@@ -50,9 +55,14 @@ export function MarkChip({
           {item.key}
         </span>
       );
-    case 'repeat':
+    case "repeat":
       return (
-        <span className={cn('px-0.5 font-mono text-muted-foreground text-xs leading-5', className)}>
+        <span
+          className={cn(
+            "px-0.5 font-mono text-muted-foreground text-xs leading-5",
+            className,
+          )}
+        >
           ×{item.times}
         </span>
       );

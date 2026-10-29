@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import { type Item, isChord } from '@chordtune/chord-sheet';
-import { Guitar, Trash2 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { isChord, type Item } from "@chordtune/chord-sheet";
+import { Guitar, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent } from '@/components/ui/popover';
-import { rhythmColor } from '@/features/rhythm/rhythm-colors';
-import { cn } from '@/lib/utils';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent } from "@/components/ui/popover";
+import { rhythmColor } from "@/features/rhythm/rhythm-colors";
+import { cn } from "@/lib/utils";
 
-type MarkItem = Exclude<Item, { type: 'text' }>;
+type MarkItem = Exclude<Item, { type: "text" }>;
 
 const REPEATS = [2, 3, 4];
 
@@ -36,8 +36,10 @@ export function ChordPalette({
   onClose: () => void;
   onVoicing?: (chord: string) => void;
 }) {
-  const t = useTranslations('editor.palette');
-  const [value, setValue] = useState(current?.type === 'chord' ? current.chord : '');
+  const t = useTranslations("editor.palette");
+  const [value, setValue] = useState(
+    current?.type === "chord" ? current.chord : "",
+  );
   const [invalid, setInvalid] = useState(false);
 
   const submit = () => {
@@ -46,7 +48,7 @@ export function ChordPalette({
       setInvalid(true);
       return;
     }
-    onPick({ type: 'chord', chord });
+    onPick({ type: "chord", chord });
   };
 
   return (
@@ -54,16 +56,18 @@ export function ChordPalette({
       <PopoverContent anchor={anchor} align="start" className="w-72">
         {chords.length > 0 && (
           <div className="flex flex-col gap-1">
-            <span className="text-muted-foreground text-xs">{t('chords')}</span>
+            <span className="text-muted-foreground text-xs">{t("chords")}</span>
             <div className="flex flex-wrap gap-1">
               {chords.map((chord) => (
                 <Button
                   key={chord}
                   size="sm"
                   variant={
-                    current?.type === 'chord' && current.chord === chord ? 'default' : 'outline'
+                    current?.type === "chord" && current.chord === chord
+                      ? "default"
+                      : "outline"
                   }
-                  onClick={() => onPick({ type: 'chord', chord })}
+                  onClick={() => onPick({ type: "chord", chord })}
                 >
                   {chord}
                 </Button>
@@ -82,7 +86,7 @@ export function ChordPalette({
             autoFocus
             value={value}
             aria-invalid={invalid}
-            placeholder={t('input')}
+            placeholder={t("input")}
             autoCapitalize="characters"
             autoCorrect="off"
             spellCheck={false}
@@ -92,21 +96,25 @@ export function ChordPalette({
             }}
           />
           <Button type="submit" size="sm" className="h-8">
-            {t('add')}
+            {t("add")}
           </Button>
         </form>
-        {invalid && <p className="text-destructive text-xs">{t('invalid')}</p>}
+        {invalid && <p className="text-destructive text-xs">{t("invalid")}</p>}
         <div className="flex flex-wrap items-center gap-1">
-          <Button size="sm" variant="outline" onClick={() => onPick({ type: 'bar' })}>
-            | {t('bar')}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onPick({ type: "bar" })}
+          >
+            | {t("bar")}
           </Button>
           {REPEATS.map((times) => (
             <Button
               key={times}
               size="sm"
               variant="outline"
-              aria-label={`${t('repeat')} ×${times}`}
-              onClick={() => onPick({ type: 'repeat', times })}
+              aria-label={`${t("repeat")} ×${times}`}
+              onClick={() => onPick({ type: "repeat", times })}
             >
               ×{times}
             </Button>
@@ -114,14 +122,14 @@ export function ChordPalette({
         </div>
         {rhythmKeys.length > 0 && (
           <div className="flex flex-wrap items-center gap-1">
-            <span className="text-muted-foreground text-xs">{t('rhythm')}</span>
+            <span className="text-muted-foreground text-xs">{t("rhythm")}</span>
             {rhythmKeys.map((key) => (
               <button
                 key={key}
                 type="button"
-                onClick={() => onPick({ type: 'rhythm', key })}
+                onClick={() => onPick({ type: "rhythm", key })}
                 className={cn(
-                  'rounded px-2 py-0.5 font-mono font-semibold text-xs ring-1',
+                  "rounded px-2 py-0.5 font-mono font-semibold text-xs ring-1",
                   rhythmColor(key),
                 )}
               >
@@ -130,7 +138,7 @@ export function ChordPalette({
             ))}
           </div>
         )}
-        {current?.type === 'chord' && onVoicing && (
+        {current?.type === "chord" && onVoicing && (
           <Button
             size="sm"
             variant="outline"
@@ -138,7 +146,7 @@ export function ChordPalette({
             onClick={() => onVoicing(current.chord)}
           >
             <Guitar />
-            {t('voicing')}
+            {t("voicing")}
           </Button>
         )}
         {current && (
@@ -149,7 +157,7 @@ export function ChordPalette({
             onClick={onRemove}
           >
             <Trash2 />
-            {t('remove')}
+            {t("remove")}
           </Button>
         )}
       </PopoverContent>

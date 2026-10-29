@@ -1,4 +1,5 @@
-import { GeistSans } from 'geist/font/sans';
+import { GeistSans } from "geist/font/sans";
+import Link from "next/link";
 
 export default function NotFound() {
   return (
@@ -6,9 +7,12 @@ export default function NotFound() {
       <body className="grid min-h-dvh place-items-center">
         <div className="text-center">
           <p className="font-semibold text-6xl">404</p>
-          <a className="mt-4 inline-block text-muted-foreground underline" href="/">
+          <Link
+            className="mt-4 inline-block text-muted-foreground underline"
+            href="/"
+          >
             ChordTune
-          </a>
+          </Link>
         </div>
       </body>
     </html>

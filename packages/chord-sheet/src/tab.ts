@@ -1,12 +1,17 @@
 export type TabDuration = 1 | 2 | 4 | 8 | 16 | 32;
 
 /** `hammer` and `slide` lead to the next note on the same string; `bend` is in quarter tones. */
-export type NoteEffects = { hammer?: true; slide?: true; bend?: number[]; vibrato?: true };
+export type NoteEffects = {
+  hammer?: true;
+  slide?: true;
+  bend?: number[];
+  vibrato?: true;
+};
 
 /** `string` 1 is the high E. A tie holds the previous fret on the string without a new attack. */
 export type TabNote = {
   string: number;
-  fret: number | 'x';
+  fret: number | "x";
   tie: boolean;
   effects: NoteEffects;
   /** Set when a capo leaves no fret for the note: `fret` is then outside 0–24 with this capo. */
@@ -27,7 +32,11 @@ export type TabBeat = {
   letRing: boolean;
 };
 
-export type TabBar = { beats: TabBeat[]; repeatOpen: boolean; repeatClose: number | null };
+export type TabBar = {
+  beats: TabBeat[];
+  repeatOpen: boolean;
+  repeatClose: number | null;
+};
 
 export type TabBlock = {
   /** `\tempo`; `null` takes the section's or the song's. */

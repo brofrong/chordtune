@@ -1,29 +1,34 @@
-'use client';
+"use client";
 
 import {
-  RHYTHM_PRESETS,
   type Rhythm,
-  type RhythmKind,
+  RHYTHM_PRESETS,
   rhythmFromPreset,
-} from '@chordtune/chord-sheet';
-import { Plus } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
-import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+  type RhythmKind,
+} from "@chordtune/chord-sheet";
+import { Plus } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
 
-import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { spring } from '@/lib/motion';
-import { RhythmBadge } from './rhythm-badge';
-import { RhythmEditorSheet } from './rhythm-editor-sheet';
-import { RhythmStrip } from './rhythm-strip';
-import type { StrumPlayerControls } from './use-strum-player';
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { spring } from "@/lib/motion";
 
-const KEYS = 'ABCDEFGHIJKLMNOP';
+import { RhythmBadge } from "./rhythm-badge";
+import { RhythmEditorSheet } from "./rhythm-editor-sheet";
+import { RhythmStrip } from "./rhythm-strip";
+import type { StrumPlayerControls } from "./use-strum-player";
+
+const KEYS = "ABCDEFGHIJKLMNOP";
 
 function nextKey(rhythms: Rhythm[]): string | null {
   const used = new Set(rhythms.map((rhythm) => rhythm.key));
-  return [...KEYS].find((key) => !used.has(key)) ?? null;
+  return Array.from(KEYS).find((key) => !used.has(key)) ?? null;
 }
 
 /** The song's rhythms as a strip of chips; tap one to edit, «+» adds a preset or an empty one. */
@@ -40,7 +45,7 @@ export function RhythmChips({
   bpm: number;
   player: StrumPlayerControls;
 }) {
-  const t = useTranslations('rhythm');
+  const t = useTranslations("rhythm");
   const [editing, setEditing] = useState<Rhythm | null>(null);
   const [adding, setAdding] = useState(false);
   const key = nextKey(rhythms);
@@ -55,7 +60,7 @@ export function RhythmChips({
       key: newKey,
       name: t(kind),
       kind,
-      time: '4/4',
+      time: "4/4",
       steps: Array.from({ length: 8 }, () => null),
     });
 
@@ -88,15 +93,17 @@ export function RhythmChips({
                 variant="outline"
                 size="sm"
                 className="shrink-0 rounded-full border-dashed text-primary"
-                aria-label={t('add')}
+                aria-label={t("add")}
               />
             }
           >
             <Plus />
-            {rhythms.length === 0 && t('title')}
+            {rhythms.length === 0 && t("title")}
           </PopoverTrigger>
           <PopoverContent align="start" className="w-64 gap-1">
-            <span className="px-1 text-muted-foreground text-xs">{t('presets')}</span>
+            <span className="px-1 text-muted-foreground text-xs">
+              {t("presets")}
+            </span>
             {RHYTHM_PRESETS.map((preset) => (
               <Button
                 key={preset.id}
@@ -106,11 +113,11 @@ export function RhythmChips({
                 onClick={() =>
                   add({
                     ...rhythmFromPreset(preset, key),
-                    name: t(`presetNames.${preset.id}` as 'presetNames.six'),
+                    name: t(`presetNames.${preset.id}` as "presetNames.six"),
                   })
                 }
               >
-                {t(`presetNames.${preset.id}` as 'presetNames.six')}
+                {t(`presetNames.${preset.id}` as "presetNames.six")}
                 <RhythmStrip rhythm={preset} className="text-xs" />
               </Button>
             ))}
@@ -118,17 +125,17 @@ export function RhythmChips({
               variant="ghost"
               size="sm"
               className="justify-start"
-              onClick={() => addEmpty('strum', key)}
+              onClick={() => addEmpty("strum", key)}
             >
-              {t('emptyStrum')}
+              {t("emptyStrum")}
             </Button>
             <Button
               variant="ghost"
               size="sm"
               className="justify-start"
-              onClick={() => addEmpty('pick', key)}
+              onClick={() => addEmpty("pick", key)}
             >
-              {t('emptyPick')}
+              {t("emptyPick")}
             </Button>
           </PopoverContent>
         </Popover>
@@ -138,8 +145,12 @@ export function RhythmChips({
         chords={chords}
         bpm={bpm}
         player={player}
-        onSave={(saved) => onChange(rhythms.map((r) => (r.key === saved.key ? saved : r)))}
-        onDelete={(removed) => onChange(rhythms.filter((r) => r.key !== removed))}
+        onSave={(saved) =>
+          onChange(rhythms.map((r) => (r.key === saved.key ? saved : r)))
+        }
+        onDelete={(removed) =>
+          onChange(rhythms.filter((r) => r.key !== removed))
+        }
         onClose={() => setEditing(null)}
       />
     </div>

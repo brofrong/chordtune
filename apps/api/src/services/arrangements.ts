@@ -1,13 +1,17 @@
-import { TRPCError } from '@trpc/server';
-import { desc, eq } from 'drizzle-orm';
+import { TRPCError } from "@trpc/server";
+import { desc, eq } from "drizzle-orm";
 
-import type { Database } from '../db';
-import { arrangementLike, arrangementSave } from '../db/schema';
-import { viewerState } from './social';
+import type { Database } from "../db";
+import { arrangementLike, arrangementSave } from "../db/schema";
+import { viewerState } from "./social";
 
 export const WITH_DETAILS = {
   song: {
-    with: { artist: { columns: { id: true, name: true, slug: true, pictureSmallUrl: true } } },
+    with: {
+      artist: {
+        columns: { id: true, name: true, slug: true, pictureSmallUrl: true },
+      },
+    },
   },
   author: { columns: { id: true, name: true, username: true } },
 } as const;
@@ -48,7 +52,10 @@ export function toListItem(row: ListRow): ArrangementListItem {
 }
 
 async function findRows(db: Database, ids: string[]) {
-  return db.query.arrangement.findMany({ where: { id: { in: ids } }, with: WITH_DETAILS });
+  return db.query.arrangement.findMany({
+    where: { id: { in: ids } },
+    with: WITH_DETAILS,
+  });
 }
 
 export type ArrangementRow = Awaited<ReturnType<typeof findRows>>[number];
@@ -59,8 +66,8 @@ export async function toView(
   row: ArrangementRow | undefined,
   viewerId: string | undefined,
 ) {
-  if (!row || (row.status === 'draft' && row.authorId !== viewerId)) {
-    throw new TRPCError({ code: 'NOT_FOUND' });
+  if (!row || (row.status === "draft" && row.authorId !== viewerId)) {
+    throw new TRPCError({ code: "NOT_FOUND" });
   }
   const {
     song,
@@ -85,7 +92,11 @@ export async function toView(
 
 export type ArrangementView = Awaited<ReturnType<typeof toView>>;
 
-export async function findView(db: Database, id: string, viewerId: string | undefined) {
+export async function findView(
+  db: Database,
+  id: string,
+  viewerId: string | undefined,
+) {
   const [row] = await findRows(db, [id]);
   return toView(db, row, viewerId);
 }
@@ -130,7 +141,7 @@ export async function likedArrangements(db: Database, userId: string) {
 export async function myArrangements(db: Database, userId: string) {
   const rows = await db.query.arrangement.findMany({
     where: { authorId: userId },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     with: WITH_DETAILS,
   });
   return rows.map(toListItem);

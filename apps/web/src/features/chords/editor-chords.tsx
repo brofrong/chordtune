@@ -1,10 +1,11 @@
-'use client';
+"use client";
 
-import { useTranslations } from 'next-intl';
+import { useTranslations } from "next-intl";
 
-import type { SongSound } from '@/features/rhythm/playback';
-import { ChordDiagram } from './chord-diagram';
-import { chordVariants } from './chord-variants';
+import type { SongSound } from "@/features/rhythm/playback";
+
+import { ChordDiagram } from "./chord-diagram";
+import { chordVariants } from "./chord-variants";
 
 /** The song's chords above the editor, each with the shape readers will see; tap to change it. */
 export function EditorChords({
@@ -16,13 +17,15 @@ export function EditorChords({
   sound: SongSound;
   onEdit: (chord: string) => void;
 }) {
-  const t = useTranslations('chords');
+  const t = useTranslations("chords");
   if (chords.length === 0) {
     return null;
   }
   return (
     <section className="flex flex-col gap-1">
-      <h2 className="text-muted-foreground text-xs uppercase tracking-wide">{t('title')}</h2>
+      <h2 className="text-muted-foreground text-xs uppercase tracking-wide">
+        {t("title")}
+      </h2>
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
         {chords.map((chord) => {
           const own = sound.voicings[chord];
@@ -31,19 +34,19 @@ export function EditorChords({
             <button
               key={chord}
               type="button"
-              aria-label={t(own ? 'editVoicingOwn' : 'editVoicing', { chord })}
+              aria-label={t(own ? "editVoicingOwn" : "editVoicing", { chord })}
               onClick={() => onEdit(chord)}
               className="flex shrink-0 flex-col items-center gap-0.5 rounded-2xl border border-border bg-surface px-2 py-1.5"
             >
               <span className="font-semibold text-chord text-sm">
                 {chord}
-                {own ? ' •' : ''}
+                {own ? " •" : ""}
               </span>
               {shape ? (
                 <ChordDiagram frets={shape} size="sm" />
               ) : (
                 <span className="flex h-20 w-16 items-center text-center text-muted-foreground text-xs">
-                  {t('noShape')}
+                  {t("noShape")}
                 </span>
               )}
             </button>

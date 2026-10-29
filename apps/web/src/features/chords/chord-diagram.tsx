@@ -1,5 +1,6 @@
-import { cn } from '@/lib/utils';
-import { diagramLayout } from './diagram-layout';
+import { cn } from "@/lib/utils";
+
+import { diagramLayout } from "./diagram-layout";
 
 // `left` leaves room for a two-digit base-fret label: its right edge sits at `left - dot - 2`,
 // and two digits at `font` px run about `1.2 * font` wide, so `left` needs to clear
@@ -13,7 +14,7 @@ const TOP = 12;
 /** A chord box: strings, five frets, the nut or the first fret's number, `×`/`o`, dots, barre. */
 export function ChordDiagram({
   frets,
-  size = 'md',
+  size = "md",
   className,
 }: {
   frets: readonly (number | null)[];
@@ -34,7 +35,7 @@ export function ChordDiagram({
       viewBox={`0 0 ${width} ${height}`}
       width={width}
       height={height}
-      className={cn('text-foreground', className)}
+      className={cn("text-foreground", className)}
     >
       {layout.base > 1 && (
         <text

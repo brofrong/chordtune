@@ -1,4 +1,4 @@
-import { authClient } from '@/lib/auth-client';
+import { authClient } from "@/lib/auth-client";
 
 type TelegramWidget = {
   Login: {
@@ -15,7 +15,7 @@ declare global {
   }
 }
 
-const SCRIPT = 'https://telegram.org/js/telegram-widget.js?22';
+const SCRIPT = "https://telegram.org/js/telegram-widget.js?22";
 let loading: Promise<TelegramWidget> | null = null;
 
 /** The widget script, loaded once on first use rather than on every page. */
@@ -24,14 +24,16 @@ function loadWidget(): Promise<TelegramWidget> {
     return Promise.resolve(window.Telegram);
   }
   loading ??= new Promise((resolve, reject) => {
-    const script = document.createElement('script');
+    const script = document.createElement("script");
     script.src = SCRIPT;
     script.async = true;
     script.onload = () =>
-      window.Telegram?.Login ? resolve(window.Telegram) : reject(new Error('No Telegram widget'));
+      window.Telegram?.Login
+        ? resolve(window.Telegram)
+        : reject(new Error("No Telegram widget"));
     script.onerror = () => {
       loading = null;
-      reject(new Error('Telegram widget failed to load'));
+      reject(new Error("Telegram widget failed to load"));
     };
     document.head.append(script);
   });
@@ -42,8 +44,9 @@ function loadWidget(): Promise<TelegramWidget> {
 export async function requestTelegramAuth(botId: string) {
   const widget = await loadWidget();
   return new Promise<Record<string, unknown> | null>((resolve) => {
-    widget.Login.auth({ bot_id: botId, lang: document.documentElement.lang }, (data) =>
-      resolve(data || null),
+    widget.Login.auth(
+      { bot_id: botId, lang: document.documentElement.lang },
+      (data) => resolve(data || null),
     );
   });
 }
@@ -55,7 +58,7 @@ export async function openTelegramLogin(
   if (!data) {
     return;
   }
-  return authClient.$fetch('/telegram/sign-in', { method: 'POST', body: data });
+  return authClient.$fetch("/telegram/sign-in", { method: "POST", body: data });
 }
 
 export async function linkTelegram(
@@ -65,5 +68,5 @@ export async function linkTelegram(
   if (!data) {
     return;
   }
-  return authClient.$fetch('/telegram/link', { method: 'POST', body: data });
+  return authClient.$fetch("/telegram/link", { method: "POST", body: data });
 }

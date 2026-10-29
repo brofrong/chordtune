@@ -1,4 +1,4 @@
-const KEY = 'chordtune.passkey-offer-dismissed';
+const KEY = "chordtune.passkey-offer-dismissed";
 
 export function shouldOfferPasskey(params: {
   signedIn: boolean;
@@ -6,20 +6,25 @@ export function shouldOfferPasskey(params: {
   passkeyCount: number | undefined;
   dismissed: boolean;
 }) {
-  return params.signedIn && params.supported && params.passkeyCount === 0 && !params.dismissed;
+  return (
+    params.signedIn &&
+    params.supported &&
+    params.passkeyCount === 0 &&
+    !params.dismissed
+  );
 }
 
 export const passkeyOfferStore = {
   dismissed() {
     try {
-      return localStorage.getItem(KEY) === '1';
+      return localStorage.getItem(KEY) === "1";
     } catch {
       return true;
     }
   },
   dismiss() {
     try {
-      localStorage.setItem(KEY, '1');
+      localStorage.setItem(KEY, "1");
     } catch {
       // storage can be unavailable
     }

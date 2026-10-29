@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import type { Tuning } from '@chordtune/audio';
-import { type MotionValue, useMotionValue, useSpring } from 'motion/react';
-import { useEffect, useRef, useState } from 'react';
+import type { Tuning } from "@chordtune/audio";
+import { type MotionValue, useMotionValue, useSpring } from "motion/react";
+import { useEffect, useRef, useState } from "react";
 
-import type { FrameStore } from './frame-store';
-import { computeReading, type TuneZone, tuneZone } from './reading';
-import { TunedTracker } from './tuned-tracker';
+import type { FrameStore } from "./frame-store";
+import { computeReading, type TuneZone, tuneZone } from "./reading";
+import { TunedTracker } from "./tuned-tracker";
 
 const STALE_AFTER_MS = 900;
 
@@ -16,7 +16,7 @@ export type ReadingView = {
   targetIndex: number | null;
   targetLabel: string | null;
   zone: TuneZone | null;
-  direction: 'up' | 'down' | null;
+  direction: "up" | "down" | null;
   stale: boolean;
 };
 
@@ -126,7 +126,7 @@ export function useTunerReading(
         targetIndex: reading.targetIndex,
         targetLabel: reading.targetLabel,
         zone,
-        direction: zone === 'in' ? null : reading.cents < 0 ? 'up' : 'down',
+        direction: zone === "in" ? null : reading.cents < 0 ? "up" : "down",
         stale: false,
       });
     });

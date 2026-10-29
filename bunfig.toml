@@ -1,0 +1,28 @@
+[fmt]
+sortImports = true
+ignorePatterns = [
+  "old/",
+  "**/.next",
+  "**/out",
+  "**/dist",
+  "**/ios",
+  "**/android",
+  "**/drizzle",
+  "**/fixtures",
+  "**/next-env.d.ts",
+]
+
+[lint.categories]
+correctness = "error"
+
+[lint.rules]
+# SVG <svg role="img" aria-label> is the correct markup for inline SVGs
+"jsx-a11y/prefer-tag-over-role" = "off"
+# React hooks - architectural pattern: setting state in effects is intentional
+"react-hooks/set-state-in-effect" = "off"
+"react-hooks/refs" = "off"
+# Accessibility rules for specific UI patterns
+"jsx-a11y/no-autofocus" = "off"
+"jsx-a11y/no-static-element-interactions" = "off"
+"jsx-a11y/label-has-associated-control" = "off"
+"jsx-a11y/control-has-associated-label" = "off"

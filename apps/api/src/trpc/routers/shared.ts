@@ -1,7 +1,7 @@
-import { TRPCError } from '@trpc/server';
+import { TRPCError } from "@trpc/server";
 
-import type { ArrangementDoc } from '../../search';
-import type { ArrangementListItem } from '../../services/arrangements';
+import type { ArrangementDoc } from "../../search";
+import type { ArrangementListItem } from "../../services/arrangements";
 
 export function listItemFromDoc(doc: ArrangementDoc): ArrangementListItem {
   return {
@@ -21,10 +21,10 @@ export async function fromSearch<T>(query: () => Promise<T>): Promise<T> {
   try {
     return await query();
   } catch (error) {
-    console.error('Search failed', error);
+    console.error("Search failed", error);
     throw new TRPCError({
-      code: 'SERVICE_UNAVAILABLE',
-      message: 'search-unavailable',
+      code: "SERVICE_UNAVAILABLE",
+      message: "search-unavailable",
       cause: error,
     });
   }

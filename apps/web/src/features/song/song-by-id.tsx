@@ -1,33 +1,34 @@
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
-import { CloudOff } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
-import { useEffect } from 'react';
+import { useQuery } from "@tanstack/react-query";
+import { CloudOff } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 
-import { getOffline, saveOffline } from '@/features/library/offline-store';
-import { useOnline } from '@/lib/network';
-import { useTRPC } from '@/lib/trpc';
-import { SongView } from './song-view';
+import { getOffline, saveOffline } from "@/features/library/offline-store";
+import { useOnline } from "@/lib/network";
+import { useTRPC } from "@/lib/trpc";
+
+import { SongView } from "./song-view";
 
 /**
  * Song page of the static Capacitor build: `/song?id=…`. Shows the copy saved on the device at
  * once, then the fresh one from the server; without a connection the saved copy is enough.
  */
 export function SongById() {
-  const t = useTranslations('song');
+  const t = useTranslations("song");
   const trpc = useTRPC();
   const online = useOnline();
-  const id = useSearchParams().get('id') ?? '';
+  const id = useSearchParams().get("id") ?? "";
   const local = useQuery({
-    queryKey: ['offline-song', id],
+    queryKey: ["offline-song", id],
     queryFn: () => getOffline(id),
-    enabled: id !== '',
+    enabled: id !== "",
   });
   const remote = useQuery({
     ...trpc.arrangements.byId.queryOptions({ id }),
-    enabled: id !== '' && online,
+    enabled: id !== "" && online,
     retry: false,
   });
 
@@ -45,7 +46,7 @@ export function SongById() {
         {!remote.data && (
           <p className="mx-auto mt-3 flex w-fit items-center gap-2 rounded-full bg-surface-2 px-3 py-1 text-muted-foreground text-xs">
             <CloudOff className="size-3.5" />
-            {t('offlineBanner')}
+            {t("offlineBanner")}
           </p>
         )}
         {/* Keyed by id: speed (`useState` in SongView) must reset when `?id=` switches songs. */}
@@ -56,7 +57,13 @@ export function SongById() {
   const waiting = local.isPending || (online && remote.isPending);
   return (
     <p className="mx-auto w-full max-w-2xl px-4 py-8 text-muted-foreground">
-      {!id ? t('notFound') : waiting ? t('loading') : online ? t('notFound') : t('noNetwork')}
+      {!id
+        ? t("notFound")
+        : waiting
+          ? t("loading")
+          : online
+            ? t("notFound")
+            : t("noNetwork")}
     </p>
   );
 }

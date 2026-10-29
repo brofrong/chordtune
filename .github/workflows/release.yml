@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     # Only X.Y.Z release tags: anything else has no Android versionCode or semver image tag.
-    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
 
 concurrency:
   group: release-${{ github.ref }}
@@ -20,8 +20,9 @@ jobs:
         with:
           node-version: 24
       - run: bun install --frozen-lockfile
-      - run: bun run lint
-      - run: bun run check-types
+      - run: bun lint
+      - run: bun fmt --check
+      - run: bun check -b
       - run: bun run test
 
   docker:

@@ -1,26 +1,27 @@
-'use client';
+"use client";
 
-import { Bookmark, Eye, Guitar, Heart } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
-import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { Bookmark, Eye, Guitar, Heart } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
 
-import { useToast } from '@/components/toast';
-import { isCapacitor } from '@/features/song/links';
-import { formatCount } from '@/lib/format';
-import { cn } from '@/lib/utils';
-import { CountRoll } from './count-roll';
-import { Sparks } from './sparks';
-import type { useSongActions } from './use-song-actions';
+import { useToast } from "@/components/toast";
+import { isCapacitor } from "@/features/song/links";
+import { formatCount } from "@/lib/format";
+import { cn } from "@/lib/utils";
+
+import { CountRoll } from "./count-roll";
+import { Sparks } from "./sparks";
+import type { useSongActions } from "./use-song-actions";
 
 type Actions = ReturnType<typeof useSongActions>;
 
 const pill =
-  'relative inline-flex h-9 items-center gap-1.5 rounded-full border px-3 font-semibold text-sm transition-colors disabled:opacity-50';
+  "relative inline-flex h-9 items-center gap-1.5 rounded-full border px-3 font-semibold text-sm transition-colors disabled:opacity-50";
 
 /** Views, then like / save / played buttons with a little celebration on each. */
 export function SongActions({ actions }: { actions: Actions }) {
-  const t = useTranslations('song');
+  const t = useTranslations("song");
   const toast = useToast();
   const [likeBurst, setLikeBurst] = useState(0);
   const [saveBurst, setSaveBurst] = useState(0);
@@ -31,7 +32,7 @@ export function SongActions({ actions }: { actions: Actions }) {
     <div className="flex flex-wrap items-center gap-2">
       <span
         className="inline-flex items-center gap-1.5 pr-1 text-muted-foreground text-sm tabular-nums"
-        title={t('views')}
+        title={t("views")}
       >
         <Eye className="size-4" />
         {formatCount(stats.views)}
@@ -42,9 +43,9 @@ export function SongActions({ actions }: { actions: Actions }) {
         type="button"
         whileTap={{ scale: 0.92 }}
         aria-pressed={me.liked}
-        aria-label={t('like')}
-        title={online ? t('like') : t('needNetwork')}
-        disabled={pending === 'like' || !online}
+        aria-label={t("like")}
+        title={online ? t("like") : t("needNetwork")}
+        disabled={pending === "like" || !online}
         onClick={async () => {
           if (!me.liked) {
             setLikeBurst((n) => n + 1);
@@ -54,8 +55,8 @@ export function SongActions({ actions }: { actions: Actions }) {
         className={cn(
           pill,
           me.liked
-            ? 'border-like/40 bg-like/15 text-like'
-            : 'border-border bg-surface text-foreground/80 hover:bg-surface-2',
+            ? "border-like/40 bg-like/15 text-like"
+            : "border-border bg-surface text-foreground/80 hover:bg-surface-2",
         )}
       >
         <motion.span
@@ -65,7 +66,7 @@ export function SongActions({ actions }: { actions: Actions }) {
           transition={{ duration: 0.45, times: [0, 0.3, 0.65, 1] }}
           className="flex"
         >
-          <Heart className="size-4" fill={me.liked ? 'currentColor' : 'none'} />
+          <Heart className="size-4" fill={me.liked ? "currentColor" : "none"} />
         </motion.span>
         {likeBurst > 0 && me.liked && <Sparks key={likeBurst} />}
         <CountRoll value={stats.likes} />
@@ -75,9 +76,9 @@ export function SongActions({ actions }: { actions: Actions }) {
         type="button"
         whileTap={{ scale: 0.92 }}
         aria-pressed={me.saved}
-        aria-label={t('save')}
-        title={online ? t('save') : t('needNetwork')}
-        disabled={pending === 'save' || !online}
+        aria-label={t("save")}
+        title={online ? t("save") : t("needNetwork")}
+        disabled={pending === "save" || !online}
         onClick={async () => {
           const wasSaved = me.saved;
           if (!wasSaved) {
@@ -85,14 +86,14 @@ export function SongActions({ actions }: { actions: Actions }) {
           }
           const saved = await actions.toggleSave();
           if (saved) {
-            toast(isCapacitor ? t('savedOfflineToast') : t('savedToast'));
+            toast(isCapacitor ? t("savedOfflineToast") : t("savedToast"));
           }
         }}
         className={cn(
           pill,
           me.saved
-            ? 'border-saved/40 bg-saved/15 text-saved'
-            : 'border-border bg-surface text-foreground/80 hover:bg-surface-2',
+            ? "border-saved/40 bg-saved/15 text-saved"
+            : "border-border bg-surface text-foreground/80 hover:bg-surface-2",
         )}
       >
         <span className="relative flex">
@@ -120,11 +121,16 @@ export function SongActions({ actions }: { actions: Actions }) {
           <motion.span
             key={saveBurst}
             initial={false}
-            animate={saveBurst ? { y: [-8, 2, 0], scale: [0.8, 1.15, 1] } : undefined}
+            animate={
+              saveBurst ? { y: [-8, 2, 0], scale: [0.8, 1.15, 1] } : undefined
+            }
             transition={{ duration: 0.5 }}
             className="flex"
           >
-            <Bookmark className="size-4" fill={me.saved ? 'currentColor' : 'none'} />
+            <Bookmark
+              className="size-4"
+              fill={me.saved ? "currentColor" : "none"}
+            />
           </motion.span>
         </span>
         <CountRoll value={stats.saves} />
@@ -133,13 +139,16 @@ export function SongActions({ actions }: { actions: Actions }) {
       <motion.button
         type="button"
         whileTap={{ scale: 0.92 }}
-        aria-label={t('played')}
-        title={t('played')}
+        aria-label={t("played")}
+        title={t("played")}
         onClick={async () => {
           setPlayBurst((n) => n + 1);
           await actions.addPlayed();
         }}
-        className={cn(pill, 'border-primary/35 bg-primary/10 text-foreground hover:bg-primary/15')}
+        className={cn(
+          pill,
+          "border-primary/35 bg-primary/10 text-foreground hover:bg-primary/15",
+        )}
       >
         <motion.span
           key={playBurst}

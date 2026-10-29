@@ -1,30 +1,35 @@
-'use client';
+"use client";
 
-import { ArrowDown, ArrowUp, Check } from 'lucide-react';
-import { AnimatePresence, type MotionValue, motion, useTransform } from 'motion/react';
-import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { ArrowDown, ArrowUp, Check } from "lucide-react";
+import {
+  AnimatePresence,
+  motion,
+  type MotionValue,
+  useTransform,
+} from "motion/react";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
-import { DebugPanel } from './debug-panel';
-import { MicButton } from './mic-button';
-import type { TuneZone } from './reading';
-import { analyzerSettings, resolveTuning, useTunerSettings } from './settings';
-import { StringRow } from './string-row';
-import { TunerGauge } from './tuner-gauge';
-import { TunerSettingsSheet } from './tuner-settings-sheet';
-import { type ReadingView, useTunerReading } from './use-tuner-reading';
-import { useTunerSession } from './use-tuner-session';
+import { DebugPanel } from "./debug-panel";
+import { MicButton } from "./mic-button";
+import type { TuneZone } from "./reading";
+import { analyzerSettings, resolveTuning, useTunerSettings } from "./settings";
+import { StringRow } from "./string-row";
+import { TunerGauge } from "./tuner-gauge";
+import { TunerSettingsSheet } from "./tuner-settings-sheet";
+import { type ReadingView, useTunerReading } from "./use-tuner-reading";
+import { useTunerSession } from "./use-tuner-session";
 
 const ZONE_TEXT: Record<TuneZone, string> = {
-  in: 'text-tune-in',
-  near: 'text-tune-near',
-  off: 'text-tune-off',
+  in: "text-tune-in",
+  near: "text-tune-near",
+  off: "text-tune-off",
 };
 
 export function TunerScreen() {
-  const t = useTranslations('tuner');
+  const t = useTranslations("tuner");
   const [settings, updateSettings] = useTunerSettings();
   const tuning = resolveTuning(settings);
   const tuningKey = `${tuning.instrument}/${tuning.id}`;
@@ -36,8 +41,13 @@ export function TunerScreen() {
   const lockedIndex = lock.key === tuningKey ? lock.index : null;
 
   const session = useTunerSession(analyzerSettings(settings));
-  const reading = useTunerReading(session.store, tuning, lockedIndex, settings.a4);
-  const listening = session.status === 'listening';
+  const reading = useTunerReading(
+    session.store,
+    tuning,
+    lockedIndex,
+    settings.a4,
+  );
+  const listening = session.status === "listening";
   const active = listening && !reading.view.stale;
 
   return (
@@ -83,8 +93,8 @@ export function TunerScreen() {
         />
         <p
           className={cn(
-            'min-h-5 text-center text-sm',
-            session.error ? 'text-destructive' : 'text-muted-foreground',
+            "min-h-5 text-center text-sm",
+            session.error ? "text-destructive" : "text-muted-foreground",
           )}
         >
           {session.error
@@ -92,8 +102,8 @@ export function TunerScreen() {
             : listening
               ? active
                 ? null
-                : t('listening')
-              : t('idle')}
+                : t("listening")
+              : t("idle")}
         </p>
       </div>
 
@@ -115,13 +125,19 @@ function NoteName({
   return (
     <div
       className={cn(
-        'flex items-start font-semibold leading-none transition-[color,opacity] duration-300',
-        active && view.zone ? ZONE_TEXT[view.zone] : 'text-foreground',
-        !active && 'opacity-40',
+        "flex items-start font-semibold leading-none transition-[color,opacity] duration-300",
+        active && view.zone ? ZONE_TEXT[view.zone] : "text-foreground",
+        !active && "opacity-40",
       )}
     >
-      <span className="text-7xl tracking-tight sm:text-8xl">{shown ? view.noteName : '—'}</span>
-      {shown && <span className="mt-2 text-muted-foreground text-xl">{view.octave}</span>}
+      <span className="text-7xl tracking-tight sm:text-8xl">
+        {shown ? view.noteName : "—"}
+      </span>
+      {shown && (
+        <span className="mt-2 text-muted-foreground text-xl">
+          {view.octave}
+        </span>
+      )}
     </div>
   );
 }
@@ -137,61 +153,65 @@ function Readout({
   frequency: MotionValue<number>;
   active: boolean;
 }) {
-  const t = useTranslations('tuner');
+  const t = useTranslations("tuner");
   const centsText = useTransform(cents, (value) => {
     const rounded = Math.round(value);
     return rounded > 0 ? `+${rounded}` : `${rounded}`;
   });
   const hzText = useTransform(frequency, (value) => value.toFixed(1));
-  const detected = view.noteName == null ? null : `${view.noteName}${view.octave}`;
-  const showTarget = active && view.targetLabel != null && view.targetLabel !== detected;
+  const detected =
+    view.noteName == null ? null : `${view.noteName}${view.octave}`;
+  const showTarget =
+    active && view.targetLabel != null && view.targetLabel !== detected;
 
   return (
     <div className="flex min-h-16 flex-col items-center gap-2">
       <div
         className={cn(
-          'flex items-baseline gap-3 font-mono text-muted-foreground text-sm tabular-nums transition-opacity',
-          !active && 'opacity-0',
+          "flex items-baseline gap-3 font-mono text-muted-foreground text-sm tabular-nums transition-opacity",
+          !active && "opacity-0",
         )}
       >
         <span>
-          <motion.span>{centsText}</motion.span> {t('centsUnit')}
+          <motion.span>{centsText}</motion.span> {t("centsUnit")}
         </span>
         <span aria-hidden>·</span>
         <span>
-          <motion.span>{hzText}</motion.span> {t('hzUnit')}
+          <motion.span>{hzText}</motion.span> {t("hzUnit")}
         </span>
         {showTarget && (
           <>
             <span aria-hidden>·</span>
-            <span>{t('target', { note: view.targetLabel ?? '' })}</span>
+            <span>{t("target", { note: view.targetLabel ?? "" })}</span>
           </>
         )}
       </div>
       <AnimatePresence mode="wait" initial={false}>
         {active && view.zone && (
           <motion.div
-            key={view.zone === 'in' ? 'in' : view.direction}
+            key={view.zone === "in" ? "in" : view.direction}
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15 }}
             className={cn(
-              'flex items-center gap-1.5 rounded-full px-3 py-1 font-medium text-sm',
-              view.zone === 'in' ? 'bg-tune-in/15 text-tune-in' : 'bg-muted text-foreground',
+              "flex items-center gap-1.5 rounded-full px-3 py-1 font-medium text-sm",
+              view.zone === "in"
+                ? "bg-tune-in/15 text-tune-in"
+                : "bg-muted text-foreground",
             )}
           >
-            {view.zone === 'in' ? (
+            {view.zone === "in" ? (
               <>
-                <Check className="size-4" /> {t('inTune')}
+                <Check className="size-4" /> {t("inTune")}
               </>
-            ) : view.direction === 'up' ? (
+            ) : view.direction === "up" ? (
               <>
-                <ArrowUp className="size-4" /> {t('tuneUp')}
+                <ArrowUp className="size-4" /> {t("tuneUp")}
               </>
             ) : (
               <>
-                <ArrowDown className="size-4" /> {t('tuneDown')}
+                <ArrowDown className="size-4" /> {t("tuneDown")}
               </>
             )}
           </motion.div>

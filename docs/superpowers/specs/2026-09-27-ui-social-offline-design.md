@@ -57,7 +57,7 @@ tRPC:
 - `library.saved()` — полные данные сохранённых разборов (как `byId`), новые сверху.
   `library.liked()`, `library.mine()` — элементы списка.
 - Элемент списка (`songs.list`, `search.query`, `library.liked/mine`): `id, artist, artistSlug, title,
-  songSlug, views, likes`; `chords` из выдачи убираются. `songs.list` сортирует по `view_count desc`,
+songSlug, views, likes`; `chords` из выдачи убираются. `songs.list` сортирует по `view_count desc`,
   затем по `created_at desc` («Популярное»).
 - Meili: документ `arrangements` получает `views`, `likes`; обновляется при сохранении разбора и
   при лайке/сохранении не чаще раза в 30 с на разбор (throttle в памяти процесса). Просмотры
@@ -75,24 +75,24 @@ tRPC:
 только их (через Tailwind-тему `--color-*`). Существующие shadcn-токены (`--background`,
 `--primary`, …) переопределяются значениями наших тем, чтобы готовые компоненты перекрасились.
 
-| Токен | Тёмная «Неон тюнера» | Светлая «Песенник» |
-| --- | --- | --- |
-| `--background` | `#0b0d17` + радиальный градиент `#1b2140` сверху | `#f6f1e7` |
-| `--surface` / `--surface-2` | белый 4 % / 7 % | `#fffdf8` / `#f1e9da` |
-| `--border` | белый 8 % | `#ece3d3` |
-| `--foreground` / `--muted` | `#e6e9ff` / `#8a90b8` | `#1f1a14` / `#7a6f5e` |
-| `--accent` / `--accent-foreground` | `#a3e635` / `#0b0d17` | `#1f1a14` / `#f6f1e7` |
-| `--accent-2` (второй акцент) | `#6366f1` | `#c2410c` |
-| `--chord` | `#67e8f9` | `#c2410c` |
-| `--like` | `#fb7185` | `#c2410c` |
-| `--saved` | `#bef264` | `#1f1a14` |
-| `--glow` | `0 8px 22px rgb(163 230 53 / .3)` | `0 8px 20px rgb(31 26 20 / .25)` |
-| `--noise-opacity` / `--noise-blend` | `.16` / `overlay` | `.28` / `multiply` |
+| Токен                               | Тёмная «Неон тюнера»                             | Светлая «Песенник»               |
+| ----------------------------------- | ------------------------------------------------ | -------------------------------- |
+| `--background`                      | `#0b0d17` + радиальный градиент `#1b2140` сверху | `#f6f1e7`                        |
+| `--surface` / `--surface-2`         | белый 4 % / 7 %                                  | `#fffdf8` / `#f1e9da`            |
+| `--border`                          | белый 8 %                                        | `#ece3d3`                        |
+| `--foreground` / `--muted`          | `#e6e9ff` / `#8a90b8`                            | `#1f1a14` / `#7a6f5e`            |
+| `--accent` / `--accent-foreground`  | `#a3e635` / `#0b0d17`                            | `#1f1a14` / `#f6f1e7`            |
+| `--accent-2` (второй акцент)        | `#6366f1`                                        | `#c2410c`                        |
+| `--chord`                           | `#67e8f9`                                        | `#c2410c`                        |
+| `--like`                            | `#fb7185`                                        | `#c2410c`                        |
+| `--saved`                           | `#bef264`                                        | `#1f1a14`                        |
+| `--glow`                            | `0 8px 22px rgb(163 230 53 / .3)`                | `0 8px 20px rgb(31 26 20 / .25)` |
+| `--noise-opacity` / `--noise-blend` | `.16` / `overlay`                                | `.28` / `multiply`               |
 
 - Ритмы: `--rhythm-1…8` (по ключу `A…P`) для обеих тем; `rhythm-colors.ts` переходит на них.
 - Тюнер: `--tune-in/near/off` остаются, `--tune-in` = `--accent` в тёмной теме.
 - Типографика: Geist Sans; в светлой теме заголовки страниц — засечки (`Iowan Old Style, Georgia,
-  serif`) через токен `--font-display`; аккорды — Geist Mono.
+serif`) через токен `--font-display`; аккорды — Geist Mono.
 - Радиусы: `--radius` 14 px, карточки 16–20 px, пилюли 999.
 - Шум: слой `body::before` (`position: fixed`, `pointer-events: none`) с SVG `feTurbulence` в data-URI,
   прозрачность и blend из токенов.

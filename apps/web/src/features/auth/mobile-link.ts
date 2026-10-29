@@ -1,26 +1,26 @@
-import type { ProviderId } from '@chordtune/api';
+import type { ProviderId } from "@chordtune/api";
 
-export const DEEP_LINK_PREFIX = 'app.chordtune://auth';
+export const DEEP_LINK_PREFIX = "app.chordtune://auth";
 export const PENDING_TTL_MS = 10 * 60_000;
-const PENDING_KEY = 'chordtune.pending-auth';
+const PENDING_KEY = "chordtune.pending-auth";
 
 export type PendingAuth = {
   state: string;
-  mode: 'sign-in' | 'link';
+  mode: "sign-in" | "link";
   provider: ProviderId;
   createdAt: number;
 };
 
 export function createPendingAuth(
-  mode: PendingAuth['mode'],
+  mode: PendingAuth["mode"],
   provider: ProviderId,
   now = Date.now(),
 ): PendingAuth {
   const bytes = crypto.getRandomValues(new Uint8Array(24));
   const state = btoa(String.fromCharCode(...bytes))
-    .replaceAll('+', '-')
-    .replaceAll('/', '_')
-    .replaceAll('=', '');
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replaceAll("=", "");
   return { state, mode, provider, createdAt: now };
 }
 
@@ -33,17 +33,17 @@ export function parseAuthLink(url: string) {
   if (!url.startsWith(DEEP_LINK_PREFIX)) {
     return null;
   }
-  const query = url.slice(DEEP_LINK_PREFIX.length).replace(/^\/?\?/, '');
+  const query = url.slice(DEEP_LINK_PREFIX.length).replace(/^\/?\?/, "");
   const params = new URLSearchParams(query);
-  const state = params.get('state');
+  const state = params.get("state");
   if (!state) {
     return null;
   }
   return {
     state,
-    token: params.get('token'),
-    linked: params.get('linked'),
-    error: params.get('error'),
+    token: params.get("token"),
+    linked: params.get("linked"),
+    error: params.get("error"),
   };
 }
 
@@ -54,7 +54,9 @@ export function matchPendingAuth(
   now = Date.now(),
 ) {
   return Boolean(
-    pending && pending.state === link.state && now - pending.createdAt <= PENDING_TTL_MS,
+    pending &&
+    pending.state === link.state &&
+    now - pending.createdAt <= PENDING_TTL_MS,
   );
 }
 
@@ -63,7 +65,7 @@ export function mobileStartUrl(params: {
   locale: string;
   provider: ProviderId;
   state: string;
-  mode: 'sign-in' | 'link';
+  mode: "sign-in" | "link";
   ott?: string;
 }) {
   const query = new URLSearchParams({
@@ -72,7 +74,7 @@ export function mobileStartUrl(params: {
     mode: params.mode,
   });
   // The fragment never reaches the server (access logs, proxies), unlike the query string.
-  const hash = params.ott ? `#ott=${encodeURIComponent(params.ott)}` : '';
+  const hash = params.ott ? `#ott=${encodeURIComponent(params.ott)}` : "";
   return `${params.origin}/${params.locale}/auth/mobile?${query}${hash}`;
 }
 
@@ -99,8 +101,12 @@ export const pendingAuthStore = {
   },
 };
 
-export type BrowserFlow = { state: string; mode: 'sign-in' | 'link'; provider: ProviderId };
-const BROWSER_FLOW_KEY = 'chordtune.mobile-auth';
+export type BrowserFlow = {
+  state: string;
+  mode: "sign-in" | "link";
+  provider: ProviderId;
+};
+const BROWSER_FLOW_KEY = "chordtune.mobile-auth";
 
 /**
  * Ties `/auth/mobile/done` back to the `/auth/mobile` request that started it, in this same
@@ -108,12 +114,15 @@ const BROWSER_FLOW_KEY = 'chordtune.mobile-auth';
  * `/auth/mobile/done?...` (e.g. a Custom Tab sharing Chrome's cookies) could mint a session or
  * fake a `linked` result without ever having gone through the provider.
  */
-export function matchBrowserFlow(saved: BrowserFlow | null, flow: BrowserFlow): boolean {
+export function matchBrowserFlow(
+  saved: BrowserFlow | null,
+  flow: BrowserFlow,
+): boolean {
   return Boolean(
     saved &&
-      saved.state === flow.state &&
-      saved.mode === flow.mode &&
-      saved.provider === flow.provider,
+    saved.state === flow.state &&
+    saved.mode === flow.mode &&
+    saved.provider === flow.provider,
   );
 }
 
@@ -141,7 +150,10 @@ export const browserFlowStore = {
 };
 
 /** Prefers the handle over the raw name, since that's what the owner would recognize as "their" account. */
-export function pickDisplayName(user: { username?: string | null; name: string }): string {
+export function pickDisplayName(user: {
+  username?: string | null;
+  name: string;
+}): string {
   return user.username || user.name;
 }
 
@@ -150,21 +162,25 @@ export function pickDisplayName(user: { username?: string | null; name: string }
  * cancels) to `return_to`. `atob` alone mangles non-ASCII names (it reads Latin-1, not UTF-8), so
  * we go through bytes and `TextDecoder`. Returns `null` when the fragment is missing or unusable.
  */
-export function decodeTgAuthResult(hash: string): Record<string, unknown> | null | false {
+export function decodeTgAuthResult(
+  hash: string,
+): Record<string, unknown> | null | false {
   const match = hash.match(/tgAuthResult=([^&]*)/);
   if (!match) {
     return null;
   }
-  const raw = match[1] ?? '';
-  if (raw === 'false') {
+  const raw = match[1] ?? "";
+  if (raw === "false") {
     return false;
   }
   try {
-    const base64 = raw.replaceAll('-', '+').replaceAll('_', '/');
-    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+    const base64 = raw.replaceAll("-", "+").replaceAll("_", "/");
+    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
     const bytes = Uint8Array.from(atob(padded), (char) => char.charCodeAt(0));
     const data = JSON.parse(new TextDecoder().decode(bytes));
-    return data && typeof data === 'object' ? (data as Record<string, unknown>) : null;
+    return data && typeof data === "object"
+      ? (data as Record<string, unknown>)
+      : null;
   } catch {
     return null;
   }

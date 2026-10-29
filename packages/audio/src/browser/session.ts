@@ -1,8 +1,9 @@
-import type { AnalyzerSettings, TunerFrame } from '../analyzer';
-import { CAPTURE_PROCESSOR_NAME, captureWorkletUrl } from './capture-worklet';
-import type { WorkerRequest, WorkerResponse } from './protocol';
+import type { AnalyzerSettings, TunerFrame } from "../analyzer";
+import { CAPTURE_PROCESSOR_NAME, captureWorkletUrl } from "./capture-worklet";
+import type { WorkerRequest, WorkerResponse } from "./protocol";
 
-export type TunerErrorCode = 'unsupported' | 'permission-denied' | 'no-device' | 'unknown';
+export type TunerErrorCode =
+  "unsupported" | "permission-denied" | "no-device" | "unknown";
 
 export class TunerError extends Error {
   constructor(
@@ -10,7 +11,7 @@ export class TunerError extends Error {
     message?: string,
   ) {
     super(message ?? code);
-    this.name = 'TunerError';
+    this.name = "TunerError";
   }
 }
 
@@ -30,11 +31,11 @@ export async function startTunerSession({
   onFrame,
 }: StartTunerOptions): Promise<TunerSession> {
   if (
-    typeof window === 'undefined' ||
+    typeof window === "undefined" ||
     !navigator.mediaDevices?.getUserMedia ||
-    typeof AudioWorkletNode === 'undefined'
+    typeof AudioWorkletNode === "undefined"
   ) {
-    throw new TunerError('unsupported');
+    throw new TunerError("unsupported");
   }
 
   let stream: MediaStream;
@@ -51,8 +52,10 @@ export async function startTunerSession({
     throw toTunerError(error);
   }
 
-  const context = new AudioContext({ latencyHint: 'interactive' });
-  const worker = new Worker(new URL('./tuner.worker.ts', import.meta.url), { type: 'module' });
+  const context = new AudioContext({ latencyHint: "interactive" });
+  const worker = new Worker(new URL("./tuner.worker.ts", import.meta.url), {
+    type: "module",
+  });
   const workletUrl = captureWorkletUrl();
 
   const stop = () => {
@@ -61,14 +64,14 @@ export async function startTunerSession({
     }
     worker.terminate();
     URL.revokeObjectURL(workletUrl);
-    if (context.state !== 'closed') {
+    if (context.state !== "closed") {
       void context.close();
     }
   };
 
   try {
     await context.audioWorklet.addModule(workletUrl);
-    if (context.state === 'suspended') {
+    if (context.state === "suspended") {
       await context.resume();
     }
 
@@ -77,7 +80,7 @@ export async function startTunerSession({
       numberOfInputs: 1,
       numberOfOutputs: 1,
       channelCount: 1,
-      channelCountMode: 'explicit',
+      channelCountMode: "explicit",
     });
     source.connect(capture);
     // Nothing is written to the output; the connection only keeps the node in the render graph.
@@ -90,7 +93,7 @@ export async function startTunerSession({
       onFrame(event.data.frame);
     };
     const init: WorkerRequest = {
-      type: 'init',
+      type: "init",
       sampleRate: context.sampleRate,
       settings,
       port: channel.port2,
@@ -104,7 +107,7 @@ export async function startTunerSession({
   return {
     sampleRate: context.sampleRate,
     update(next) {
-      const message: WorkerRequest = { type: 'settings', settings: next };
+      const message: WorkerRequest = { type: "settings", settings: next };
       worker.postMessage(message);
     },
     stop,
@@ -115,12 +118,15 @@ function toTunerError(error: unknown): TunerError {
   if (error instanceof TunerError) {
     return error;
   }
-  const name = error instanceof DOMException ? error.name : '';
-  if (name === 'NotAllowedError' || name === 'SecurityError') {
-    return new TunerError('permission-denied');
+  const name = error instanceof DOMException ? error.name : "";
+  if (name === "NotAllowedError" || name === "SecurityError") {
+    return new TunerError("permission-denied");
   }
-  if (name === 'NotFoundError' || name === 'OverconstrainedError') {
-    return new TunerError('no-device');
+  if (name === "NotFoundError" || name === "OverconstrainedError") {
+    return new TunerError("no-device");
   }
-  return new TunerError('unknown', error instanceof Error ? error.message : String(error));
+  return new TunerError(
+    "unknown",
+    error instanceof Error ? error.message : String(error),
+  );
 }

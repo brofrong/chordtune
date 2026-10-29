@@ -1,15 +1,21 @@
-'use client';
+"use client";
 
-import type { Shape } from '@chordtune/chord-sheet';
-import { ChevronDown, ChevronUp, PanelRightClose, PanelRightOpen } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
+import type { Shape } from "@chordtune/chord-sheet";
+import {
+  ChevronDown,
+  ChevronUp,
+  PanelRightClose,
+  PanelRightOpen,
+} from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useRef, useState } from "react";
 
-import { Button } from '@/components/ui/button';
-import type { SongSound } from '@/features/rhythm/playback';
-import { cn } from '@/lib/utils';
-import { ChordCard } from './chord-card';
-import { chordVariants } from './chord-variants';
+import { Button } from "@/components/ui/button";
+import type { SongSound } from "@/features/rhythm/playback";
+import { cn } from "@/lib/utils";
+
+import { ChordCard } from "./chord-card";
+import { chordVariants } from "./chord-variants";
 
 /** The panel shows at most this many of the song's chords; a huge song still renders fast. */
 export const MAX_PANEL_CHORDS = 64;
@@ -54,7 +60,8 @@ export function useChordBrowser(
       return computed;
     },
     index: (chord) => shown[chord] ?? 0,
-    setIndex: (chord, index) => setShown((current) => ({ ...current, [chord]: index })),
+    setIndex: (chord, index) =>
+      setShown((current) => ({ ...current, [chord]: index })),
     label: (chord) => spellings.get(chord) ?? chord,
   };
 }
@@ -67,8 +74,13 @@ type PanelProps = {
 };
 
 /** Wide screens: a column of chords to the right of the song that stays in view. */
-export function ChordSidebar({ browser, onPlay, open, onOpenChange }: PanelProps) {
-  const t = useTranslations('chords');
+export function ChordSidebar({
+  browser,
+  onPlay,
+  open,
+  onOpenChange,
+}: PanelProps) {
+  const t = useTranslations("chords");
   if (browser.chords.length === 0) {
     return null;
   }
@@ -77,11 +89,13 @@ export function ChordSidebar({ browser, onPlay, open, onOpenChange }: PanelProps
       {open ? (
         <div className="flex w-56 flex-col gap-2">
           <div className="flex items-center justify-between">
-            <h2 className="text-muted-foreground text-xs uppercase tracking-wide">{t('title')}</h2>
+            <h2 className="text-muted-foreground text-xs uppercase tracking-wide">
+              {t("title")}
+            </h2>
             <Button
               variant="ghost"
               size="icon-xs"
-              aria-label={t('hide')}
+              aria-label={t("hide")}
               onClick={() => onOpenChange(false)}
             >
               <PanelRightClose />
@@ -89,19 +103,25 @@ export function ChordSidebar({ browser, onPlay, open, onOpenChange }: PanelProps
           </div>
           <div className="grid max-h-[calc(100dvh-8rem)] grid-cols-2 gap-2 overflow-y-auto pb-2">
             {browser.chords.map((chord) => (
-              <ChordCard key={chord} chord={chord} browser={browser} onPlay={onPlay} size="sm" />
+              <ChordCard
+                key={chord}
+                chord={chord}
+                browser={browser}
+                onPlay={onPlay}
+                size="sm"
+              />
             ))}
           </div>
         </div>
       ) : (
         <button
           type="button"
-          aria-label={t('show')}
+          aria-label={t("show")}
           onClick={() => onOpenChange(true)}
           className="flex flex-col items-center gap-2 rounded-xl bg-surface px-1.5 py-3 text-muted-foreground text-xs"
         >
           <PanelRightOpen className="size-4" />
-          <span className="[writing-mode:vertical-rl]">{t('title')}</span>
+          <span className="[writing-mode:vertical-rl]">{t("title")}</span>
         </button>
       )}
     </aside>
@@ -118,23 +138,23 @@ export function ChordStrip({
 }: PanelProps & {
   className?: string;
 }) {
-  const t = useTranslations('chords');
+  const t = useTranslations("chords");
   if (browser.chords.length === 0) {
     return null;
   }
   return (
-    <section className={cn('flex flex-col gap-1', className)}>
+    <section className={cn("flex flex-col gap-1", className)}>
       <button
         type="button"
         aria-expanded={open}
-        aria-label={open ? t('hide') : t('show')}
+        aria-label={open ? t("hide") : t("show")}
         onClick={() => onOpenChange(!open)}
         className="flex items-center gap-2 text-left text-muted-foreground text-xs"
       >
-        <span className="uppercase tracking-wide">{t('title')}</span>
+        <span className="uppercase tracking-wide">{t("title")}</span>
         {!open && (
           <span className="min-w-0 truncate font-semibold text-chord text-sm normal-case">
-            {browser.chords.map(browser.label).join(' ')}
+            {browser.chords.map(browser.label).join(" ")}
           </span>
         )}
         {open ? (
@@ -146,7 +166,13 @@ export function ChordStrip({
       {open && (
         <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
           {browser.chords.map((chord) => (
-            <ChordCard key={chord} chord={chord} browser={browser} onPlay={onPlay} size="sm" />
+            <ChordCard
+              key={chord}
+              chord={chord}
+              browser={browser}
+              onPlay={onPlay}
+              size="sm"
+            />
           ))}
         </div>
       )}

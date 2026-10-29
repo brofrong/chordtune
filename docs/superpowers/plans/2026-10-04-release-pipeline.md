@@ -60,46 +60,64 @@
 ### Task 1: Same-origin API access in the web build
 
 **Files:**
+
 - Modify: `apps/web/src/lib/api.ts:1`
 - Create: `apps/web/src/lib/api.test.ts`
 - Modify: `apps/web/next.config.ts`
 - Modify: `.env.example`
 
 **Interfaces:**
+
 - Produces: `resolveApiUrl(input: { target: 'web' | 'capacitor'; browserOrigin: string | null; publicApiUrl: string | undefined }): string` and `INTERNAL_API_URL = 'http://localhost:4000'` exported from `apps/web/src/lib/api.ts`; `API_URL` keeps its name and type (`string`), so `trpc.ts`, `trpc-server.ts`, `auth-client.ts` are unchanged.
 
 - [ ] **Step 1: Write the failing test** — `apps/web/src/lib/api.test.ts`:
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 
-import { INTERNAL_API_URL, resolveApiUrl } from './api';
+import { INTERNAL_API_URL, resolveApiUrl } from "./api";
 
-describe('resolveApiUrl', () => {
-  test('the web build talks to its own origin in the browser', () => {
+describe("resolveApiUrl", () => {
+  test("the web build talks to its own origin in the browser", () => {
     expect(
-      resolveApiUrl({ target: 'web', browserOrigin: 'https://chordtune.app', publicApiUrl: 'https://x' }),
-    ).toBe('https://chordtune.app');
+      resolveApiUrl({
+        target: "web",
+        browserOrigin: "https://chordtune.app",
+        publicApiUrl: "https://x",
+      }),
+    ).toBe("https://chordtune.app");
   });
 
-  test('the web build talks to the API directly on the server', () => {
-    expect(resolveApiUrl({ target: 'web', browserOrigin: null, publicApiUrl: undefined })).toBe(
-      INTERNAL_API_URL,
-    );
+  test("the web build talks to the API directly on the server", () => {
+    expect(
+      resolveApiUrl({
+        target: "web",
+        browserOrigin: null,
+        publicApiUrl: undefined,
+      }),
+    ).toBe(INTERNAL_API_URL);
   });
 
-  test('the Capacitor build uses the public API URL everywhere', () => {
-    for (const browserOrigin of ['capacitor://localhost', null]) {
+  test("the Capacitor build uses the public API URL everywhere", () => {
+    for (const browserOrigin of ["capacitor://localhost", null]) {
       expect(
-        resolveApiUrl({ target: 'capacitor', browserOrigin, publicApiUrl: 'https://chordtune.app' }),
-      ).toBe('https://chordtune.app');
+        resolveApiUrl({
+          target: "capacitor",
+          browserOrigin,
+          publicApiUrl: "https://chordtune.app",
+        }),
+      ).toBe("https://chordtune.app");
     }
   });
 
-  test('the Capacitor build without a public API URL fails instead of pointing at localhost', () => {
+  test("the Capacitor build without a public API URL fails instead of pointing at localhost", () => {
     expect(() =>
-      resolveApiUrl({ target: 'capacitor', browserOrigin: null, publicApiUrl: undefined }),
-    ).toThrow('NEXT_PUBLIC_API_URL');
+      resolveApiUrl({
+        target: "capacitor",
+        browserOrigin: null,
+        publicApiUrl: undefined,
+      }),
+    ).toThrow("NEXT_PUBLIC_API_URL");
   });
 });
 ```
@@ -113,7 +131,7 @@ Expected: FAIL — `resolveApiUrl` is not exported.
 
 ```ts
 /** Where the API listens next to the web server: in the container and in `bun run dev`. */
-export const INTERNAL_API_URL = 'http://localhost:4000';
+export const INTERNAL_API_URL = "http://localhost:4000";
 
 /**
  * The web build reaches the API through its own origin (Next rewrites `/trpc` and `/api/auth`),
@@ -125,13 +143,15 @@ export function resolveApiUrl({
   browserOrigin,
   publicApiUrl,
 }: {
-  target: 'web' | 'capacitor';
+  target: "web" | "capacitor";
   browserOrigin: string | null;
   publicApiUrl: string | undefined;
 }): string {
-  if (target === 'capacitor') {
+  if (target === "capacitor") {
     if (!publicApiUrl) {
-      throw new Error('NEXT_PUBLIC_API_URL must be set for the Capacitor build');
+      throw new Error(
+        "NEXT_PUBLIC_API_URL must be set for the Capacitor build",
+      );
     }
     return publicApiUrl;
   }
@@ -139,8 +159,9 @@ export function resolveApiUrl({
 }
 
 export const API_URL = resolveApiUrl({
-  target: process.env.NEXT_PUBLIC_BUILD_TARGET === 'capacitor' ? 'capacitor' : 'web',
-  browserOrigin: typeof window === 'undefined' ? null : window.location.origin,
+  target:
+    process.env.NEXT_PUBLIC_BUILD_TARGET === "capacitor" ? "capacitor" : "web",
+  browserOrigin: typeof window === "undefined" ? null : window.location.origin,
   publicApiUrl: process.env.NEXT_PUBLIC_API_URL,
 });
 ```
@@ -153,15 +174,15 @@ export const API_URL = resolveApiUrl({
 
 ```ts
 // The app would otherwise ship pointing at localhost, which no phone can reach.
-if (buildTarget === 'capacitor' && !process.env.NEXT_PUBLIC_API_URL) {
-  throw new Error('NEXT_PUBLIC_API_URL must be set for the Capacitor build');
+if (buildTarget === "capacitor" && !process.env.NEXT_PUBLIC_API_URL) {
+  throw new Error("NEXT_PUBLIC_API_URL must be set for the Capacitor build");
 }
 
 /** The API next to the web server; mirrors INTERNAL_API_URL in src/lib/api.ts. */
-const INTERNAL_API_URL = 'http://localhost:4000';
+const INTERNAL_API_URL = "http://localhost:4000";
 ```
 
-  - replace the `...(buildTarget === 'capacitor' ? {…} : {})` spread with:
+- replace the `...(buildTarget === 'capacitor' ? {…} : {})` spread with:
 
 ```ts
   ...(buildTarget === 'capacitor'
@@ -197,11 +218,13 @@ const INTERNAL_API_URL = 'http://localhost:4000';
 ### Task 2: Combined Docker image
 
 **Files:**
+
 - Create: `Dockerfile`, `.dockerignore`, `docker/start.sh`
 - Delete: `apps/api/Dockerfile`
 - Modify: `README.md`
 
 **Interfaces:**
+
 - Consumes: Task 1 standalone output at `apps/web/.next/standalone/apps/web/server.js`; rewrites to `http://localhost:4000`.
 - Produces: root `Dockerfile` used by the workflow's docker job (`context: .`).
 
@@ -319,10 +342,12 @@ docker run -p 3000:3000 \
 ### Task 3: Version helpers and the release command
 
 **Files:**
+
 - Create: `scripts/version.ts`, `scripts/version.test.ts`, `scripts/git.ts`, `scripts/git.test.ts`, `scripts/release.ts`, `scripts/version-code.ts`
 - Modify: `package.json` (root)
 
 **Interfaces:**
+
 - Produces:
   - `type BumpKind = 'patch' | 'minor' | 'major'`
   - `parseVersion(version: string): [number, number, number]` — throws on anything but `X.Y.Z`
@@ -334,44 +359,44 @@ docker run -p 3000:3000 \
 - [ ] **Step 1: Failing tests** — `scripts/version.test.ts`:
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 
-import { bumpVersion, parseVersion, versionCode } from './version';
+import { bumpVersion, parseVersion, versionCode } from "./version";
 
-describe('parseVersion', () => {
-  test('reads major, minor and patch', () => {
-    expect(parseVersion('1.2.3')).toEqual([1, 2, 3]);
+describe("parseVersion", () => {
+  test("reads major, minor and patch", () => {
+    expect(parseVersion("1.2.3")).toEqual([1, 2, 3]);
   });
 
-  test('rejects anything but X.Y.Z', () => {
-    for (const bad of ['1.2', 'v1.2.3', '1.2.3-beta', '', '01.a.3']) {
+  test("rejects anything but X.Y.Z", () => {
+    for (const bad of ["1.2", "v1.2.3", "1.2.3-beta", "", "01.a.3"]) {
       expect(() => parseVersion(bad)).toThrow();
     }
   });
 });
 
-describe('bumpVersion', () => {
-  test('patch, minor and major reset the parts below them', () => {
-    expect(bumpVersion('1.2.3', 'patch')).toBe('1.2.4');
-    expect(bumpVersion('1.2.3', 'minor')).toBe('1.3.0');
-    expect(bumpVersion('1.2.3', 'major')).toBe('2.0.0');
+describe("bumpVersion", () => {
+  test("patch, minor and major reset the parts below them", () => {
+    expect(bumpVersion("1.2.3", "patch")).toBe("1.2.4");
+    expect(bumpVersion("1.2.3", "minor")).toBe("1.3.0");
+    expect(bumpVersion("1.2.3", "major")).toBe("2.0.0");
   });
 
-  test('the first release starts from 0.0.0', () => {
-    expect(bumpVersion('0.0.0', 'minor')).toBe('0.1.0');
+  test("the first release starts from 0.0.0", () => {
+    expect(bumpVersion("0.0.0", "minor")).toBe("0.1.0");
   });
 });
 
-describe('versionCode', () => {
-  test('packs the version so that later versions get larger codes', () => {
-    expect(versionCode('1.2.3')).toBe(10203);
-    expect(versionCode('0.1.0')).toBe(100);
-    expect(versionCode('2.0.0')).toBeGreaterThan(versionCode('1.99.99'));
+describe("versionCode", () => {
+  test("packs the version so that later versions get larger codes", () => {
+    expect(versionCode("1.2.3")).toBe(10203);
+    expect(versionCode("0.1.0")).toBe(100);
+    expect(versionCode("2.0.0")).toBeGreaterThan(versionCode("1.99.99"));
   });
 
-  test('refuses minor or patch numbers that would collide with the next part', () => {
-    expect(() => versionCode('1.100.0')).toThrow();
-    expect(() => versionCode('1.0.100')).toThrow();
+  test("refuses minor or patch numbers that would collide with the next part", () => {
+    expect(() => versionCode("1.100.0")).toThrow();
+    expect(() => versionCode("1.0.100")).toThrow();
   });
 });
 ```
@@ -379,51 +404,52 @@ describe('versionCode', () => {
 `scripts/git.test.ts` (temporary repos with a bare `origin`):
 
 ```ts
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { $ } from 'bun';
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-import { preflight } from './git';
+import { $ } from "bun";
+
+import { preflight } from "./git";
 
 let root: string;
 let work: string;
 
 beforeEach(async () => {
-  root = mkdtempSync(join(tmpdir(), 'release-'));
-  work = join(root, 'work');
-  await $`git init -q --bare -b main ${join(root, 'origin.git')}`.quiet();
-  await $`git clone -q ${join(root, 'origin.git')} ${work}`.quiet();
+  root = mkdtempSync(join(tmpdir(), "release-"));
+  work = join(root, "work");
+  await $`git init -q --bare -b main ${join(root, "origin.git")}`.quiet();
+  await $`git clone -q ${join(root, "origin.git")} ${work}`.quiet();
   await $`git -C ${work} -c user.name=t -c user.email=t@t commit -q --allow-empty -m init`.quiet();
   await $`git -C ${work} push -q origin main`.quiet();
 });
 
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
-describe('preflight', () => {
-  test('a clean main in sync with origin is ready', async () => {
-    expect(await preflight(work, 'v0.1.0')).toEqual([]);
+describe("preflight", () => {
+  test("a clean main in sync with origin is ready", async () => {
+    expect(await preflight(work, "v0.1.0")).toEqual([]);
   });
 
-  test('uncommitted changes block the release', async () => {
-    writeFileSync(join(work, 'file.txt'), 'x');
-    expect((await preflight(work, 'v0.1.0')).join()).toContain('uncommitted');
+  test("uncommitted changes block the release", async () => {
+    writeFileSync(join(work, "file.txt"), "x");
+    expect((await preflight(work, "v0.1.0")).join()).toContain("uncommitted");
   });
 
-  test('another branch blocks the release', async () => {
+  test("another branch blocks the release", async () => {
     await $`git -C ${work} switch -q -c feature`.quiet();
-    expect((await preflight(work, 'v0.1.0')).join()).toContain('main');
+    expect((await preflight(work, "v0.1.0")).join()).toContain("main");
   });
 
-  test('a local commit not on origin blocks the release', async () => {
+  test("a local commit not on origin blocks the release", async () => {
     await $`git -C ${work} -c user.name=t -c user.email=t@t commit -q --allow-empty -m local`.quiet();
-    expect((await preflight(work, 'v0.1.0')).join()).toContain('origin/main');
+    expect((await preflight(work, "v0.1.0")).join()).toContain("origin/main");
   });
 
-  test('an existing tag blocks the release', async () => {
+  test("an existing tag blocks the release", async () => {
     await $`git -C ${work} tag v0.1.0`.quiet();
-    expect((await preflight(work, 'v0.1.0')).join()).toContain('v0.1.0');
+    expect((await preflight(work, "v0.1.0")).join()).toContain("v0.1.0");
   });
 });
 ```
@@ -433,7 +459,7 @@ describe('preflight', () => {
 - [ ] **Step 3: `scripts/version.ts`**
 
 ```ts
-export type BumpKind = 'patch' | 'minor' | 'major';
+export type BumpKind = "patch" | "minor" | "major";
 
 export function parseVersion(version: string): [number, number, number] {
   const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(version);
@@ -445,8 +471,8 @@ export function parseVersion(version: string): [number, number, number] {
 
 export function bumpVersion(version: string, kind: BumpKind): string {
   const [major, minor, patch] = parseVersion(version);
-  if (kind === 'major') return `${major + 1}.0.0`;
-  if (kind === 'minor') return `${major}.${minor + 1}.0`;
+  if (kind === "major") return `${major + 1}.0.0`;
+  if (kind === "minor") return `${major}.${minor + 1}.0`;
   return `${major}.${minor}.${patch + 1}`;
 }
 
@@ -457,7 +483,9 @@ export function bumpVersion(version: string, kind: BumpKind): string {
 export function versionCode(version: string): number {
   const [major, minor, patch] = parseVersion(version);
   if (minor >= 100 || patch >= 100) {
-    throw new Error(`${version}: minor and patch must stay below 100 for the Android versionCode`);
+    throw new Error(
+      `${version}: minor and patch must stay below 100 for the Android versionCode`,
+    );
   }
   return major * 10000 + minor * 100 + patch;
 }
@@ -466,27 +494,30 @@ export function versionCode(version: string): number {
 - [ ] **Step 4: `scripts/git.ts`**
 
 ```ts
-import { $ } from 'bun';
+import { $ } from "bun";
 
 /** Reasons the repository at `cwd` is not ready to release `tag`; empty when it is. */
 export async function preflight(cwd: string, tag: string): Promise<string[]> {
   const git = (...args: string[]) => $`git -C ${cwd} ${args}`.quiet().nothrow();
   const problems: string[] = [];
 
-  const branch = (await git('rev-parse', '--abbrev-ref', 'HEAD')).text().trim();
-  if (branch !== 'main') {
+  const branch = (await git("rev-parse", "--abbrev-ref", "HEAD")).text().trim();
+  if (branch !== "main") {
     problems.push(`releases are made from main, not ${branch}`);
   }
-  if ((await git('status', '--porcelain')).text().trim()) {
-    problems.push('there are uncommitted changes');
+  if ((await git("status", "--porcelain")).text().trim()) {
+    problems.push("there are uncommitted changes");
   }
-  await git('fetch', '--quiet', '--tags', 'origin');
-  const head = (await git('rev-parse', 'HEAD')).text().trim();
-  const remote = (await git('rev-parse', 'origin/main')).text().trim();
+  await git("fetch", "--quiet", "--tags", "origin");
+  const head = (await git("rev-parse", "HEAD")).text().trim();
+  const remote = (await git("rev-parse", "origin/main")).text().trim();
   if (head !== remote) {
-    problems.push('main differs from origin/main: pull or push first');
+    problems.push("main differs from origin/main: pull or push first");
   }
-  if ((await git('rev-parse', '--verify', '--quiet', `refs/tags/${tag}`)).exitCode === 0) {
+  if (
+    (await git("rev-parse", "--verify", "--quiet", `refs/tags/${tag}`))
+      .exitCode === 0
+  ) {
     problems.push(`tag ${tag} already exists`);
   }
   return problems;
@@ -500,26 +531,27 @@ export async function preflight(cwd: string, tag: string): Promise<string[]> {
 ```ts
 // Picks the next version, commits it, tags it and pushes; the pushed tag starts the release workflow.
 // Usage: bun run release [--dry-run]
-import { join } from 'node:path';
-import { $ } from 'bun';
+import { join } from "node:path";
 
-import { preflight } from './git';
-import { type BumpKind, bumpVersion, versionCode } from './version';
+import { $ } from "bun";
 
-const root = join(import.meta.dir, '..');
-const dryRun = process.argv.includes('--dry-run');
-const packagePath = join(root, 'package.json');
+import { preflight } from "./git";
+import { type BumpKind, bumpVersion, versionCode } from "./version";
+
+const root = join(import.meta.dir, "..");
+const dryRun = process.argv.includes("--dry-run");
+const packagePath = join(root, "package.json");
 const pkg = await Bun.file(packagePath).json();
-const current: string = pkg.version ?? '0.0.0';
+const current: string = pkg.version ?? "0.0.0";
 
-const kinds: BumpKind[] = ['patch', 'minor', 'major'];
+const kinds: BumpKind[] = ["patch", "minor", "major"];
 console.log(`Current version: ${current}`);
 kinds.forEach((kind, i) => {
   console.log(`  ${i + 1}) ${kind.padEnd(5)} → ${bumpVersion(current, kind)}`);
 });
-const kind = kinds[Number(prompt('Bump to [1-3]:')) - 1];
+const kind = kinds[Number(prompt("Bump to [1-3]:")) - 1];
 if (!kind) {
-  console.error('Nothing chosen, nothing changed.');
+  console.error("Nothing chosen, nothing changed.");
   process.exit(1);
 }
 const next = bumpVersion(current, kind);
@@ -528,16 +560,20 @@ versionCode(next); // fail now rather than in the Android job
 
 const problems = await preflight(root, tag);
 if (problems.length > 0) {
-  console.error(`Cannot release ${tag}:\n${problems.map((p) => `  - ${p}`).join('\n')}`);
+  console.error(
+    `Cannot release ${tag}:\n${problems.map((p) => `  - ${p}`).join("\n")}`,
+  );
   process.exit(1);
 }
-if (prompt(`Release ${tag}? [y/N]`)?.toLowerCase() !== 'y') {
-  console.error('Cancelled, nothing changed.');
+if (prompt(`Release ${tag}? [y/N]`)?.toLowerCase() !== "y") {
+  console.error("Cancelled, nothing changed.");
   process.exit(1);
 }
 
 if (dryRun) {
-  console.log(`Dry run: would set version ${next}, commit "Release ${tag}", tag ${tag} and push.`);
+  console.log(
+    `Dry run: would set version ${next}, commit "Release ${tag}", tag ${tag} and push.`,
+  );
   process.exit(0);
 }
 
@@ -553,16 +589,15 @@ await $`git -C ${root} push --atomic origin main ${tag}`;
 console.log(`Pushed ${tag}: https://github.com/brofrong/chordtune/actions`);
 ```
 
-
 - [ ] **Step 7: `scripts/version-code.ts`**
 
 ```ts
 // Prints the Android versionCode for a version: bun scripts/version-code.ts 1.2.3
-import { versionCode } from './version';
+import { versionCode } from "./version";
 
 const version = process.argv[2];
 if (!version) {
-  console.error('Usage: bun scripts/version-code.ts <X.Y.Z>');
+  console.error("Usage: bun scripts/version-code.ts <X.Y.Z>");
   process.exit(1);
 }
 console.log(versionCode(version));
@@ -580,10 +615,12 @@ console.log(versionCode(version));
 ### Task 4: Android version properties and release signing
 
 **Files:**
+
 - Modify: `apps/web/android/app/build.gradle`
 - Create: `scripts/android-keystore.sh`
 
 **Interfaces:**
+
 - Consumes: Gradle properties `-PappVersionName=<X.Y.Z> -PappVersionCode=<int>`; env `ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`.
 - Produces: signed `app/build/outputs/apk/release/app-release.apk` when the env is set.
 
@@ -672,10 +709,12 @@ EOF
 ### Task 5: Release workflow
 
 **Files:**
+
 - Create: `.github/workflows/release.yml`
 - Modify: `README.md`
 
 **Interfaces:**
+
 - Consumes: root `Dockerfile` (Task 2), `bun scripts/version-code.ts` (Task 3), Gradle properties and signing env (Task 4), the Capacitor URL guard (Task 1).
 
 - [ ] **Step 1: `.github/workflows/release.yml`**
@@ -685,7 +724,7 @@ name: Release
 
 on:
   push:
-    tags: ['v*']
+    tags: ["v*"]
 
 concurrency:
   group: release-${{ github.ref }}

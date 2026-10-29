@@ -1,21 +1,21 @@
-'use client';
+"use client";
 
-import type { AnalyzerSettings } from '@chordtune/audio';
+import type { AnalyzerSettings } from "@chordtune/audio";
 import {
   startTunerSession,
   TunerError,
   type TunerErrorCode,
   type TunerSession,
-} from '@chordtune/audio/browser';
-import { useCallback, useEffect, useRef, useState } from 'react';
+} from "@chordtune/audio/browser";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { FrameStore } from './frame-store';
+import { FrameStore } from "./frame-store";
 
-export type TunerStatus = 'idle' | 'starting' | 'listening' | 'error';
+export type TunerStatus = "idle" | "starting" | "listening" | "error";
 
 export function useTunerSession(settings: AnalyzerSettings) {
   const [store] = useState(() => new FrameStore());
-  const [status, setStatus] = useState<TunerStatus>('idle');
+  const [status, setStatus] = useState<TunerStatus>("idle");
   const [error, setError] = useState<TunerErrorCode | null>(null);
   const sessionRef = useRef<TunerSession | null>(null);
   const settingsRef = useRef(settings);
@@ -33,7 +33,7 @@ export function useTunerSession(settings: AnalyzerSettings) {
     generationRef.current += 1;
     sessionRef.current?.stop();
     sessionRef.current = null;
-    setStatus('idle');
+    setStatus("idle");
   }, []);
 
   const start = useCallback(async () => {
@@ -41,7 +41,7 @@ export function useTunerSession(settings: AnalyzerSettings) {
       return;
     }
     const generation = ++generationRef.current;
-    setStatus('starting');
+    setStatus("starting");
     setError(null);
     try {
       const session = await startTunerSession({
@@ -53,25 +53,25 @@ export function useTunerSession(settings: AnalyzerSettings) {
         return;
       }
       sessionRef.current = session;
-      setStatus('listening');
+      setStatus("listening");
     } catch (caught) {
       if (generation !== generationRef.current) {
         return;
       }
-      setError(caught instanceof TunerError ? caught.code : 'unknown');
-      setStatus('error');
+      setError(caught instanceof TunerError ? caught.code : "unknown");
+      setStatus("error");
     }
   }, [store]);
 
   useEffect(() => {
     const onVisibility = () => {
-      if (document.visibilityState === 'hidden') {
+      if (document.visibilityState === "hidden") {
         stop();
       }
     };
-    document.addEventListener('visibilitychange', onVisibility);
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
-      document.removeEventListener('visibilitychange', onVisibility);
+      document.removeEventListener("visibilitychange", onVisibility);
       stop();
     };
   }, [stop]);

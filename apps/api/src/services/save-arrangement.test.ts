@@ -1,12 +1,26 @@
-import { beforeEach, describe, expect, test } from 'bun:test';
-import { TRPCError } from '@trpc/server';
+import { beforeEach, describe, expect, test } from "bun:test";
 
-import type { Database } from '../db';
-import { artist, song } from '../db/schema';
-import { type ArrangementDoc, type ArtistDoc, noopSearch, type SearchIndex } from '../search';
-import { createTestDb, createUser } from '../test/db';
-import { type ArtistSources, type DeezerArtist, noArtistSources } from './artist-sources';
-import { type ArrangementInput, arrangementInput, saveArrangement } from './save-arrangement';
+import { TRPCError } from "@trpc/server";
+
+import type { Database } from "../db";
+import { artist, song } from "../db/schema";
+import {
+  type ArrangementDoc,
+  type ArtistDoc,
+  noopSearch,
+  type SearchIndex,
+} from "../search";
+import { createTestDb, createUser } from "../test/db";
+import {
+  type ArtistSources,
+  type DeezerArtist,
+  noArtistSources,
+} from "./artist-sources";
+import {
+  type ArrangementInput,
+  arrangementInput,
+  saveArrangement,
+} from "./save-arrangement";
 
 /** Records what gets pushed to search, instead of actually talking to Meilisearch. */
 function recordingSearch() {
@@ -21,15 +35,23 @@ function recordingSearch() {
 }
 
 const base: ArrangementInput = {
-  artist: { name: 'Noize MC' },
-  song: { title: 'Кошка' },
-  content: '[Припев]\n${Dm}Что ей ${A#}снится',
-  rhythms: [{ key: 'A', name: 'Шестёрка', kind: 'strum', time: '4/4', steps: [{ stroke: 'D' }] }],
+  artist: { name: "Noize MC" },
+  song: { title: "Кошка" },
+  content: "[Припев]\n${Dm}Что ей ${A#}снится",
+  rhythms: [
+    {
+      key: "A",
+      name: "Шестёрка",
+      kind: "strum",
+      time: "4/4",
+      steps: [{ stroke: "D" }],
+    },
+  ],
   capo: null,
   tempo: 90,
-  key: 'Dm',
-  notes: '',
-  tuning: 'standard',
+  key: "Dm",
+  notes: "",
+  tuning: "standard",
   voicings: { Dm: [null, null, 0, 2, 3, 1] },
   zenMode: null,
 };
@@ -48,13 +70,16 @@ let authorId: string;
 
 beforeEach(async () => {
   db = await createTestDb();
-  authorId = await createUser(db, 'author');
+  authorId = await createUser(db, "author");
 });
 
-describe('saveArrangement', () => {
-  test('creates the artist, the song and the arrangement', async () => {
-    const saved = await saveArrangement(db, noopSearch, { authorId, input: base });
-    expect(saved).toMatchObject({ artistSlug: 'noize-mc', songSlug: 'koshka' });
+describe("saveArrangement", () => {
+  test("creates the artist, the song and the arrangement", async () => {
+    const saved = await saveArrangement(db, noopSearch, {
+      authorId,
+      input: base,
+    });
+    expect(saved).toMatchObject({ artistSlug: "noize-mc", songSlug: "koshka" });
 
     const row = await db.query.arrangement.findFirst({
       where: { id: saved.id },
@@ -62,83 +87,111 @@ describe('saveArrangement', () => {
     });
     expect(row).toMatchObject({
       authorId,
-      chords: ['Dm', 'A#'],
+      chords: ["Dm", "A#"],
       tempo: 90,
-      key: 'Dm',
-      status: 'published',
-      song: { title: 'Кошка', artist: { name: 'Noize MC' } },
+      key: "Dm",
+      status: "published",
+      song: { title: "Кошка", artist: { name: "Noize MC" } },
     });
     expect(row?.rhythms).toEqual(base.rhythms);
   });
 
-  test('reuses an artist and a song regardless of case', async () => {
-    const first = await saveArrangement(db, noopSearch, { authorId, input: base });
+  test("reuses an artist and a song regardless of case", async () => {
+    const first = await saveArrangement(db, noopSearch, {
+      authorId,
+      input: base,
+    });
     const second = await saveArrangement(db, noopSearch, {
       authorId,
-      input: { ...base, artist: { name: 'noize mc' }, song: { title: 'кошка' } },
+      input: {
+        ...base,
+        artist: { name: "noize mc" },
+        song: { title: "кошка" },
+      },
     });
     expect(second.id).not.toBe(first.id);
     expect(await db.$count(artist)).toBe(1);
     expect(await db.$count(song)).toBe(1);
   });
 
-  test('picks a free slug when two names transliterate the same', async () => {
+  test("picks a free slug when two names transliterate the same", async () => {
     await saveArrangement(db, noopSearch, {
       authorId,
-      input: { ...base, artist: { name: 'Кино' } },
+      input: { ...base, artist: { name: "Кино" } },
     });
     const kino = await saveArrangement(db, noopSearch, {
       authorId,
-      input: { ...base, artist: { name: 'Kino' } },
+      input: { ...base, artist: { name: "Kino" } },
     });
-    expect(kino.artistSlug).toBe('kino-2');
+    expect(kino.artistSlug).toBe("kino-2");
   });
 
-  test('uses existing artist and song by id', async () => {
-    const first = await saveArrangement(db, noopSearch, { authorId, input: base });
-    const row = await db.query.song.findFirst({ where: { slug: first.songSlug } });
+  test("uses existing artist and song by id", async () => {
+    const first = await saveArrangement(db, noopSearch, {
+      authorId,
+      input: base,
+    });
+    const row = await db.query.song.findFirst({
+      where: { slug: first.songSlug },
+    });
     const again = await saveArrangement(db, noopSearch, {
       authorId,
       input: { ...base, artist: { id: row!.artistId }, song: { id: row!.id } },
     });
-    expect(again.songSlug).toBe('koshka');
+    expect(again.songSlug).toBe("koshka");
 
     const missing = await rejection(
-      saveArrangement(db, noopSearch, { authorId, input: { ...base, artist: { id: 'nope' } } }),
+      saveArrangement(db, noopSearch, {
+        authorId,
+        input: { ...base, artist: { id: "nope" } },
+      }),
     );
-    expect(missing.code).toBe('NOT_FOUND');
+    expect(missing.code).toBe("NOT_FOUND");
   });
 
-  test('rejects a rhythm marker without a pattern', async () => {
+  test("rejects a rhythm marker without a pattern", async () => {
     const error = await rejection(
       saveArrangement(db, noopSearch, {
         authorId,
-        input: { ...base, content: '${Am}a @C${G}b' },
+        input: { ...base, content: "${Am}a @C${G}b" },
       }),
     );
-    expect(error.code).toBe('BAD_REQUEST');
-    expect(error.message).toContain('Unknown rhythm: C');
+    expect(error.code).toBe("BAD_REQUEST");
+    expect(error.message).toContain("Unknown rhythm: C");
   });
 
-  test('only the author can update', async () => {
-    const saved = await saveArrangement(db, noopSearch, { authorId, input: base });
-    const stranger = await createUser(db, 'stranger');
+  test("only the author can update", async () => {
+    const saved = await saveArrangement(db, noopSearch, {
+      authorId,
+      input: base,
+    });
+    const stranger = await createUser(db, "stranger");
     const error = await rejection(
-      saveArrangement(db, noopSearch, { authorId: stranger, arrangementId: saved.id, input: base }),
+      saveArrangement(db, noopSearch, {
+        authorId: stranger,
+        arrangementId: saved.id,
+        input: base,
+      }),
     );
-    expect(error.code).toBe('FORBIDDEN');
+    expect(error.code).toBe("FORBIDDEN");
 
     const updated = await saveArrangement(db, noopSearch, {
       authorId,
       arrangementId: saved.id,
-      input: { ...base, content: '${Am}la', tempo: 100 },
+      input: { ...base, content: "${Am}la", tempo: 100 },
     });
     expect(updated.id).toBe(saved.id);
-    const row = await db.query.arrangement.findFirst({ where: { id: saved.id } });
-    expect(row).toMatchObject({ content: '${Am}la', chords: ['Am'], tempo: 100 });
+    const row = await db.query.arrangement.findFirst({
+      where: { id: saved.id },
+    });
+    expect(row).toMatchObject({
+      content: "${Am}la",
+      chords: ["Am"],
+      tempo: 100,
+    });
   });
 
-  test('syncs the search index after saving', async () => {
+  test("syncs the search index after saving", async () => {
     const upserted: string[] = [];
     const search = {
       ...noopSearch,
@@ -147,97 +200,135 @@ describe('saveArrangement', () => {
       },
     };
     await saveArrangement(db, search, { authorId, input: base });
-    expect(upserted).toEqual(['Кошка']);
+    expect(upserted).toEqual(["Кошка"]);
   });
 
-  test('stores tuning, voicings and zen mode; drops voicings of chords not in the song', async () => {
+  test("stores tuning, voicings and zen mode; drops voicings of chords not in the song", async () => {
     const saved = await saveArrangement(db, noopSearch, {
       authorId,
       input: {
         ...base,
-        tuning: 'drop-d',
+        tuning: "drop-d",
         voicings: { Dm: [null, null, 0, 2, 3, 1], G: [3, 2, 0, 0, 0, 3] },
-        zenMode: 'strip',
+        zenMode: "strip",
       },
     });
-    const row = await db.query.arrangement.findFirst({ where: { id: saved.id } });
-    expect(row?.tuning).toBe('drop-d');
+    const row = await db.query.arrangement.findFirst({
+      where: { id: saved.id },
+    });
+    expect(row?.tuning).toBe("drop-d");
     expect(row?.voicings).toEqual({ Dm: [null, null, 0, 2, 3, 1] });
-    expect(row?.zenMode).toBe('strip');
+    expect(row?.zenMode).toBe("strip");
   });
 
-  test('normalises a non-canonical chord key before storing its voicing', async () => {
+  test("normalises a non-canonical chord key before storing its voicing", async () => {
     const saved = await saveArrangement(db, noopSearch, {
       authorId,
       input: {
         ...base,
-        content: '[Куплет]\n${Hm}la ${A#}la',
+        content: "[Куплет]\n${Hm}la ${A#}la",
         voicings: { Hm: [null, 2, 4, 4, 3, 2] },
       },
     });
-    const row = await db.query.arrangement.findFirst({ where: { id: saved.id } });
+    const row = await db.query.arrangement.findFirst({
+      where: { id: saved.id },
+    });
     expect(row?.voicings).toEqual({ Bm: [null, 2, 4, 4, 3, 2] });
   });
 });
 
-describe('arrangementInput', () => {
+describe("arrangementInput", () => {
   const parse = (patch: Partial<ArrangementInput>) =>
     arrangementInput.safeParse({ ...base, ...patch }).success;
 
-  test('accepts the defaults', () => {
+  test("accepts the defaults", () => {
     expect(parse({})).toBe(true);
-    expect(parse({ voicings: {}, zenMode: 'inline', tuning: 'dadgad' })).toBe(true);
+    expect(parse({ voicings: {}, zenMode: "inline", tuning: "dadgad" })).toBe(
+      true,
+    );
   });
 
-  test('rejects unknown tunings and zen modes', () => {
-    expect(parse({ tuning: 'banjo' as ArrangementInput['tuning'] })).toBe(false);
-    expect(parse({ zenMode: 'auto' as ArrangementInput['zenMode'] })).toBe(false);
+  test("rejects unknown tunings and zen modes", () => {
+    expect(parse({ tuning: "banjo" as ArrangementInput["tuning"] })).toBe(
+      false,
+    );
+    expect(parse({ zenMode: "auto" as ArrangementInput["zenMode"] })).toBe(
+      false,
+    );
   });
 
-  test('rejects bad voicings', () => {
+  test("rejects bad voicings", () => {
     expect(parse({ voicings: { Am: [null, 0, 2, 2, 1] } })).toBe(false);
     expect(parse({ voicings: { Am: [null, 0, 2, 2, 1, 25] } })).toBe(false);
-    expect(parse({ voicings: { Am: [null, null, null, null, null, null] } })).toBe(false);
+    expect(
+      parse({ voicings: { Am: [null, null, null, null, null, null] } }),
+    ).toBe(false);
     expect(parse({ voicings: { Куплет: [null, 0, 2, 2, 1, 0] } })).toBe(false);
   });
 
-  test('at most 64 voicings', () => {
-    const roots = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'G#', 'A', 'Bb', 'B'];
-    const keys = roots.flatMap((root) => ['', 'm', '7', 'm7', 'maj7', '6'].map((s) => root + s));
-    const many = Object.fromEntries(keys.slice(0, 65).map((key) => [key, [0, 0, 0, 0, 0, 0]]));
+  test("at most 64 voicings", () => {
+    const roots = [
+      "C",
+      "C#",
+      "D",
+      "Eb",
+      "E",
+      "F",
+      "F#",
+      "G",
+      "G#",
+      "A",
+      "Bb",
+      "B",
+    ];
+    const keys = roots.flatMap((root) =>
+      ["", "m", "7", "m7", "maj7", "6"].map((s) => root + s),
+    );
+    const many = Object.fromEntries(
+      keys.slice(0, 65).map((key) => [key, [0, 0, 0, 0, 0, 0]]),
+    );
     expect(parse({ voicings: many })).toBe(false);
-    expect(parse({ voicings: Object.fromEntries(Object.entries(many).slice(0, 64)) })).toBe(true);
+    expect(
+      parse({
+        voicings: Object.fromEntries(Object.entries(many).slice(0, 64)),
+      }),
+    ).toBe(true);
   });
 });
 
 const KINO: DeezerArtist = {
   deezerId: 4505880,
-  name: 'Кино',
-  pictureUrl: 'https://cdn-images.dzcdn.net/images/artist/ec4/1000x1000-000000-80-0-0.jpg',
-  pictureSmallUrl: 'https://cdn-images.dzcdn.net/images/artist/ec4/250x250-000000-80-0-0.jpg',
+  name: "Кино",
+  pictureUrl:
+    "https://cdn-images.dzcdn.net/images/artist/ec4/1000x1000-000000-80-0-0.jpg",
+  pictureSmallUrl:
+    "https://cdn-images.dzcdn.net/images/artist/ec4/250x250-000000-80-0-0.jpg",
 };
 
 function deezer(artists: DeezerArtist[], { down = false } = {}): ArtistSources {
   return {
     ...noArtistSources,
     getDeezerArtist: async (deezerId) => {
-      if (down) throw new Error('Deezer is down');
+      if (down) throw new Error("Deezer is down");
       return artists.find((item) => item.deezerId === deezerId) ?? null;
     },
   };
 }
 
-describe('saveArrangement with a Deezer pick', () => {
-  test('creates the artist with Deezer’s name and pictures', async () => {
+describe("saveArrangement with a Deezer pick", () => {
+  test("creates the artist with Deezer’s name and pictures", async () => {
     const saved = await saveArrangement(
       db,
       noopSearch,
-      { authorId, input: { ...base, artist: { deezerId: 4505880, name: 'кино!!' } } },
+      {
+        authorId,
+        input: { ...base, artist: { deezerId: 4505880, name: "кино!!" } },
+      },
       deezer([KINO]),
     );
     const [row] = await db.select().from(artist);
     expect(row).toMatchObject({
-      name: 'Кино',
+      name: "Кино",
       deezerId: 4505880,
       pictureUrl: KINO.pictureUrl,
       pictureSmallUrl: KINO.pictureSmallUrl,
@@ -246,51 +337,60 @@ describe('saveArrangement with a Deezer pick', () => {
     expect(saved).toMatchObject({ artistId: row?.id, artistEnriched: false });
   });
 
-  test('picking the same Deezer artist again gives the same artist', async () => {
+  test("picking the same Deezer artist again gives the same artist", async () => {
     const sources = deezer([KINO]);
-    const input = { ...base, artist: { deezerId: 4505880, name: 'Кино' } };
+    const input = { ...base, artist: { deezerId: 4505880, name: "Кино" } };
     await saveArrangement(db, noopSearch, { authorId, input }, sources);
     await saveArrangement(
       db,
       noopSearch,
-      { authorId, input: { ...input, song: { title: 'Звезда' } } },
+      { authorId, input: { ...input, song: { title: "Звезда" } } },
       sources,
     );
     expect(await db.$count(artist)).toBe(1);
   });
 
-  test('links an artist of ours with the same name that has no Deezer artist yet', async () => {
+  test("links an artist of ours with the same name that has no Deezer artist yet", async () => {
     await saveArrangement(db, noopSearch, {
       authorId,
-      input: { ...base, artist: { name: 'кино' } },
+      input: { ...base, artist: { name: "кино" } },
     });
     await saveArrangement(
       db,
       noopSearch,
-      { authorId, input: { ...base, artist: { deezerId: 4505880, name: 'Кино' } } },
+      {
+        authorId,
+        input: { ...base, artist: { deezerId: 4505880, name: "Кино" } },
+      },
       deezer([KINO]),
     );
     const rows = await db.select().from(artist);
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
-      name: 'кино',
+      name: "кино",
       deezerId: 4505880,
       pictureSmallUrl: KINO.pictureSmallUrl,
     });
   });
 
-  test('a namesake already linked to another Deezer artist is reused, not duplicated', async () => {
+  test("a namesake already linked to another Deezer artist is reused, not duplicated", async () => {
     const other = { ...KINO, deezerId: 103841652 };
     await saveArrangement(
       db,
       noopSearch,
-      { authorId, input: { ...base, artist: { deezerId: 103841652, name: 'Кино' } } },
+      {
+        authorId,
+        input: { ...base, artist: { deezerId: 103841652, name: "Кино" } },
+      },
       deezer([other]),
     );
     await saveArrangement(
       db,
       noopSearch,
-      { authorId, input: { ...base, artist: { deezerId: 4505880, name: 'Кино' } } },
+      {
+        authorId,
+        input: { ...base, artist: { deezerId: 4505880, name: "Кино" } },
+      },
       deezer([KINO]),
     );
     const rows = await db.select().from(artist);
@@ -298,34 +398,41 @@ describe('saveArrangement with a Deezer pick', () => {
     expect(rows[0]?.deezerId).toBe(103841652);
   });
 
-  test('falls back to the typed name when Deezer is down or does not know the id', async () => {
+  test("falls back to the typed name when Deezer is down or does not know the id", async () => {
     await saveArrangement(
       db,
       noopSearch,
-      { authorId, input: { ...base, artist: { deezerId: 4505880, name: 'Кино' } } },
+      {
+        authorId,
+        input: { ...base, artist: { deezerId: 4505880, name: "Кино" } },
+      },
       deezer([], { down: true }),
     );
     await saveArrangement(
       db,
       noopSearch,
-      { authorId, input: { ...base, artist: { deezerId: 1, name: 'Сплин' } } },
+      { authorId, input: { ...base, artist: { deezerId: 1, name: "Сплин" } } },
       deezer([]),
     );
     const rows = await db.select().from(artist).orderBy(artist.name);
     expect(rows.map((row) => [row.name, row.deezerId])).toEqual([
-      ['Кино', null],
-      ['Сплин', null],
+      ["Кино", null],
+      ["Сплин", null],
     ]);
   });
 
-  test('re-syncs the artist’s other arrangements when a save links it to Deezer', async () => {
+  test("re-syncs the artist’s other arrangements when a save links it to Deezer", async () => {
     const first = await saveArrangement(db, noopSearch, {
       authorId,
-      input: { ...base, artist: { name: 'Кино' }, song: { title: 'Кукушка' } },
+      input: { ...base, artist: { name: "Кино" }, song: { title: "Кукушка" } },
     });
     const second = await saveArrangement(db, noopSearch, {
       authorId,
-      input: { ...base, artist: { name: 'Кино' }, song: { title: 'Группа крови' } },
+      input: {
+        ...base,
+        artist: { name: "Кино" },
+        song: { title: "Группа крови" },
+      },
     });
 
     const { search, arrangements } = recordingSearch();
@@ -334,29 +441,42 @@ describe('saveArrangement with a Deezer pick', () => {
       search,
       {
         authorId,
-        input: { ...base, artist: { deezerId: 4505880, name: 'Кино' }, song: { title: 'Звезда' } },
+        input: {
+          ...base,
+          artist: { deezerId: 4505880, name: "Кино" },
+          song: { title: "Звезда" },
+        },
       },
       deezer([KINO]),
     );
 
     const byId = new Map(arrangements.map((doc) => [doc.id, doc]));
-    expect(byId.get(first.id)?.artistPictureSmallUrl).toBe(KINO.pictureSmallUrl);
-    expect(byId.get(second.id)?.artistPictureSmallUrl).toBe(KINO.pictureSmallUrl);
+    expect(byId.get(first.id)?.artistPictureSmallUrl).toBe(
+      KINO.pictureSmallUrl,
+    );
+    expect(byId.get(second.id)?.artistPictureSmallUrl).toBe(
+      KINO.pictureSmallUrl,
+    );
 
     const [row] = await db.select().from(artist);
     expect(row?.enrichedAt).toBeNull();
     expect(saved.artistEnriched).toBe(false);
   });
 
-  test('the input accepts a Deezer pick and keeps it apart from a plain name', () => {
+  test("the input accepts a Deezer pick and keeps it apart from a plain name", () => {
     expect(
-      arrangementInput.parse({ ...base, artist: { deezerId: 4505880, name: 'Кино' } }).artist,
+      arrangementInput.parse({
+        ...base,
+        artist: { deezerId: 4505880, name: "Кино" },
+      }).artist,
     ).toEqual({
       deezerId: 4505880,
-      name: 'Кино',
+      name: "Кино",
     });
-    expect(arrangementInput.parse({ ...base, artist: { name: 'Кино' } }).artist).toEqual({
-      name: 'Кино',
+    expect(
+      arrangementInput.parse({ ...base, artist: { name: "Кино" } }).artist,
+    ).toEqual({
+      name: "Кино",
     });
   });
 });

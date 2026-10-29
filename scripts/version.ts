@@ -1,4 +1,4 @@
-export type BumpKind = 'patch' | 'minor' | 'major';
+export type BumpKind = "patch" | "minor" | "major";
 
 export function parseVersion(version: string): [number, number, number] {
   const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(version);
@@ -10,10 +10,10 @@ export function parseVersion(version: string): [number, number, number] {
 
 export function bumpVersion(version: string, kind: BumpKind): string {
   const [major, minor, patch] = parseVersion(version);
-  if (kind === 'major') {
+  if (kind === "major") {
     return `${major + 1}.0.0`;
   }
-  if (kind === 'minor') {
+  if (kind === "minor") {
     return `${major}.${minor + 1}.0`;
   }
   return `${major}.${minor}.${patch + 1}`;
@@ -26,7 +26,9 @@ export function bumpVersion(version: string, kind: BumpKind): string {
 export function versionCode(version: string): number {
   const [major, minor, patch] = parseVersion(version);
   if (minor >= 100 || patch >= 100) {
-    throw new Error(`${version}: minor and patch must stay below 100 for the Android versionCode`);
+    throw new Error(
+      `${version}: minor and patch must stay below 100 for the Android versionCode`,
+    );
   }
   return major * 10000 + minor * 100 + patch;
 }

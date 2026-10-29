@@ -4,13 +4,13 @@ import {
   type Rhythm,
   type Step,
   type StringRef,
-  type TimelineEvent,
   tabQuarters,
-} from '@chordtune/chord-sheet';
+  type TimelineEvent,
+} from "@chordtune/chord-sheet";
 
-import { type GuitarFrets, OPEN_STRING_MIDI } from './guitar-synth';
-import { scheduleTab } from './tab-schedule';
-import { voicingFor } from './voicing';
+import { type GuitarFrets, OPEN_STRING_MIDI } from "./guitar-synth";
+import { scheduleTab } from "./tab-schedule";
+import { voicingFor } from "./voicing";
 
 export type ScheduledNote = {
   /** Seconds from the start of the first event. */
@@ -39,11 +39,11 @@ const ACCENT_GAIN = 1.3;
 const EPSILON = 1e-9;
 
 const BEAT_STRUM: Rhythm = {
-  key: '',
-  name: '',
-  kind: 'strum',
-  time: '4/4',
-  steps: [{ stroke: 'D' }, { stroke: 'D' }, { stroke: 'D' }, { stroke: 'D' }],
+  key: "",
+  name: "",
+  kind: "strum",
+  time: "4/4",
+  steps: [{ stroke: "D" }, { stroke: "D" }, { stroke: "D" }, { stroke: "D" }],
 };
 
 function rhythmOf(event: ChordEvent, rhythms: readonly Rhythm[]): Rhythm {
@@ -54,9 +54,13 @@ function barSeconds(rhythm: Rhythm, bpm: number): number {
   return (barBeats(rhythm.time) * 60) / bpm;
 }
 
-function eventLength(event: TimelineEvent, rhythms: readonly Rhythm[], bpm: number): number {
+function eventLength(
+  event: TimelineEvent,
+  rhythms: readonly Rhythm[],
+  bpm: number,
+): number {
   const tempo = event.tempo ?? bpm;
-  return event.kind === 'tab'
+  return event.kind === "tab"
     ? (tabQuarters(event.block) * 60) / tempo
     : event.length * barSeconds(rhythmOf(event, rhythms), tempo);
 }
@@ -82,14 +86,15 @@ export function scheduleNotes(
   options: ScheduleOptions,
 ): ScheduledNote[] {
   const strings = options.strings ?? OPEN_STRING_MIDI;
-  const voicing = options.voicing ?? ((chord: string) => voicingFor(chord, strings));
+  const voicing =
+    options.voicing ?? ((chord: string) => voicingFor(chord, strings));
   const capo = options.capo ?? 0;
   const seconds = eventSeconds(events, rhythms, options.bpm);
   const notes: ScheduledNote[] = [];
 
   events.forEach((event, index) => {
     const offset = seconds[index]?.start ?? 0;
-    if (event.kind === 'tab') {
+    if (event.kind === "tab") {
       for (const note of scheduleTab(event.block, {
         bpm: event.tempo ?? options.bpm,
         capo,
@@ -108,12 +113,18 @@ export function scheduleNotes(
     const end = event.start + event.length;
     const stepCount = rhythm.steps.length;
 
-    for (let bar = Math.floor(event.start + EPSILON); bar < end - EPSILON; bar++) {
+    for (
+      let bar = Math.floor(event.start + EPSILON);
+      bar < end - EPSILON;
+      bar++
+    ) {
       rhythm.steps.forEach((step, i) => {
         const at = bar + i / stepCount;
         if (step && at >= event.start - EPSILON && at < end - EPSILON) {
           const time = offset + (at - event.start) * barSec;
-          notes.push(...playStep(step, rhythm.kind, frets, time, capo, strings));
+          notes.push(
+            ...playStep(step, rhythm.kind, frets, time, capo, strings),
+          );
         }
       });
     }
@@ -134,7 +145,15 @@ export function strumShape(
   frets.forEach((fret, index) => {
     if (fret !== null) {
       notes.push(
-        note(index, fret, notes.length * SHAPE_SPREAD_SEC, PICK_GAIN, false, capo, strings),
+        note(
+          index,
+          fret,
+          notes.length * SHAPE_SPREAD_SEC,
+          PICK_GAIN,
+          false,
+          capo,
+          strings,
+        ),
       );
     }
   });
@@ -161,7 +180,7 @@ function note(
 
 function playStep(
   step: NonNullable<Step>,
-  kind: Rhythm['kind'],
+  kind: Rhythm["kind"],
   frets: GuitarFrets,
   time: number,
   capo: number,
@@ -169,14 +188,26 @@ function playStep(
 ): ScheduledNote[] {
   const accent = step.accent ? ACCENT_GAIN : 1;
   // Indices into `frets`, low E first.
-  const sounding = frets.flatMap((fret, index) => (fret === null ? [] : [index]));
+  const sounding = frets.flatMap((fret, index) =>
+    fret === null ? [] : [index],
+  );
 
-  if (kind === 'pick') {
+  if (kind === "pick") {
     return (step.strings ?? []).flatMap((ref) => {
       const index = pickedString(ref, frets, sounding, strings);
       return index === null
         ? []
-        : [note(index, frets[index] ?? 0, time, PICK_GAIN * accent, false, capo, strings)];
+        : [
+            note(
+              index,
+              frets[index] ?? 0,
+              time,
+              PICK_GAIN * accent,
+              false,
+              capo,
+              strings,
+            ),
+          ];
     });
   }
 
@@ -194,13 +225,17 @@ function playStep(
     );
 
   switch (step.stroke) {
-    case 'D':
-    case 'd':
-      return strum(sounding, 1, step.stroke === 'd');
-    case 'U':
-    case 'u':
-      return strum(sounding.slice(-UP_STRINGS).reverse(), UP_GAIN, step.stroke === 'u');
-    case 'x':
+    case "D":
+    case "d":
+      return strum(sounding, 1, step.stroke === "d");
+    case "U":
+    case "u":
+      return strum(
+        sounding.slice(-UP_STRINGS).reverse(),
+        UP_GAIN,
+        step.stroke === "u",
+      );
+    case "x":
       return strum(
         strings.map((_, index) => index),
         1,
@@ -222,14 +257,16 @@ function pickedString(
   if (bass === undefined) {
     return null;
   }
-  if (ref === 'B') {
+  if (ref === "B") {
     return bass;
   }
   if (ref === "B'") {
     const bassPc = (strings[bass] + (frets[bass] ?? 0)) % 12;
     return (
       sounding.find(
-        (index) => index > bass && (strings[index] + (frets[index] ?? 0)) % 12 !== bassPc,
+        (index) =>
+          index > bass &&
+          (strings[index] + (frets[index] ?? 0)) % 12 !== bassPc,
       ) ?? bass
     );
   }

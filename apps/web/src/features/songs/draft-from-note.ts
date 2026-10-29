@@ -4,9 +4,9 @@ import {
   importObsidian,
   parse,
   serialize,
-} from '@chordtune/chord-sheet';
+} from "@chordtune/chord-sheet";
 
-import { type Draft, EMPTY_DRAFT } from '@/features/editor/use-draft';
+import { type Draft, EMPTY_DRAFT } from "@/features/editor/use-draft";
 
 const MAX_NOTES = 5_000;
 
@@ -26,5 +26,7 @@ export function draftFromNote(text: string): Draft | null {
     };
   }
   const { doc } = fromChordsOverLyrics(text.trim());
-  return chordList(doc).length > 0 ? { ...EMPTY_DRAFT, content: serialize(doc) } : null;
+  return chordList(doc).length > 0
+    ? { ...EMPTY_DRAFT, content: serialize(doc) }
+    : null;
 }

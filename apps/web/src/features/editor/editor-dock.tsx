@@ -1,17 +1,18 @@
-'use client';
+"use client";
 
-import { Eye, PenLine, TextCursorInput } from 'lucide-react';
-import { motion } from 'motion/react';
-import { useTranslations } from 'next-intl';
+import { Eye, PenLine, TextCursorInput } from "lucide-react";
+import { motion } from "motion/react";
+import { useTranslations } from "next-intl";
 
-import { spring } from '@/lib/motion';
-import { cn } from '@/lib/utils';
-import type { EditorMode } from './chord-editor';
+import { spring } from "@/lib/motion";
+import { cn } from "@/lib/utils";
+
+import type { EditorMode } from "./chord-editor";
 
 const MODES = [
-  { id: 'visual', icon: PenLine, label: 'modeVisual' },
-  { id: 'text', icon: TextCursorInput, label: 'modeText' },
-  { id: 'check', icon: Eye, label: 'modeCheck' },
+  { id: "visual", icon: PenLine, label: "modeVisual" },
+  { id: "text", icon: TextCursorInput, label: "modeText" },
+  { id: "check", icon: Eye, label: "modeCheck" },
 ] as const;
 
 /** Visual / Text / Check at the bottom of the editor, with a sliding highlight. */
@@ -22,7 +23,7 @@ export function EditorDock({
   mode: EditorMode;
   onChange: (mode: EditorMode) => void;
 }) {
-  const t = useTranslations('editor');
+  const t = useTranslations("editor");
   return (
     <motion.nav
       initial={{ y: 40, opacity: 0 }}
@@ -37,8 +38,8 @@ export function EditorDock({
           aria-pressed={mode === id}
           onClick={() => onChange(id)}
           className={cn(
-            'relative flex flex-1 items-center justify-center gap-1.5 rounded-2xl py-2 font-medium text-muted-foreground text-sm transition-colors',
-            mode === id && 'text-foreground',
+            "relative flex flex-1 items-center justify-center gap-1.5 rounded-2xl py-2 font-medium text-muted-foreground text-sm transition-colors",
+            mode === id && "text-foreground",
           )}
         >
           {mode === id && (
@@ -49,7 +50,10 @@ export function EditorDock({
             />
           )}
           <Icon
-            className={cn('relative size-4', mode === id && id === 'check' && 'text-primary')}
+            className={cn(
+              "relative size-4",
+              mode === id && id === "check" && "text-primary",
+            )}
           />
           <span className="relative">{t(label)}</span>
         </button>

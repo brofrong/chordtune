@@ -1,25 +1,29 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
+
 import {
   GUITAR_TUNINGS,
   parseAlphaTex,
-  RHYTHM_PRESETS,
   type Rhythm,
+  RHYTHM_PRESETS,
   rhythmFromPreset,
   type TimelineEvent,
-} from '@chordtune/chord-sheet';
+} from "@chordtune/chord-sheet";
 
-import { eventSeconds, scheduleNotes, strumShape } from './strum-schedule';
+import { eventSeconds, scheduleNotes, strumShape } from "./strum-schedule";
 
-const preset = (id: string, key = 'A'): Rhythm =>
-  rhythmFromPreset(RHYTHM_PRESETS.find((p) => p.id === id)!, key);
+const preset = (id: string, key = "A"): Rhythm =>
+  rhythmFromPreset(
+    RHYTHM_PRESETS.find((p) => p.id === id)!,
+    key,
+  );
 
 const event = (
   chord: string,
   start: number,
   length: number,
-  rhythm: string | null = 'A',
+  rhythm: string | null = "A",
 ): TimelineEvent => ({
-  kind: 'chord',
+  kind: "chord",
   chord,
   rhythm,
   tempo: null,
@@ -36,10 +40,14 @@ function onsets(times: number[]): number[] {
   return [...new Set(times.map((time) => Math.round(time * 4) / 4))];
 }
 
-describe('scheduleNotes', () => {
-  test('six at 60 BPM on one bar of Am', () => {
-    const notes = scheduleNotes([event('Am', 0, 1)], [preset('six')], { bpm: 60 });
-    expect(onsets(notes.map((note) => note.time))).toEqual([0, 1, 1.5, 2.5, 3, 3.5]);
+describe("scheduleNotes", () => {
+  test("six at 60 BPM on one bar of Am", () => {
+    const notes = scheduleNotes([event("Am", 0, 1)], [preset("six")], {
+      bpm: 60,
+    });
+    expect(onsets(notes.map((note) => note.time))).toEqual([
+      0, 1, 1.5, 2.5, 3, 3.5,
+    ]);
     const down = notes.filter((note) => note.time < 0.5);
     expect(down.map((note) => note.string)).toEqual([5, 4, 3, 2, 1]);
     expect(down.map((note) => note.time)).toEqual(
@@ -51,29 +59,41 @@ describe('scheduleNotes', () => {
     expect(up.every((note) => note.gain === 0.8 && !note.muted)).toBe(true);
   });
 
-  test('muted strokes and accents', () => {
-    const notes = scheduleNotes([event('Am', 0, 1)], [preset('six-muted')], { bpm: 60 });
+  test("muted strokes and accents", () => {
+    const notes = scheduleNotes([event("Am", 0, 1)], [preset("six-muted")], {
+      bpm: 60,
+    });
     const hit = notes.filter((note) => note.time >= 1 && note.time < 1.5);
     expect(hit.map((note) => note.string)).toEqual([6, 5, 4, 3, 2, 1]);
     expect(hit.every((note) => note.muted)).toBe(true);
 
-    const four = scheduleNotes([event('C', 0, 1)], [preset('four')], { bpm: 60 });
+    const four = scheduleNotes([event("C", 0, 1)], [preset("four")], {
+      bpm: 60,
+    });
     expect(four[0]?.gain).toBeCloseTo(1.3, 9);
   });
 
-  test('picking follows the bass of the chord', () => {
-    const notes = scheduleNotes([event('Am', 0, 1)], [preset('pick-eight')], { bpm: 120 });
+  test("picking follows the bass of the chord", () => {
+    const notes = scheduleNotes([event("Am", 0, 1)], [preset("pick-eight")], {
+      bpm: 120,
+    });
     expect(notes.map((note) => note.string)).toEqual([5, 3, 2, 3, 1, 3, 2, 3]);
-    expect(notes.map((note) => note.time)).toEqual([0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75]);
+    expect(notes.map((note) => note.time)).toEqual([
+      0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75,
+    ]);
 
-    const pinch = scheduleNotes([event('Am', 0, 1)], [preset('pinch')], { bpm: 60 });
-    expect(pinch.filter((note) => note.time === 2).map((note) => note.string)).toEqual([4]);
+    const pinch = scheduleNotes([event("Am", 0, 1)], [preset("pinch")], {
+      bpm: 60,
+    });
+    expect(
+      pinch.filter((note) => note.time === 2).map((note) => note.string),
+    ).toEqual([4]);
   });
 
-  test('half-bar chords take their half of the pattern', () => {
+  test("half-bar chords take their half of the pattern", () => {
     const notes = scheduleNotes(
-      [event('Am', 0, 0.5), event('G', 0.5, 0.5)],
-      [preset('pick-eight')],
+      [event("Am", 0, 0.5), event("G", 0.5, 0.5)],
+      [preset("pick-eight")],
       { bpm: 120 },
     );
     // The pattern keeps its place in the bar, so G starts on step 5 (string 1), not on the bass.
@@ -81,9 +101,9 @@ describe('scheduleNotes', () => {
     expect(notes[4]?.midi).toBe(67);
   });
 
-  test('bars follow the time signature of their rhythm', () => {
-    const rhythms = [preset('six'), preset('waltz', 'B')];
-    const events = [event('Am', 0, 1), event('G', 1, 1, 'B'), event('C', 2, 1)];
+  test("bars follow the time signature of their rhythm", () => {
+    const rhythms = [preset("six"), preset("waltz", "B")];
+    const events = [event("Am", 0, 1), event("G", 1, 1, "B"), event("C", 2, 1)];
     expect(eventSeconds(events, rhythms, 60)).toEqual([
       { start: 0, end: 4 },
       { start: 4, end: 7 },
@@ -91,29 +111,46 @@ describe('scheduleNotes', () => {
     ]);
   });
 
-  test('without a rhythm every beat is a down stroke; unknown chords are silent', () => {
-    const notes = scheduleNotes([event('Am', 0, 1, null), event('Xyz', 1, 1, null)], [], {
-      bpm: 60,
-    });
+  test("without a rhythm every beat is a down stroke; unknown chords are silent", () => {
+    const notes = scheduleNotes(
+      [event("Am", 0, 1, null), event("Xyz", 1, 1, null)],
+      [],
+      {
+        bpm: 60,
+      },
+    );
     expect(onsets(notes.map((note) => note.time))).toEqual([0, 1, 2, 3]);
   });
 });
 
-describe('tabs and tempo', () => {
-  test('a tab event plays in its tempo and pushes the next chord', () => {
-    const tab = parseAlphaTex(['\\tempo 120', '0.6 0.6 0.6 0.6']).block;
+describe("tabs and tempo", () => {
+  test("a tab event plays in its tempo and pushes the next chord", () => {
+    const tab = parseAlphaTex(["\\tempo 120", "0.6 0.6 0.6 0.6"]).block;
     const events: TimelineEvent[] = [
-      event('Am', 0, 1),
-      { kind: 'tab', block: tab, tempo: 120, bar: 1, start: 1, length: 1, section: 0, line: 1 },
-      event('G', 2, 1),
+      event("Am", 0, 1),
+      {
+        kind: "tab",
+        block: tab,
+        tempo: 120,
+        bar: 1,
+        start: 1,
+        length: 1,
+        section: 0,
+        line: 1,
+      },
+      event("G", 2, 1),
     ];
-    expect(eventSeconds(events, [preset('six')], 60)).toEqual([
+    expect(eventSeconds(events, [preset("six")], 60)).toEqual([
       { start: 0, end: 4 },
       { start: 4, end: 6 },
       { start: 6, end: 10 },
     ]);
-    const notes = scheduleNotes(events, [preset('six')], { bpm: 60 });
-    expect(notes.filter((n) => n.time >= 4 && n.time < 6).map((n) => [n.time, n.midi])).toEqual([
+    const notes = scheduleNotes(events, [preset("six")], { bpm: 60 });
+    expect(
+      notes
+        .filter((n) => n.time >= 4 && n.time < 6)
+        .map((n) => [n.time, n.midi]),
+    ).toEqual([
       [4, 40],
       [4.5, 40],
       [5, 40],
@@ -121,21 +158,26 @@ describe('tabs and tempo', () => {
     ]);
   });
 
-  test('a section tempo changes the bar length', () => {
-    expect(eventSeconds([{ ...event('Am', 0, 1), tempo: 120 }], [preset('six')], 60)).toEqual([
-      { start: 0, end: 2 },
-    ]);
+  test("a section tempo changes the bar length", () => {
+    expect(
+      eventSeconds([{ ...event("Am", 0, 1), tempo: 120 }], [preset("six")], 60),
+    ).toEqual([{ start: 0, end: 2 }]);
   });
 
-  test('capo raises every chord note', () => {
-    const plain = scheduleNotes([event('Am', 0, 1)], [preset('six')], { bpm: 60 });
-    const capo = scheduleNotes([event('Am', 0, 1)], [preset('six')], { bpm: 60, capo: 3 });
+  test("capo raises every chord note", () => {
+    const plain = scheduleNotes([event("Am", 0, 1)], [preset("six")], {
+      bpm: 60,
+    });
+    const capo = scheduleNotes([event("Am", 0, 1)], [preset("six")], {
+      bpm: 60,
+      capo: 3,
+    });
     expect(capo.map((n) => n.midi)).toEqual(plain.map((n) => n.midi + 3));
   });
 });
 
-describe('strumShape', () => {
-  test('one down strum, thickest string first', () => {
+describe("strumShape", () => {
+  test("one down strum, thickest string first", () => {
     const notes = strumShape([null, 0, 2, 2, 1, 0]);
     expect(notes.map((note) => note.midi)).toEqual([45, 52, 57, 60, 64]);
     expect(notes.map((note) => note.string)).toEqual([5, 4, 3, 2, 1]);
@@ -145,21 +187,27 @@ describe('strumShape', () => {
     }
   });
 
-  test('strings and capo', () => {
+  test("strings and capo", () => {
     expect(
-      strumShape([0, null, null, null, null, null], GUITAR_TUNINGS['drop-d'], 2)[0]?.midi,
+      strumShape(
+        [0, null, null, null, null, null],
+        GUITAR_TUNINGS["drop-d"],
+        2,
+      )[0]?.midi,
     ).toBe(40);
   });
 });
 
-describe('scheduleNotes strings', () => {
-  test('notes use the given open strings', () => {
-    const notes = scheduleNotes([event('D', 0, 1, null)], [], {
+describe("scheduleNotes strings", () => {
+  test("notes use the given open strings", () => {
+    const notes = scheduleNotes([event("D", 0, 1, null)], [], {
       bpm: 120,
-      strings: GUITAR_TUNINGS['drop-d'],
+      strings: GUITAR_TUNINGS["drop-d"],
       voicing: () => [0, null, null, null, null, null],
     });
     expect(notes.length).toBeGreaterThan(0);
-    expect(notes.every((note) => note.midi === 38 && note.string === 6)).toBe(true);
+    expect(notes.every((note) => note.midi === 38 && note.string === 6)).toBe(
+      true,
+    );
   });
 });

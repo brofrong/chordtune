@@ -1,19 +1,19 @@
-import type { CapacitorConfig } from '@capacitor/cli';
+import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: 'app.chordtune',
-  appName: 'ChordTune',
-  webDir: 'out',
-  backgroundColor: '#15171c',
+  appId: "app.chordtune",
+  appName: "ChordTune",
+  webDir: "out",
+  backgroundColor: "#15171c",
   ios: {
-    contentInset: 'never',
+    contentInset: "never",
   },
   plugins: {
     CapacitorUpdater: {
       // Our code checks /mobile/update.json on the app's own server; Capgo's cloud is not used.
-      autoUpdate: 'off',
+      autoUpdate: "off",
       // The plugin otherwise reports stats, crashes and JS errors to Capgo.
-      statsUrl: '',
+      statsUrl: "",
       keepUrlPathAfterReload: true,
     },
   },

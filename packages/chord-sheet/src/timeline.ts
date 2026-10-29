@@ -1,6 +1,6 @@
-import type { Rhythm } from './rhythm';
-import { barQuarters, type TabBlock, tabQuarters } from './tab';
-import type { Item, SongDoc } from './types';
+import type { Rhythm } from "./rhythm";
+import { barQuarters, type TabBlock, tabQuarters } from "./tab";
+import type { Item, SongDoc } from "./types";
 
 type Place = {
   /** Bar number from 0. */
@@ -15,7 +15,7 @@ type Place = {
 };
 
 export type ChordEvent = Place & {
-  kind: 'chord';
+  kind: "chord";
   chord: string;
   /** Key of the rhythm pattern, `null` when the song has none. */
   rhythm: string | null;
@@ -23,17 +23,17 @@ export type ChordEvent = Place & {
   item: number;
 };
 
-export type TabEvent = Place & { kind: 'tab'; block: TabBlock };
+export type TabEvent = Place & { kind: "tab"; block: TabBlock };
 
 export type TimelineEvent = ChordEvent | TabEvent;
 
-type Unplaced = Omit<ChordEvent, 'bar'> | Omit<TabEvent, 'bar'>;
+type Unplaced = Omit<ChordEvent, "bar"> | Omit<TabEvent, "bar">;
 
 /** Splits a line into bar groups. A line without `|` is one group where every chord is a bar. */
 function groups(items: Item[]): { item: Item; index: number }[][] {
   const result: { item: Item; index: number }[][] = [[]];
   items.forEach((item, index) => {
-    if (item.type === 'bar') {
+    if (item.type === "bar") {
       result.push([]);
     } else {
       result.at(-1)?.push({ item, index });
@@ -48,13 +48,19 @@ function groups(items: Item[]): { item: Item; index: number }[][] {
  * chord. `@X` switches the rhythm until the next marker, across sections. alphaTex blocks become
  * one tab event each, as long as their bars; ASCII tabs take no time.
  */
-export function timeline(doc: SongDoc, rhythms: readonly Rhythm[]): TimelineEvent[] {
+export function timeline(
+  doc: SongDoc,
+  rhythms: readonly Rhythm[],
+): TimelineEvent[] {
   const events: TimelineEvent[] = [];
   let rhythm = rhythms[0]?.key ?? null;
   let position = 0;
 
   const push = (event: Unplaced) => {
-    events.push({ ...event, bar: Math.floor(event.start + 1e-9) } as TimelineEvent);
+    events.push({
+      ...event,
+      bar: Math.floor(event.start + 1e-9),
+    } as TimelineEvent);
     position = event.start + event.length;
   };
 
@@ -63,14 +69,14 @@ export function timeline(doc: SongDoc, rhythms: readonly Rhythm[]): TimelineEven
       rhythm = section.rhythm;
     }
     section.lines.forEach((line, lineIndex) => {
-      if (line.type === 'tab') {
+      if (line.type === "tab") {
         return;
       }
-      if (line.type === 'alphatex') {
+      if (line.type === "alphatex") {
         const quarters = tabQuarters(line.block);
         if (quarters > 0) {
           push({
-            kind: 'tab',
+            kind: "tab",
             block: line.block,
             tempo: line.block.tempo ?? section.tempo,
             start: position,
@@ -81,20 +87,24 @@ export function timeline(doc: SongDoc, rhythms: readonly Rhythm[]): TimelineEven
         }
         return;
       }
-      const barred = line.items.some((item) => item.type === 'bar');
+      const barred = line.items.some((item) => item.type === "bar");
       let repeatFrom = events.length;
 
       for (const entries of groups(line.items)) {
-        const chordCount = entries.filter(({ item }) => item.type === 'chord').length;
-        const hasText = entries.some(({ item }) => item.type === 'text' && item.text.trim());
+        const chordCount = entries.filter(
+          ({ item }) => item.type === "chord",
+        ).length;
+        const hasText = entries.some(
+          ({ item }) => item.type === "text" && item.text.trim(),
+        );
         const length = barred && chordCount > 0 ? 1 / chordCount : 1;
 
         for (const { item, index } of entries) {
-          if (item.type === 'rhythm') {
+          if (item.type === "rhythm") {
             rhythm = item.key;
-          } else if (item.type === 'chord') {
+          } else if (item.type === "chord") {
             push({
-              kind: 'chord',
+              kind: "chord",
               chord: item.chord,
               rhythm,
               tempo: section.tempo,
@@ -104,7 +114,7 @@ export function timeline(doc: SongDoc, rhythms: readonly Rhythm[]): TimelineEven
               line: lineIndex,
               item: index,
             });
-          } else if (item.type === 'repeat') {
+          } else if (item.type === "repeat") {
             const phrase = events.slice(repeatFrom);
             const phraseStart = phrase[0]?.start ?? position;
             const phraseLength = position - phraseStart;
@@ -118,7 +128,12 @@ export function timeline(doc: SongDoc, rhythms: readonly Rhythm[]): TimelineEven
         }
 
         const previous = events.at(-1);
-        if (barred && chordCount === 0 && hasText && previous?.kind === 'chord') {
+        if (
+          barred &&
+          chordCount === 0 &&
+          hasText &&
+          previous?.kind === "chord"
+        ) {
           previous.length += 1;
           position += 1;
         }

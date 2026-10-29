@@ -1,23 +1,27 @@
-import type { Item } from '@chordtune/chord-sheet';
-import type * as React from 'react';
+import type { Item } from "@chordtune/chord-sheet";
+import type * as React from "react";
 
-import { cn } from '@/lib/utils';
-import { MarkChip } from './mark-chip';
+import { cn } from "@/lib/utils";
 
-type Segment = { marks: { item: Exclude<Item, { type: 'text' }>; index: number }[]; text: string };
+import { MarkChip } from "./mark-chip";
+
+type Segment = {
+  marks: { item: Exclude<Item, { type: "text" }>; index: number }[];
+  text: string;
+};
 
 /** Groups a line into «marks + the text after them», so lines wrap between segments. */
 function segments(items: readonly Item[]): Segment[] {
   const result: Segment[] = [];
-  let current: Segment = { marks: [], text: '' };
+  let current: Segment = { marks: [], text: "" };
   items.forEach((item, index) => {
-    if (item.type === 'text') {
+    if (item.type === "text") {
       current.text += item.text;
       return;
     }
     if (current.text) {
       result.push(current);
-      current = { marks: [], text: '' };
+      current = { marks: [], text: "" };
     }
     current.marks.push({ item, index });
   });
@@ -32,7 +36,7 @@ export function LineView({
   items,
   activeItem,
   onChord,
-  marks = 'chips',
+  marks = "chips",
   className,
 }: {
   items: readonly Item[];
@@ -41,29 +45,47 @@ export function LineView({
   /** A tap on a chord; `item` is its index in `items`. */
   onChord?: (chord: string, anchor: HTMLElement, item: number) => void;
   /** `dots`: the zen strip view — chords become dots under the words, other marks are hidden. */
-  marks?: 'chips' | 'dots';
+  marks?: "chips" | "dots";
   /** Extra classes on the line's root, e.g. to center it. */
   className?: string;
 }) {
-  const dots = marks === 'dots';
-  const shown = (item: Item) => item.type !== 'text' && (!dots || item.type === 'chord');
+  const dots = marks === "dots";
+  const shown = (item: Item) =>
+    item.type !== "text" && (!dots || item.type === "chord");
   const hasMarks = items.some(shown);
   if (!hasMarks) {
-    const text = items.map((item) => (item.type === 'text' ? item.text : '')).join('');
-    return <p className={cn('min-h-6 whitespace-pre-wrap leading-6', className)}>{text}</p>;
+    const text = items
+      .map((item) => (item.type === "text" ? item.text : ""))
+      .join("");
+    return (
+      <p className={cn("min-h-6 whitespace-pre-wrap leading-6", className)}>
+        {text}
+      </p>
+    );
   }
-  const hasText = items.some((item) => item.type === 'text' && item.text.trim());
-  const tap = (chord: string, index: number) => (event: React.MouseEvent<HTMLElement>) => {
-    event.stopPropagation();
-    onChord?.(chord, event.currentTarget, index);
-  };
+  const hasText = items.some(
+    (item) => item.type === "text" && item.text.trim(),
+  );
+  const tap =
+    (chord: string, index: number) =>
+    (event: React.MouseEvent<HTMLElement>) => {
+      event.stopPropagation();
+      onChord?.(chord, event.currentTarget, index);
+    };
 
   return (
-    <div className={cn('flex flex-wrap items-end', className)}>
+    <div className={cn("flex flex-wrap items-end", className)}>
       {segments(items).map((segment, index) => {
         const words = hasText && (
-          <span className={cn('whitespace-pre-wrap leading-6', !segment.text && 'min-w-2')}>
-            {segment.text.trim() ? segment.text : segment.text.replace(/ /g, ' ')}
+          <span
+            className={cn(
+              "whitespace-pre-wrap leading-6",
+              !segment.text && "min-w-2",
+            )}
+          >
+            {segment.text.trim()
+              ? segment.text
+              : segment.text.replace(/ /g, " ")}
           </span>
         );
         return (
@@ -77,15 +99,16 @@ export function LineView({
                 {words}
                 <span className="flex h-3 items-start gap-1.5 pl-0.5">
                   {segment.marks.flatMap(({ item, index: itemIndex }) => {
-                    if (item.type !== 'chord') {
+                    if (item.type !== "chord") {
                       return [];
                     }
                     const dot = (
                       // biome-ignore lint/correctness/useJsxKeyInIterable: the button/span branches below carry the key
                       <span
                         className={cn(
-                          'block size-1.5 rounded-full bg-chord/45 transition-all',
-                          activeItem === itemIndex && 'size-2.5 bg-chord shadow-glow',
+                          "block size-1.5 rounded-full bg-chord/45 transition-all",
+                          activeItem === itemIndex &&
+                            "size-2.5 bg-chord shadow-glow",
                         )}
                       />
                     );
@@ -118,7 +141,9 @@ export function LineView({
                       item={item}
                       active={activeItem === itemIndex}
                       onClick={
-                        item.type === 'chord' && onChord ? tap(item.chord, itemIndex) : undefined
+                        item.type === "chord" && onChord
+                          ? tap(item.chord, itemIndex)
+                          : undefined
                       }
                     />
                   ))}
@@ -136,7 +161,7 @@ export function LineView({
 export function TabView({ lines }: { lines: string[] }) {
   return (
     <pre className="overflow-x-auto rounded-md bg-muted/40 p-2 font-mono text-xs leading-5">
-      {lines.join('\n')}
+      {lines.join("\n")}
     </pre>
   );
 }

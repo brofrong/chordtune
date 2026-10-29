@@ -1,10 +1,10 @@
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import { cache } from 'react';
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { cache } from "react";
 
-import { ProfileView } from '@/features/profile/profile-view';
-import { resolveLocale } from '@/i18n/params';
-import { serverTrpc } from '@/lib/trpc-server';
+import { ProfileView } from "@/features/profile/profile-view";
+import { resolveLocale } from "@/i18n/params";
+import { serverTrpc } from "@/lib/trpc-server";
 
 // Route types are generated for `page.tsx` only, so the params of this web-only page are typed by hand.
 type Props = { params: Promise<{ locale: string; name: string }> };
@@ -23,7 +23,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return profile
     ? {
         title: `${profile.name} (@${profile.username})`,
-        openGraph: { title: profile.name, images: profile.image ? [profile.image] : [] },
+        openGraph: {
+          title: profile.name,
+          images: profile.image ? [profile.image] : [],
+        },
       }
     : {};
 }

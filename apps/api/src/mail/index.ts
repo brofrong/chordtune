@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
 
 export type Mail = { to: string; subject: string; text: string };
 export type Mailer = (mail: Mail) => Promise<void>;
@@ -20,7 +20,7 @@ export function createMailer({
   if (!smtpUrl) {
     return async (mail) => {
       if (production) {
-        throw new Error('SMTP_URL is not set');
+        throw new Error("SMTP_URL is not set");
       }
       console.info(`[mail] to ${mail.to}: ${mail.subject}\n${mail.text}`);
     };

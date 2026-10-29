@@ -1,17 +1,23 @@
-'use client';
+"use client";
 
-import type { TabBar, TabBeat, TabBlock, TabNote } from '@chordtune/chord-sheet';
-import { useLayoutEffect, useRef, useState } from 'react';
+import type {
+  TabBar,
+  TabBeat,
+  TabBlock,
+  TabNote,
+} from "@chordtune/chord-sheet";
+import { useLayoutEffect, useRef, useState } from "react";
 
-import type { ActiveBeat } from '@/features/rhythm/playback';
-import { cn } from '@/lib/utils';
+import type { ActiveBeat } from "@/features/rhythm/playback";
+import { cn } from "@/lib/utils";
+
 import {
-  type BeatLayout,
   beamGroups,
+  type BeatLayout,
   layoutTab,
   type RowLayout,
   tabBeatQuarters,
-} from './tab-layout';
+} from "./tab-layout";
 
 const STRING_GAP = 10;
 const TEXT_Y = 9;
@@ -58,16 +64,23 @@ export function TabStaff({
 }) {
   const [ref, width] = useWidth();
   const rows = layoutTab(block, width);
-  const hasLyrics = block.bars.some((bar) => bar.beats.some((beat) => beat.syllable));
+  const hasLyrics = block.bars.some((bar) =>
+    bar.beats.some((beat) => beat.syllable),
+  );
   const height = hasLyrics ? LYRICS_Y + 6 : RHYTHM_TOP + STEM + 6;
 
   return (
-    <div ref={ref} className={cn('flex flex-col gap-3 overflow-x-auto', className)}>
+    <div
+      ref={ref}
+      className={cn("flex flex-col gap-3 overflow-x-auto", className)}
+    >
       {rows.map((row) => {
         const first = row.bars[0]?.index ?? 0;
         const active =
           activeBeat !== null &&
-          row.beats.some((b) => b.bar === activeBeat.bar && b.beat === activeBeat.beat);
+          row.beats.some(
+            (b) => b.bar === activeBeat.bar && b.beat === activeBeat.beat,
+          );
         return (
           <div
             key={first}
@@ -76,7 +89,12 @@ export function TabStaff({
             // ignored) — zen mode reads this to glide smoothly from row to row.
             data-row-start-beat={tabBeatQuarters(block, first)}
           >
-            <svg width={row.width} height={height} className="block overflow-visible" aria-hidden>
+            <svg
+              width={row.width}
+              height={height}
+              className="block overflow-visible"
+              aria-hidden
+            >
               <Row block={block} row={row} activeBeat={activeBeat} />
             </svg>
           </div>
@@ -95,7 +113,8 @@ function Row({
   row: RowLayout;
   activeBeat: ActiveBeat | null;
 }) {
-  const beatOf = (layout: BeatLayout) => block.bars[layout.bar]?.beats[layout.beat];
+  const beatOf = (layout: BeatLayout) =>
+    block.bars[layout.bar]?.beats[layout.beat];
   const beamed = new Set(beamGroups(block, row).flat());
 
   return (
@@ -111,7 +130,12 @@ function Row({
         />
       ))}
       {row.bars.map((bar) => (
-        <BarLines key={bar.index} bar={block.bars[bar.index]} x={bar.x} width={bar.width} />
+        <BarLines
+          key={bar.index}
+          bar={block.bars[bar.index]}
+          x={bar.x}
+          width={bar.width}
+        />
       ))}
       <line
         x1={row.width}
@@ -132,11 +156,15 @@ function Row({
             key={`${layout.bar}:${layout.beat}`}
             beat={beat}
             layout={layout}
-            active={activeBeat?.bar === layout.bar && activeBeat.beat === layout.beat}
+            active={
+              activeBeat?.bar === layout.bar && activeBeat.beat === layout.beat
+            }
             beamed={beamed.has(layout)}
             target={(note) => {
               for (const next of following) {
-                const found = beatOf(next)?.notes.find((other) => other.string === note.string);
+                const found = beatOf(next)?.notes.find(
+                  (other) => other.string === note.string,
+                );
                 if (found) {
                   return { layout: next, note: found };
                 }
@@ -147,23 +175,47 @@ function Row({
         );
       })}
       {beamGroups(block, row).map((group) => (
-        <Beams key={`${group[0]?.bar}:${group[0]?.beat}`} group={group} beatOf={beatOf} />
+        <Beams
+          key={`${group[0]?.bar}:${group[0]?.beat}`}
+          group={group}
+          beatOf={beatOf}
+        />
       ))}
     </g>
   );
 }
 
-function BarLines({ bar, x, width }: { bar: TabBar | undefined; x: number; width: number }) {
+function BarLines({
+  bar,
+  x,
+  width,
+}: {
+  bar: TabBar | undefined;
+  x: number;
+  width: number;
+}) {
   const dots = (dx: number) =>
     [2.5, 4.5].map((string) => (
-      <circle key={string} cx={dx} cy={stringY(string)} r={1.8} className="fill-muted-foreground" />
+      <circle
+        key={string}
+        cx={dx}
+        cy={stringY(string)}
+        r={1.8}
+        className="fill-muted-foreground"
+      />
     ));
   return (
     <g className="stroke-muted-foreground">
       <line x1={x} x2={x} y1={TOP} y2={TOP + STAFF} />
       {bar?.repeatOpen && (
         <g>
-          <rect x={x + 1} y={TOP} width={2.5} height={STAFF} className="fill-muted-foreground" />
+          <rect
+            x={x + 1}
+            y={TOP}
+            width={2.5}
+            height={STAFF}
+            className="fill-muted-foreground"
+          />
           {dots(x + 8)}
         </g>
       )}
@@ -199,7 +251,7 @@ function Runs({
   row: RowLayout;
   beatOf: (layout: BeatLayout) => TabBeat | undefined;
 }) {
-  const runs = (flag: 'palmMute' | 'letRing') => {
+  const runs = (flag: "palmMute" | "letRing") => {
     const result: BeatLayout[][] = [];
     for (const layout of row.beats) {
       if (!beatOf(layout)?.[flag]) {
@@ -207,7 +259,11 @@ function Runs({
       }
       const last = result.at(-1);
       const previous = last?.at(-1);
-      if (last && previous && row.beats.indexOf(previous) === row.beats.indexOf(layout) - 1) {
+      if (
+        last &&
+        previous &&
+        row.beats.indexOf(previous) === row.beats.indexOf(layout) - 1
+      ) {
         last.push(layout);
       } else {
         result.push([layout]);
@@ -223,7 +279,11 @@ function Runs({
     }
     return (
       <g key={`${label}:${first.bar}:${first.beat}`}>
-        <text x={first.x - 6} y={MARK_Y} className="fill-muted-foreground text-[9px]">
+        <text
+          x={first.x - 6}
+          y={MARK_Y}
+          className="fill-muted-foreground text-[9px]"
+        >
           {label}
         </text>
         {last !== first && (
@@ -241,8 +301,8 @@ function Runs({
   };
   return (
     <g>
-      {runs('palmMute').map((run) => draw('P.M.', run))}
-      {runs('letRing').map((run) => draw('let ring', run))}
+      {runs("palmMute").map((run) => draw("P.M.", run))}
+      {runs("letRing").map((run) => draw("let ring", run))}
     </g>
   );
 }
@@ -274,16 +334,32 @@ function Beat({
         />
       )}
       {beat.text && (
-        <text x={x} y={TEXT_Y} textAnchor="middle" className="fill-muted-foreground text-[10px]">
+        <text
+          x={x}
+          y={TEXT_Y}
+          textAnchor="middle"
+          className="fill-muted-foreground text-[10px]"
+        >
           {beat.text}
         </text>
       )}
       {beat.notes.map((note) => (
-        <NoteMark key={note.string} note={note} x={x} active={active} target={target(note)} />
+        <NoteMark
+          key={note.string}
+          note={note}
+          x={x}
+          active={active}
+          target={target(note)}
+        />
       ))}
       <Rhythm beat={beat} x={x} beamed={beamed} />
       {beat.syllable && (
-        <text x={x} y={LYRICS_Y} textAnchor="middle" className="fill-foreground text-[12px]">
+        <text
+          x={x}
+          y={LYRICS_Y}
+          textAnchor="middle"
+          className="fill-foreground text-[12px]"
+        >
           {beat.syllable}
         </text>
       )}
@@ -304,14 +380,16 @@ function NoteMark({
 }) {
   const y = stringY(note.string);
   const label = note.unreachable
-    ? '?'
-    : note.fret === 'x'
-      ? 'x'
+    ? "?"
+    : note.fret === "x"
+      ? "x"
       : note.tie
         ? `(${note.fret})`
         : String(note.fret);
   const up =
-    target && typeof target.note.fret === 'number' && typeof note.fret === 'number'
+    target &&
+    typeof target.note.fret === "number" &&
+    typeof note.fret === "number"
       ? target.note.fret > note.fret
       : true;
   const bend = note.effects.bend ? Math.max(...note.effects.bend) : 0;
@@ -328,7 +406,7 @@ function NoteMark({
             textAnchor="middle"
             className="fill-muted-foreground stroke-none text-[9px]"
           >
-            {up ? 'h' : 'p'}
+            {up ? "h" : "p"}
           </text>
         </g>
       )}
@@ -344,14 +422,16 @@ function NoteMark({
       {bend > 0 && (
         <g className="fill-none stroke-muted-foreground">
           <path d={`M ${x + 7} ${y} Q ${x + 14} ${y} ${x + 14} ${TOP - 4}`} />
-          <path d={`M ${x + 11} ${TOP - 1} L ${x + 14} ${TOP - 6} L ${x + 17} ${TOP - 1}`} />
+          <path
+            d={`M ${x + 11} ${TOP - 1} L ${x + 14} ${TOP - 6} L ${x + 17} ${TOP - 1}`}
+          />
           <text
             x={x + 14}
             y={TOP - 8}
             textAnchor="middle"
             className="fill-muted-foreground stroke-none text-[9px]"
           >
-            {bend === 2 ? '½' : bend === 4 ? 'full' : String(bend / 4)}
+            {bend === 2 ? "½" : bend === 4 ? "full" : String(bend / 4)}
           </text>
         </g>
       )}
@@ -368,8 +448,12 @@ function NoteMark({
         textAnchor="middle"
         paintOrder="stroke"
         className={cn(
-          'stroke-[4px] stroke-background font-mono text-[11px]',
-          note.unreachable ? 'fill-destructive' : active ? 'fill-primary' : 'fill-foreground',
+          "stroke-[4px] stroke-background font-mono text-[11px]",
+          note.unreachable
+            ? "fill-destructive"
+            : active
+              ? "fill-primary"
+              : "fill-foreground",
         )}
       >
         {label}
@@ -378,7 +462,15 @@ function NoteMark({
   );
 }
 
-function Rhythm({ beat, x, beamed }: { beat: TabBeat; x: number; beamed: boolean }) {
+function Rhythm({
+  beat,
+  x,
+  beamed,
+}: {
+  beat: TabBeat;
+  x: number;
+  beamed: boolean;
+}) {
   const bottom = RHYTHM_TOP + STEM;
   if (beat.notes.length === 0) {
     return (
@@ -407,7 +499,12 @@ function Rhythm({ beat, x, beamed }: { beat: TabBeat; x: number; beamed: boolean
         />
       ))}
       {beat.dotted && (
-        <circle cx={x + 4} cy={bottom - 2} r={1.5} className="fill-muted-foreground" />
+        <circle
+          cx={x + 4}
+          cy={bottom - 2}
+          r={1.5}
+          className="fill-muted-foreground"
+        />
       )}
       {beat.tuplet && !beamed && (
         <text
@@ -436,7 +533,9 @@ function Beams({
     return null;
   }
   const beats = group.map(beatOf);
-  const count = Math.min(...beats.map((beat) => beamCount(beat?.duration ?? 8)));
+  const count = Math.min(
+    ...beats.map((beat) => beamCount(beat?.duration ?? 8)),
+  );
   const bottom = RHYTHM_TOP + STEM;
   const tuplet = beats[0]?.tuplet;
   return (

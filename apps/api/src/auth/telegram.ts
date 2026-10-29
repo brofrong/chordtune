@@ -1,5 +1,6 @@
-import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
-import { z } from 'zod';
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+
+import { z } from "zod";
 
 export const TELEGRAM_MAX_AGE_SECONDS = 600;
 
@@ -30,12 +31,16 @@ export function verifyTelegramLogin(
     return null;
   }
   const check = Object.keys(data)
-    .filter((key) => key !== 'hash' && data[key] !== undefined && data[key] !== null)
+    .filter(
+      (key) => key !== "hash" && data[key] !== undefined && data[key] !== null,
+    )
     .sort()
     .map((key) => `${key}=${String(data[key])}`)
-    .join('\n');
-  const secret = createHash('sha256').update(botToken).digest();
-  const expected = Buffer.from(createHmac('sha256', secret).update(check).digest('hex'));
+    .join("\n");
+  const secret = createHash("sha256").update(botToken).digest();
+  const expected = Buffer.from(
+    createHmac("sha256", secret).update(check).digest("hex"),
+  );
   const given = Buffer.from(parsed.data.hash);
   if (expected.length !== given.length || !timingSafeEqual(expected, given)) {
     return null;

@@ -1,42 +1,42 @@
-import type { BetterAuthPlugin } from 'better-auth';
-import { eq, isNull, like, or } from 'drizzle-orm';
+import type { BetterAuthPlugin } from "better-auth";
+import { eq, isNull, like, or } from "drizzle-orm";
 
-import type { Database } from '../db';
-import { user } from '../db/schema';
-import { toLatin } from '../lib/translit';
-import { isPlaceholderEmail } from './placeholder-email';
+import type { Database } from "../db";
+import { user } from "../db/schema";
+import { toLatin } from "../lib/translit";
+import { isPlaceholderEmail } from "./placeholder-email";
 
 const MIN = 3;
 const MAX = 30;
 
 /** Path segments and words that would read as official if someone took them. */
 export const RESERVED_USERNAMES: ReadonlySet<string> = new Set([
-  'admin',
-  'administrator',
-  'api',
-  'app',
-  'auth',
-  'chordtune',
-  'edit',
-  'help',
-  'login',
-  'logout',
-  'me',
-  'moderator',
-  'new',
-  'null',
-  'profile',
-  'root',
-  'security',
-  'settings',
-  'signin',
-  'signup',
-  'support',
-  'system',
-  'u',
-  'undefined',
-  'user',
-  'users',
+  "admin",
+  "administrator",
+  "api",
+  "app",
+  "auth",
+  "chordtune",
+  "edit",
+  "help",
+  "login",
+  "logout",
+  "me",
+  "moderator",
+  "new",
+  "null",
+  "profile",
+  "root",
+  "security",
+  "settings",
+  "signin",
+  "signup",
+  "support",
+  "system",
+  "u",
+  "undefined",
+  "user",
+  "users",
 ]);
 
 export function isValidUsername(value: string) {
@@ -46,16 +46,18 @@ export function isValidUsername(value: string) {
 function clean(value: string) {
   return toLatin(value)
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
     .slice(0, MAX)
-    .replace(/_+$/, '');
+    .replace(/_+$/, "");
 }
 
 /** A valid starting point for a username; `uniqueUsername` resolves collisions. */
-export function usernameBase(candidates: (string | null | undefined)[]): string {
+export function usernameBase(
+  candidates: (string | null | undefined)[],
+): string {
   for (const candidate of candidates) {
-    let base = candidate ? clean(candidate) : '';
+    let base = candidate ? clean(candidate) : "";
     if (!base) {
       continue;
     }
@@ -67,11 +69,14 @@ export function usernameBase(candidates: (string | null | undefined)[]): string 
     }
     return base;
   }
-  return 'user';
+  return "user";
 }
 
 /** `base`, or `base2`, `base3`… whichever is free. Suffixes may push past 30 characters, so trim first. */
-export async function uniqueUsername(db: Database, base: string): Promise<string> {
+export async function uniqueUsername(
+  db: Database,
+  base: string,
+): Promise<string> {
   const taken = new Set(
     (
       await db
@@ -80,7 +85,7 @@ export async function uniqueUsername(db: Database, base: string): Promise<string
         .where(or(eq(user.username, base), like(user.username, `${base}%`)))
     ).map((row) => row.username),
   );
-  if (!taken.has(base) && base !== 'user') {
+  if (!taken.has(base) && base !== "user") {
     return base;
   }
   for (let n = 2; ; n++) {
@@ -93,9 +98,17 @@ export async function uniqueUsername(db: Database, base: string): Promise<string
 }
 
 /** Where a new user's username comes from, best first. */
-export function usernameHints(data: { email: string; name: string; username?: string | null }) {
-  const local = isPlaceholderEmail(data.email) ? null : data.email.split('@')[0];
-  return [data.username, local, data.name].filter((value): value is string => Boolean(value));
+export function usernameHints(data: {
+  email: string;
+  name: string;
+  username?: string | null;
+}) {
+  const local = isPlaceholderEmail(data.email)
+    ? null
+    : data.email.split("@")[0];
+  return [data.username, local, data.name].filter((value): value is string =>
+    Boolean(value),
+  );
 }
 
 /**
@@ -113,7 +126,7 @@ export function usernameHints(data: { email: string; name: string; username?: st
  */
 export function usernameGenerator(db: Database): BetterAuthPlugin {
   return {
-    id: 'username-generator',
+    id: "username-generator",
     init: () => ({
       options: {
         databaseHooks: {
@@ -122,7 +135,10 @@ export function usernameGenerator(db: Database): BetterAuthPlugin {
               before: async (data) => ({
                 data: {
                   ...data,
-                  username: await uniqueUsername(db, usernameBase(usernameHints(data))),
+                  username: await uniqueUsername(
+                    db,
+                    usernameBase(usernameHints(data)),
+                  ),
                 },
               }),
             },

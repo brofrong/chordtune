@@ -1,19 +1,19 @@
-'use client';
+"use client";
 
-import { midiToHz, midiToNoteName, type Tuning } from '@chordtune/audio';
-import { playReferenceTone } from '@chordtune/audio/browser';
-import { Check } from 'lucide-react';
-import { motion } from 'motion/react';
-import { useTranslations } from 'next-intl';
+import { midiToHz, midiToNoteName, type Tuning } from "@chordtune/audio";
+import { playReferenceTone } from "@chordtune/audio/browser";
+import { Check } from "lucide-react";
+import { motion } from "motion/react";
+import { useTranslations } from "next-intl";
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
-import type { TuneZone } from './reading';
+import type { TuneZone } from "./reading";
 
 const ZONE_RING: Record<TuneZone, string> = {
-  in: 'border-tune-in text-tune-in',
-  near: 'border-tune-near text-tune-near',
-  off: 'border-tune-off text-tune-off',
+  in: "border-tune-in text-tune-in",
+  near: "border-tune-near text-tune-near",
+  off: "border-tune-off text-tune-off",
 };
 
 export function StringRow({
@@ -33,7 +33,7 @@ export function StringRow({
   tuned: ReadonlySet<number>;
   onLock: (index: number | null) => void;
 }) {
-  const t = useTranslations('tuner');
+  const t = useTranslations("tuner");
 
   return (
     <div className="flex flex-col items-center gap-3">
@@ -50,7 +50,7 @@ export function StringRow({
               type="button"
               whileTap={{ scale: 0.92 }}
               aria-pressed={locked}
-              aria-label={t('playTone', { note: `${name}${octave}` })}
+              aria-label={t("playTone", { note: `${name}${octave}` })}
               onClick={() => {
                 onLock(locked ? null : index);
                 if (!locked) {
@@ -58,15 +58,20 @@ export function StringRow({
                 }
               }}
               className={cn(
-                'relative flex size-12 items-center justify-center rounded-full border font-semibold text-lg transition-colors',
-                active && zone ? ZONE_RING[zone] : 'border-border text-foreground',
-                locked && 'bg-muted ring-2 ring-primary/60 ring-offset-2 ring-offset-background',
+                "relative flex size-12 items-center justify-center rounded-full border font-semibold text-lg transition-colors",
+                active && zone
+                  ? ZONE_RING[zone]
+                  : "border-border text-foreground",
+                locked &&
+                  "bg-muted ring-2 ring-primary/60 ring-offset-2 ring-offset-background",
               )}
             >
               {/* Trimmed to the capitals so the note itself, not its line box, sits in the middle. */}
               <span className="block leading-none [text-box:trim-both_cap_alphabetic]">
                 {name}
-                <span className="font-normal text-[10px] text-muted-foreground">{octave}</span>
+                <span className="font-normal text-[10px] text-muted-foreground">
+                  {octave}
+                </span>
               </span>
               {isTuned && (
                 <motion.span
@@ -86,13 +91,13 @@ export function StringRow({
         aria-pressed={lockedIndex == null}
         onClick={() => onLock(null)}
         className={cn(
-          'h-7 rounded-full border px-3 text-xs transition-colors',
+          "h-7 rounded-full border px-3 text-xs transition-colors",
           lockedIndex == null
-            ? 'border-primary/60 bg-primary/10 text-primary'
-            : 'border-border text-muted-foreground hover:text-foreground',
+            ? "border-primary/60 bg-primary/10 text-primary"
+            : "border-border text-muted-foreground hover:text-foreground",
         )}
       >
-        {t('auto')}
+        {t("auto")}
       </button>
     </div>
   );

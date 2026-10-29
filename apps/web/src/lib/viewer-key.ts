@@ -1,4 +1,4 @@
-const VIEWER_KEY = 'chordtune.viewer';
+const VIEWER_KEY = "chordtune.viewer";
 
 /** A random id for this device, so guest views count once a day like signed-in ones. */
 export function viewerKey(): string {

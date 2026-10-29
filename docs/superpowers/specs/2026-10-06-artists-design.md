@@ -45,7 +45,7 @@ functions tested on recorded responses; requests go through an injected `fetch` 
   query, since Deezer allows 50 requests per 5 s per IP and every user's typing goes through our
   one server.
 - `getDeezerArtist(id)`: `api.deezer.com/artist/<id>`: `{ deezerId, name, pictureUrl,
-  pictureSmallUrl }`, or `null` when Deezer has no such artist.
+pictureSmallUrl }`, or `null` when Deezer has no such artist.
 - `findWikidata({ deezerId, name })`: the entity with the statement "Deezer artist ID" (P2722) equal
   to `deezerId`; failing that, the first `wbsearchentities` result whose label equals `name`
   case-insensitively and that has a "MusicBrainz artist ID" (P434), which only musicians have, so

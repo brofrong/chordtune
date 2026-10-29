@@ -1,4 +1,7 @@
-export function applyHannWindow(samples: ArrayLike<number>, out: Float32Array): void {
+export function applyHannWindow(
+  samples: ArrayLike<number>,
+  out: Float32Array,
+): void {
   const n = out.length;
   for (let i = 0; i < n; i++) {
     const window = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (n - 1)));
@@ -61,8 +64,11 @@ export function fftMagnitudes(realInput: Float32Array): Float32Array {
   return magnitudes;
 }
 
-export function downsampleSigned(values: ArrayLike<number>, buckets: number): number[] {
-  const out: number[] = new Array(buckets).fill(0);
+export function downsampleSigned(
+  values: ArrayLike<number>,
+  buckets: number,
+): number[] {
+  const out: number[] = Array.from({ length: buckets }, () => 0);
   if (values.length === 0 || buckets === 0) {
     return out;
   }
@@ -81,8 +87,11 @@ export function spectrumToDbBars(
   bars: number,
 ): number[] {
   const binHz = sampleRate / (magnitudes.length * 2);
-  const maxBin = Math.max(1, Math.min(magnitudes.length, Math.floor(maxHz / binHz)));
-  const out: number[] = new Array(bars).fill(0);
+  const maxBin = Math.max(
+    1,
+    Math.min(magnitudes.length, Math.floor(maxHz / binHz)),
+  );
+  const out: number[] = Array.from({ length: bars }, () => 0);
   const bucketSize = maxBin / bars;
 
   for (let i = 0; i < bars; i++) {

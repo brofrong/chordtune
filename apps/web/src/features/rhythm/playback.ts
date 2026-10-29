@@ -5,7 +5,7 @@ import {
   scheduleTab,
   strumShape,
   voicingFor,
-} from '@chordtune/audio';
+} from "@chordtune/audio";
 import {
   barBeats,
   chordKey,
@@ -13,33 +13,47 @@ import {
   type SongDoc,
   type SongTuning,
   songTuning,
+  tabBeats,
   type TabBeatTime,
   type TabBlock,
-  type TimelineEvent,
-  tabBeats,
   timeline,
+  type TimelineEvent,
   type Voicings,
-} from '@chordtune/chord-sheet';
+} from "@chordtune/chord-sheet";
 
 export const DEFAULT_BPM = 90;
-export const DEFAULT_PREVIEW_CHORD = 'Am';
+export const DEFAULT_PREVIEW_CHORD = "Am";
 
 /** How the song sounds: capo, tuning and the author's shapes. */
-export type SongSound = { capo: number | null; tuning: SongTuning; voicings: Voicings };
+export type SongSound = {
+  capo: number | null;
+  tuning: SongTuning;
+  voicings: Voicings;
+};
 
 /** `speed` plays everything that many times faster; tempo and bars stay as written. */
-export type PlaybackOptions = { bpm: number; speed?: number } & Partial<SongSound>;
+export type PlaybackOptions = {
+  bpm: number;
+  speed?: number;
+} & Partial<SongSound>;
 
 export function songSound(source: {
   capo: number | null;
   tuning?: string | null;
   voicings?: Voicings | null;
 }): SongSound {
-  return { capo: source.capo, tuning: songTuning(source.tuning), voicings: source.voicings ?? {} };
+  return {
+    capo: source.capo,
+    tuning: songTuning(source.tuning),
+    voicings: source.voicings ?? {},
+  };
 }
 
 /** Capo plus the tuning's shift: how far every fretted note is moved. */
-function soundCapo(capo: number | null | undefined, tuning: SongTuning): number {
+function soundCapo(
+  capo: number | null | undefined,
+  tuning: SongTuning,
+): number {
   return (capo ?? 0) + tuning.shift;
 }
 
@@ -48,7 +62,11 @@ export function shapePlayback(
   shape: readonly (number | null)[],
   sound: SongSound,
 ): ScheduledNote[] {
-  return strumShape(shape, sound.tuning.strings, soundCapo(sound.capo, sound.tuning));
+  return strumShape(
+    shape,
+    sound.tuning.strings,
+    soundCapo(sound.capo, sound.tuning),
+  );
 }
 
 export type SongPlayback = {
@@ -69,20 +87,28 @@ export type PlayingAt = {
 };
 
 function atSpeed(notes: ScheduledNote[], speed: number): ScheduledNote[] {
-  return speed === 1 ? notes : notes.map((note) => ({ ...note, time: note.time / speed }));
+  return speed === 1
+    ? notes
+    : notes.map((note) => ({ ...note, time: note.time / speed }));
 }
 
 function schedule(
   events: TimelineEvent[],
   rhythms: Rhythm[],
-  { bpm, capo, speed = 1, tuning = songTuning('standard'), voicings = {} }: PlaybackOptions,
+  {
+    bpm,
+    capo,
+    speed = 1,
+    tuning = songTuning("standard"),
+    voicings = {},
+  }: PlaybackOptions,
 ): SongPlayback {
   const seconds = eventSeconds(events, rhythms, bpm).map(({ start, end }) => ({
     start: start / speed,
     end: end / speed,
   }));
   const beatStarts = events.map((event, index) => {
-    if (event.kind !== 'tab') {
+    if (event.kind !== "tab") {
       return null;
     }
     const quarterSec = 60 / (event.tempo ?? bpm) / speed;
@@ -91,7 +117,9 @@ function schedule(
   });
   const voicing = (chord: string) => {
     const key = chordKey(chord);
-    return (key ? voicings[key] : undefined) ?? voicingFor(chord, tuning.strings);
+    return (
+      (key ? voicings[key] : undefined) ?? voicingFor(chord, tuning.strings)
+    );
   };
   const notes = atSpeed(
     scheduleNotes(events, rhythms, {
@@ -106,9 +134,13 @@ function schedule(
 }
 
 /** One bar of a pattern on one chord, to loop in the pattern editor. */
-export function patternPlayback(rhythm: Rhythm, chord: string, options: PlaybackOptions) {
+export function patternPlayback(
+  rhythm: Rhythm,
+  chord: string,
+  options: PlaybackOptions,
+) {
   const event: TimelineEvent = {
-    kind: 'chord',
+    kind: "chord",
     chord,
     rhythm: rhythm.key,
     tempo: null,
@@ -126,7 +158,11 @@ export function patternPlayback(rhythm: Rhythm, chord: string, options: Playback
 }
 
 /** The whole song in time, for «Послушать». */
-export function songPlayback(doc: SongDoc, rhythms: Rhythm[], options: PlaybackOptions) {
+export function songPlayback(
+  doc: SongDoc,
+  rhythms: Rhythm[],
+  options: PlaybackOptions,
+) {
   return schedule(timeline(doc, rhythms), rhythms, options);
 }
 
@@ -147,13 +183,17 @@ export function sectionPlayback(
 /** One tab block on its own; `options.bpm` is the tempo around it, `\tempo` wins. */
 export function tabPlayback(
   block: TabBlock,
-  { bpm, capo, speed = 1, tuning = songTuning('standard') }: PlaybackOptions,
+  { bpm, capo, speed = 1, tuning = songTuning("standard") }: PlaybackOptions,
 ) {
   const tempo = block.tempo ?? bpm;
   const beats = tabBeats(block);
   return {
     notes: atSpeed(
-      scheduleTab(block, { bpm: tempo, capo: soundCapo(capo, tuning), strings: tuning.strings }),
+      scheduleTab(block, {
+        bpm: tempo,
+        capo: soundCapo(capo, tuning),
+        strings: tuning.strings,
+      }),
       speed,
     ),
     beats,
@@ -165,19 +205,32 @@ export function beatAt(
   playback: { beats: TabBeatTime[]; beatStarts: number[] },
   position: number,
 ): ActiveBeat | null {
-  const beat = playback.beats[playback.beatStarts.findLastIndex((start) => start <= position)];
+  const beat =
+    playback.beats[
+      playback.beatStarts.findLastIndex((start) => start <= position)
+    ];
   return beat ? { bar: beat.bar, beat: beat.beat } : null;
 }
 
 /** What sounds at `position` seconds: a chord item or a tab beat. */
-export function playingAt(playback: SongPlayback, position: number): PlayingAt | null {
-  const index = playback.seconds.findIndex((span) => position >= span.start && position < span.end);
+export function playingAt(
+  playback: SongPlayback,
+  position: number,
+): PlayingAt | null {
+  const index = playback.seconds.findIndex(
+    (span) => position >= span.start && position < span.end,
+  );
   const event = playback.events[index];
   if (!event) {
     return null;
   }
-  if (event.kind === 'chord') {
-    return { section: event.section, line: event.line, item: event.item, beat: null };
+  if (event.kind === "chord") {
+    return {
+      section: event.section,
+      line: event.line,
+      item: event.item,
+      beat: null,
+    };
   }
   const starts = playback.beatStarts[index] ?? [];
   const beat = tabBeats(event.block)[

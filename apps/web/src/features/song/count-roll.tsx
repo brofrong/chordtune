@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { AnimatePresence, motion } from 'motion/react';
-import { useRef } from 'react';
+import { AnimatePresence, motion } from "motion/react";
+import { useRef } from "react";
 
-import { formatCount } from '@/lib/format';
+import { formatCount } from "@/lib/format";
 
 /** A counter whose digits roll up when it grows and down when it shrinks. */
 export function CountRoll({ value }: { value: number }) {
@@ -19,7 +19,7 @@ export function CountRoll({ value }: { value: number }) {
           initial={{ y: `${direction * 100}%`, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: `${direction * -100}%`, opacity: 0 }}
-          transition={{ type: 'spring', stiffness: 420, damping: 26 }}
+          transition={{ type: "spring", stiffness: 420, damping: 26 }}
         >
           {formatCount(value)}
         </motion.span>

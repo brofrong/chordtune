@@ -19,10 +19,10 @@ export function androidAssetLinks(sha256CertFingerprint: string | undefined) {
   }
   return [
     {
-      relation: ['delegate_permission/common.get_login_creds'],
+      relation: ["delegate_permission/common.get_login_creds"],
       target: {
-        namespace: 'android_app',
-        package_name: 'app.chordtune',
+        namespace: "android_app",
+        package_name: "app.chordtune",
         sha256_cert_fingerprints: [sha256CertFingerprint.toUpperCase()],
       },
     },

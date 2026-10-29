@@ -1,8 +1,8 @@
-import { hasLocale } from 'next-intl';
+import { hasLocale } from "next-intl";
 
-import { type Locale, routing } from '@/i18n/routing';
+import { type Locale, routing } from "@/i18n/routing";
 
-const STORAGE_KEY = 'chordtune.locale';
+const STORAGE_KEY = "chordtune.locale";
 
 export function preferredLocale(): Locale {
   const saved = readStorage();
@@ -10,7 +10,7 @@ export function preferredLocale(): Locale {
     return saved;
   }
   for (const language of navigator.languages ?? [navigator.language]) {
-    const base = language.split('-')[0];
+    const base = language.split("-")[0];
     if (hasLocale(routing.locales, base)) {
       return base;
     }

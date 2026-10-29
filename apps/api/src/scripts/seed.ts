@@ -1,29 +1,35 @@
-import { readdirSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-import { importObsidian } from '@chordtune/chord-sheet';
-import { and, eq, sql } from 'drizzle-orm';
+import { readdirSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 
-import { db } from '../db';
-import { migrateDatabase } from '../db/migrate';
-import { artist, song } from '../db/schema';
-import { noopSearch } from '../search';
-import { search } from '../search/client';
-import { reindexAll } from '../search/documents';
-import { saveArrangement } from '../services/save-arrangement';
+import { importObsidian } from "@chordtune/chord-sheet";
+import { and, eq, sql } from "drizzle-orm";
 
-const DEMO_EMAIL = 'demo@chordtune.local';
-const DEMO_PASSWORD = 'demo-password-123';
-const DEFAULT_DIR = join(import.meta.dir, '../../../../packages/chord-sheet/fixtures/obsidian');
+import { db } from "../db";
+import { migrateDatabase } from "../db/migrate";
+import { artist, song } from "../db/schema";
+import { noopSearch } from "../search";
+import { search } from "../search/client";
+import { reindexAll } from "../search/documents";
+import { saveArrangement } from "../services/save-arrangement";
+
+const DEMO_EMAIL = "demo@chordtune.local";
+const DEMO_PASSWORD = "demo-password-123";
+const DEFAULT_DIR = join(
+  import.meta.dir,
+  "../../../../packages/chord-sheet/fixtures/obsidian",
+);
 
 async function demoUserId(): Promise<string> {
-  const existing = await db.query.user.findFirst({ where: { email: DEMO_EMAIL } });
+  const existing = await db.query.user.findFirst({
+    where: { email: DEMO_EMAIL },
+  });
   if (existing) {
     return existing.id;
   }
   // Loaded lazily: `auth` reads its secret from a table that only exists after migrating.
-  const { auth } = await import('../auth');
+  const { auth } = await import("../auth");
   const { user: created } = await auth.api.signUpEmail({
-    body: { email: DEMO_EMAIL, password: DEMO_PASSWORD, name: 'Demo' },
+    body: { email: DEMO_EMAIL, password: DEMO_PASSWORD, name: "Demo" },
   });
   return created.id;
 }
@@ -47,8 +53,13 @@ await migrateDatabase();
 const dir = resolve(process.argv[2] ?? DEFAULT_DIR);
 const authorId = await demoUserId();
 
-for (const fileName of readdirSync(dir).filter((name) => name.endsWith('.md'))) {
-  const imported = importObsidian(readFileSync(join(dir, fileName), 'utf8'), fileName);
+for (const fileName of readdirSync(dir).filter((name) =>
+  name.endsWith(".md"),
+)) {
+  const imported = importObsidian(
+    readFileSync(join(dir, fileName), "utf8"),
+    fileName,
+  );
   if (await songExists(imported.artist, imported.title)) {
     console.log(`skip  ${imported.artist} — ${imported.title}`);
     continue;
@@ -64,7 +75,7 @@ for (const fileName of readdirSync(dir).filter((name) => name.endsWith('.md'))) 
       tempo: imported.tempo,
       key: null,
       notes: imported.notes,
-      tuning: 'standard',
+      tuning: "standard",
       voicings: {},
       zenMode: null,
     },
@@ -73,6 +84,8 @@ for (const fileName of readdirSync(dir).filter((name) => name.endsWith('.md'))) 
 }
 
 const counts = await reindexAll(db, search);
-console.log(`Indexed ${counts.artists} artists and ${counts.arrangements} arrangements`);
+console.log(
+  `Indexed ${counts.artists} artists and ${counts.arrangements} arrangements`,
+);
 console.log(`Demo user: ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
 process.exit(0);

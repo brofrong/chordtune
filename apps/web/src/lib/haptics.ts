@@ -1,5 +1,5 @@
-import { Capacitor } from '@capacitor/core';
-import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { Capacitor } from "@capacitor/core";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
 
 /** A light tap on phones; nothing in the browser. */
 export function tapHaptic() {
